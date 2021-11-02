@@ -1,0 +1,56 @@
+## HV Scan runs:
+#PS
+run 433 : peak 20mV
+run 434 : peak ~20mV, hist limit (0,40)
+run 435 : peak ~25mV, hist limit (0,40)
+run 436 : peak ~30mV, (0,50)
+run 437
+run 438 : ~10
+run 439
+run 443 
+run 444
+
+Don't inclue 444
+
+
+#SH
+run 433 : peak 20mV, (0,40)
+run 434 : peak ~20mV, hist limit (0,40)
+run 435 : peak ~25mV, hist limit (0,40)
+run 436 : peak ~30mV, (0,50)
+run 437  (0,25)
+run 438  (0,25)
+run 439  (0,25)
+run 443 : peak ~13mV, (0,25)
+run 444 : peak ~10mV, (0,25)
+
+10546 = 433 + 10
+10547 = 433 + 20
+436 = 433 + 50
+
+434 = 433 - 10
+435 = 433 - 20
+
+437 = 433 - 50
+
+443 = 433 - 70
+444 = 433 - 90 
+
+438 -> Fitted run for 10mV
+439 -> Fitted run for 10mV (corrected)
+
+Got one good batch of alpha:
+1. PS : 433, 435, 437, 443 : run_433_443_alpha_ps.txt, hv_updated_ps_433_443.set
+hv_fit_ps_433_443.pdf
+
+2. SH : 433, 434, 435, 437 : run_433_437_alpha.txt, hv_fit_433_437.pdf, hv_updated_sh_433_437.set 
+
+   SH : New: 436, 433, 434, 435, 437, 443 : Looks good other than 14.2
+   SH : Old: 10546, 10547, 436, 433, 434, 435, 437
+   Note: The new fit works better than the old for most of the channels other than:
+   	 5.1, 7.4, 11.4, Row 12, Row 13, Row 16, 17.3, Row 18, 19.1, 19.3, Row 20, 22.3, 23.3, 
+	 24.2, 24.3, 26.2 
+	 I am replacing these values of alphas and HVs in the "new" fit-results to get the golden alpha		values.
+
+	 14.2 doesn't look good in either of the above fits! So we are using the following combiation,
+	 SH : 10546, 10547, 436, 434, 435, 437
