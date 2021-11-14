@@ -1,10 +1,9 @@
 /*
- This macro performs the analysis of cosmic data for BigBite Shower.
- For proper execution follow : How-to/Cosmic_data_analysis.pdf
- ----
- P. Datta  <pdbforce@jlab.org>  Created  15 Feb 2021
+  This macro performs the analysis of cosmic data for BigBite Shower.
+  For proper execution follow : How-to/Cosmic_data_analysis.pdf
+  ----
+  P. Datta  <pdbforce@jlab.org>  Created  15 Feb 2021
 */
-
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -73,7 +72,7 @@ namespace psgui {
 
     TGCompositeFrame *fF5 = new TGCompositeFrame(tf, (12+1)*kCanvSize,(6+1)*kCanvSize , kHorizontalFrame);
     TGLayoutHints *fL4 = new TGLayoutHints(kLHintsTop | kLHintsLeft | kLHintsExpandX |
-        kLHintsExpandY, 5, 5, 5, 5);
+					   kLHintsExpandY, 5, 5, 5, 5);
     TRootEmbeddedCanvas *fEc1 = new TRootEmbeddedCanvas(Form("psSubCanv%d",sub), fF5, 6*kCanvSize,8*kCanvSize);
     canv[sub] = fEc1;
     fF5->AddFrame(fEc1,fL4);
@@ -115,6 +114,7 @@ namespace psgui {
     }
   }
 };
+
 
 // Main
 void bbps_cos_cal ( int nrun = 366, int event = -1 ){
@@ -213,7 +213,6 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
     }
   }
   
-  cout << endl;
   Long64_t nevents = T->GetEntries();
 
   // initializing flags and arrays
@@ -227,7 +226,7 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
     }  
   }
 
-  cout << "Processing " << nevents << " events ...." << endl;
+  cout << endl << "Processing " << nevents << " events ...." << endl;
 
   // Looping through events
   double progress = 0.;
@@ -264,18 +263,23 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
       	Pars[i] = 0.;
       	ParErrs[i] = 0.;
       }
+
+      sub = r/7;
+      subCanv[sub]->cd((r%7)*kNcols + c + 1);
+
+      int lowerBinC = hADCamp_min;
+      int upperBinC = hADCamp_max;
+      int maxBin = hADCamp[r][c]->GetMaximumBin();
+      double maxBinCenter = hADCamp[r][c]->GetXaxis()->GetBinCenter( maxBin );
+      double maxCount = hADCamp[r][c]->GetMaximum();
+      double binWidth = hADCamp[r][c]->GetBinWidth(maxBin);
+      double stdDev = hADCamp[r][c]->GetStdDev();
       
-      if( hADCamp[r][c]->GetEntries() > 0. ){
+      if( hADCamp[r][c]->GetEntries()>20 && stdDev>4.*binWidth){
+
 	// Create fit functions for each module
 	fgaus->SetLineColor(2);
 	fgaus->SetNpx(1000);
-
-	// first fit
-	int maxBin = hADCamp[r][c]->GetMaximumBin();
-	double maxBinCenter = hADCamp[r][c]->GetXaxis()->GetBinCenter( maxBin );
-	double maxCount = hADCamp[r][c]->GetMaximum();
-	double binWidth = hADCamp[r][c]->GetBinWidth(maxBin);
-	double stdDev = hADCamp[r][c]->GetStdDev();
 
 	// Reject low energy peak
 	//if( hADCamp[r][c]->GetBinContent(maxBin-2) < 0.02*hADCamp[r][c]->GetBinContent(maxBin) ){ 
@@ -284,7 +288,7 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
 	  while ( hADCamp[r][c]->GetBinContent(maxBin+1) < hADCamp[r][c]->GetBinContent(maxBin) || 
 		  hADCamp[r][c]->GetBinContent(maxBin+1) == hADCamp[r][c]->GetBinContent(maxBin) ) 
 	    {
-	 	maxBin++;
+	      maxBin++;
 	    };
 	  hADCamp[r][c]->GetXaxis()->SetRange( maxBin+1 , hADCamp[r][c]->GetNbinsX() );
 	  maxBin = hADCamp[r][c]->GetMaximumBin();
@@ -292,8 +296,9 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
 	  maxCount = hADCamp[r][c]->GetMaximum();
 	  binWidth = hADCamp[r][c]->GetBinWidth(maxBin);
 	  stdDev = hADCamp[r][c]->GetStdDev();
-	 }
+	}
 
+	// Frist fit
 	fgaus->SetParameters( maxCount,maxBinCenter,stdDev );
 	fgaus->SetRange( hADCamp_min, hADCamp_max );
 	hADCamp[r][c]->Fit(fgaus,"NO+RQ");
@@ -301,8 +306,6 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
 
   
 	// Second fit with tailored range
-	int lowerBinC = 0;
-	int upperBinC = 0;
 	// if( r==0 || r==(kNrows-1)){ // To make the fits better for top and bottom rows
 	//   lowerBinC = hADCamp_min + (maxBin)*binWidth - (1.2*Pars[2]);
 	//   upperBinC = hADCamp_min + (maxBin)*binWidth + (2.0*Pars[2]);
@@ -332,9 +335,6 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
 	fgaus->SetParameters( Pars[0],Pars[1],Pars[2] );
 	fgaus->SetRange( lowerBinC, upperBinC );
 	
-	sub = r/7;
-	subCanv[sub]->cd((r%7)*kNcols + c + 1);
-	
 	hADCamp[r][c]->Fit( fgaus,"+RQ" );
 	fgaus->GetParameters(Pars);
 	for ( int i=0; i<3; i++ ) ParErrs[i] = fgaus->GetParError(i); 
@@ -353,81 +353,83 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
 	hADCamp[r][c]->GetYaxis()->SetLabelSize(0.06);
 	hADCamp[r][c]->SetLineColor(kBlue+1);
 	hADCamp[r][c]->Draw();
-	gPad->Update();
+      }else hADCamp[r][c]->Draw();
 
-	outhist_data->cd();
-	hADCamp[r][c]->Write();
+      gPad->Update();
 
-	// fgaus2->SetLineColor(2);
-	// fgaus2->SetNpx(1000);
-	// fgaus2->SetParameters( maxCount,maxBinCenter,stdDev );
-	// fgaus2->SetRange( hamptointratio_min, hamptointratio_max );
-	// hamptointratio[r][c]->Fit(fgaus2,"+RQ");
+      outhist_data->cd();
+      hADCamp[r][c]->Write();
 
-	// abc << r*kNcols+c << "\t" << fgaus2->GetParameter(1) << endl;
+      // fgaus2->SetLineColor(2);
+      // fgaus2->SetNpx(1000);
+      // fgaus2->SetParameters( maxCount,maxBinCenter,stdDev );
+      // fgaus2->SetRange( hamptointratio_min, hamptointratio_max );
+      // hamptointratio[r][c]->Fit(fgaus2,"+RQ");
 
-	// if(c%2==0){
-	//   hamptointratio[r][c]->SetTitle(TString::Format("PS-R%d | Amp/Int  ",r+1));
-	// }else{
-	//   hamptointratio[r][c]->SetTitle(TString::Format("PS-L%d | Amp/Int  ",r+1));
-	// }
-	// //hamptointratio[r][c]->GetYaxis()->SetLabelSize(0.06);
-        // hamptointratio[r][c]->GetXaxis()->SetLabelSize(0.04);
-	// hamptointratio[r][c]->GetYaxis()->SetLabelSize(0.04);
-	// hamptointratio[r][c]->SetLineColor(kBlue+1);
-	// hamptointratio[r][c]->Draw();
-	// gPad->Update();
+      // abc << r*kNcols+c << "\t" << fgaus2->GetParameter(1) << endl;
 
-	// Let's determine how good is the fit
-	if( hADCamp[r][c]->GetEntries() < 20 ){
-	  cout << " ** The histogram for module # " << r+1 << "." << c+1 << " was empty!! " << endl;
-	  Flag = "No_Data";
-	}else if( Pars[2] > 60.0 ){
-	  cout << " ** Fit for module # " << r+1 << "." << c+1 << " was too wide!! " << endl;
-	  Flag = "Wide";
-	  HVcorrection = 1.0;
-	}else if( Pars[2] < 0.1 ){
-	  cout << " ** Fit for module # " << r+1 << "." << c+1 << " was too narrow!! " << endl;
-	  Flag = "Narrow";
-	  HVcorrection = 1.0;
-	}else if( ParErrs[1] > 20. || ParErrs[2] > 20. ){
-	  cout << " ** For module # " << r+1 << "." << c+1 << ", error bar was too high!! " << endl;
-	  Flag = "Big_error";
-	  HVcorrection = 1.0;
-	}
+      // if(c%2==0){
+      //   hamptointratio[r][c]->SetTitle(TString::Format("PS-R%d | Amp/Int  ",r+1));
+      // }else{
+      //   hamptointratio[r][c]->SetTitle(TString::Format("PS-L%d | Amp/Int  ",r+1));
+      // }
+      // //hamptointratio[r][c]->GetYaxis()->SetLabelSize(0.06);
+      // hamptointratio[r][c]->GetXaxis()->SetLabelSize(0.04);
+      // hamptointratio[r][c]->GetYaxis()->SetLabelSize(0.04);
+      // hamptointratio[r][c]->SetLineColor(kBlue+1);
+      // hamptointratio[r][c]->Draw();
+      // gPad->Update();
 
-	// Write all the important fit parameters in a text file
-	fitData.setf(ios::fixed);
-	fitData.setf(ios::showpoint);
-	fitData.precision(2);
-	fitData.width(5); fitData << kNcols*r+c;
-	fitData.width(12); fitData.precision(4); fitData << HVcorrection;
-	fitData.width(12); fitData << Pars[0];
-	fitData.width(12); fitData << ParErrs[0];
-	fitData.width(12); fitData << Pars[1]; 
-	fitData.width(12); fitData << ParErrs[1];
-	fitData.width(12); fitData << Pars[2]; 
-	fitData.width(12); fitData << ParErrs[2];
-	fitData.width(12); fitData << NinPeakPS;
-	fitData.width(12); fitData << Flag << endl;
-
-	outfile_data << Pars[1] << " "   << ParErrs[1] << " " << endl; 
-
-	if ( Flag != "Good" ){
-	  for( int i=0; i<4; i++ ) { Pars[i] = 0.; ParErrs[i] = 0.; }
-	  NinPeakPS = 0.;
-	}
-
-	// Fill in the vectors to create diagnostic plots
-	blocks[kNcols*r+c] = kNcols*r+c;
-	peakPos[kNcols*r+c] = Pars[1];
-	peakPosErr[kNcols*r+c] = ParErrs[1];
-	RMS[kNcols*r+c] = Pars[2];
-	RMSErr[kNcols*r+c] = ParErrs[2];
-	NinPeak[kNcols*r+c] = NinPeakPS;
-	HVCrrFact[kNcols*r+c] = HVcorrection;
-	
+      // Let's determine how good is the fit
+      if( hADCamp[r][c]->GetEntries() < 20 ){
+	cout << " ** The histogram for module # " << r+1 << "." << c+1 << " was empty!! " << endl;
+	Flag = "No_Data";
+      }else if( Pars[2] > 60.0 ){
+	cout << " ** Fit for module # " << r+1 << "." << c+1 << " was too wide!! " << endl;
+	Flag = "Wide";
+	HVcorrection = 1.0;
+      }else if( Pars[2] < 0.1 ){
+	cout << " ** Fit for module # " << r+1 << "." << c+1 << " was too narrow!! " << endl;
+	Flag = "Narrow";
+	HVcorrection = 1.0;
+      }else if( ParErrs[1] > 20. || ParErrs[2] > 20. ){
+	cout << " ** For module # " << r+1 << "." << c+1 << ", error bar was too high!! " << endl;
+	Flag = "Big_error";
+	HVcorrection = 1.0;
       }
+
+      // Write all the important fit parameters in a text file
+      fitData.setf(ios::fixed);
+      fitData.setf(ios::showpoint);
+      fitData.precision(2);
+      fitData.width(5); fitData << kNcols*r+c;
+      fitData.width(12); fitData.precision(4); fitData << HVcorrection;
+      fitData.width(12); fitData << Pars[0];
+      fitData.width(12); fitData << ParErrs[0];
+      fitData.width(12); fitData << Pars[1]; 
+      fitData.width(12); fitData << ParErrs[1];
+      fitData.width(12); fitData << Pars[2]; 
+      fitData.width(12); fitData << ParErrs[2];
+      fitData.width(12); fitData << NinPeakPS;
+      fitData.width(12); fitData << Flag << endl;
+
+      outfile_data << Pars[1] << " "   << ParErrs[1] << " " << endl; 
+
+      if ( Flag != "Good" ){
+	for( int i=0; i<4; i++ ) { Pars[i] = 0.; ParErrs[i] = 0.; }
+	NinPeakPS = 0.;
+      }
+
+      // Fill in the vectors to create diagnostic plots
+      blocks[kNcols*r+c] = kNcols*r+c;
+      peakPos[kNcols*r+c] = Pars[1];
+      peakPosErr[kNcols*r+c] = ParErrs[1];
+      RMS[kNcols*r+c] = Pars[2];
+      RMSErr[kNcols*r+c] = ParErrs[2];
+      NinPeak[kNcols*r+c] = NinPeakPS;
+      HVCrrFact[kNcols*r+c] = HVcorrection;
+	
+      
     }
   }
 
@@ -485,8 +487,8 @@ string getDate(){
 // ---------------- Create generic histogram function ----------------
 TH1F* MakeHisto(Int_t row, Int_t col, Int_t bins, const char* suf="", Double_t min=0., Double_t max=50.)
 {
-  TH1F *h = new TH1F(TString::Format("h_R%d-C%d_Blk%02d%s", row+1, col+1, row*kNcols+col, suf),
-		     TString::Format("%d-%d", row+1, col+1), bins, min, max);
+  TH1F *h = new TH1F(TString::Format("h_R%d_C%d_Blk%02d%s", row+1, col+1, row*kNcols+col, suf),
+		     TString::Format("%d_%d", row+1, col+1), bins, min, max);
   h->SetStats(0);
   h->SetLineWidth(2);
   h->GetYaxis()->SetLabelSize(0.1);
@@ -635,80 +637,80 @@ void goodHistoTest( double tdcVal, int row, int col ){
 
 // ---------------- Create diagnostic plots ----------------
 void makeSummaryPlots( int nrun, string date, bool trigAmp = 0 ){
-    char CName[9], CTitle[100];
-    TCanvas *CGr[4];
-    TGraph *Gr[4];
+  char CName[9], CTitle[100];
+  TCanvas *CGr[4];
+  TGraph *Gr[4];
 
-    // gROOT->SetBatch();
-    CGr[0] = new TCanvas("c1PS","pPosvsBlocks",100,10,700,500);
-    CGr[1] = new TCanvas("c2PS","pRMSvsBlocks",100,10,700,500);
-    CGr[2] = new TCanvas("c3PS","#EvInPeakvsBlocks",100,10,700,500);
-    //CGr[3] = new TCanvas("c4PS","HVcorrvsBlocks",100,10,700,500);
+  // gROOT->SetBatch();
+  CGr[0] = new TCanvas("c1PS","pPosvsBlocks",100,10,700,500);
+  CGr[1] = new TCanvas("c2PS","pRMSvsBlocks",100,10,700,500);
+  CGr[2] = new TCanvas("c3PS","#EvInPeakvsBlocks",100,10,700,500);
+  //CGr[3] = new TCanvas("c4PS","HVcorrvsBlocks",100,10,700,500);
  
-    int totalBlocks = kNrows*kNcols;
-    double xErr[totalBlocks]; // Holds x-error, which is essentially zero for our case
-    for( int i=0; i<totalBlocks; i++ ) xErr[i] = 0. ;
+  int totalBlocks = kNrows*kNcols;
+  double xErr[totalBlocks]; // Holds x-error, which is essentially zero for our case
+  for( int i=0; i<totalBlocks; i++ ) xErr[i] = 0. ;
 	 
-    // Gr[0] = new TGraphErrors( totalBlocks, &(blocks[0]), &(peakPos[0]), xErr, &(peakPosErr[0]) );
-    // Gr[1] = new TGraphErrors( totalBlocks, &(blocks[0]), &(RMS[0]), xErr, &(RMSErr[0]) );
-    // Gr[2] = new TGraph( totalBlocks, &(blocks[0]), &(NinPeak[0]) );
-    // Gr[3] = new TGraph( totalBlocks, &(blocks[0]), &(HVCrrFact[0]) );
+  // Gr[0] = new TGraphErrors( totalBlocks, &(blocks[0]), &(peakPos[0]), xErr, &(peakPosErr[0]) );
+  // Gr[1] = new TGraphErrors( totalBlocks, &(blocks[0]), &(RMS[0]), xErr, &(RMSErr[0]) );
+  // Gr[2] = new TGraph( totalBlocks, &(blocks[0]), &(NinPeak[0]) );
+  // Gr[3] = new TGraph( totalBlocks, &(blocks[0]), &(HVCrrFact[0]) );
 
-    Gr[0] = new TGraphErrors( totalBlocks, blocks, peakPos, xErr, peakPosErr );
-    Gr[1] = new TGraphErrors( totalBlocks, blocks, RMS, xErr, RMSErr );
-    Gr[2] = new TGraph( totalBlocks, blocks, NinPeak );
-    //Gr[3] = new TGraph( totalBlocks, blocks, HVCrrFact );
+  Gr[0] = new TGraphErrors( totalBlocks, blocks, peakPos, xErr, peakPosErr );
+  Gr[1] = new TGraphErrors( totalBlocks, blocks, RMS, xErr, RMSErr );
+  Gr[2] = new TGraph( totalBlocks, blocks, NinPeak );
+  //Gr[3] = new TGraph( totalBlocks, blocks, HVCrrFact );
 
-    for( int i = 0; i < 3; i++ ){
-      CGr[i]->cd();
-      gPad->SetGridy();
-      Gr[i]->SetLineColor(2);
-      Gr[i]->SetLineWidth(2);
-      Gr[i]->SetMarkerColor(1);
-      Gr[i]->SetMarkerStyle(20);
-      Gr[i]->GetXaxis()->SetLabelSize(0.04);
-      Gr[i]->GetYaxis()->SetLabelSize(0.04);
-      if(i == 0 ){
-	if(!trigAmp){    	
-	  Gr[i]->SetTitle(Form("Run# %d | Peak Position(FADC) vs. Block No. for PS Blocks | %s",nrun,date.c_str()) );
-	  Gr[i]->GetYaxis()->SetTitle("Peak Position at FADC (mV)");
-	}else{
-	  Gr[i]->SetTitle(Form("Run# %d | Peak Position(Trigger) vs. Block No. for PS Blocks | %s",nrun,date.c_str()) );
-	  Gr[i]->GetYaxis()->SetTitle("Peak Position at Trigger (mV)");
-	}
-    	Gr[i]->GetXaxis()->SetTitle("Block Number");
-   	Gr[i]->GetYaxis()->SetRangeUser(0.,40.);
-      } else if (i == 1){
-    	Gr[i]->SetTitle( Form("Run# %d | Peak RMS vs. Block No. for PS Blocks | %s",nrun,date.c_str()) ); 
-    	Gr[i]->GetXaxis()->SetTitle("Block Number");
-    	Gr[i]->GetYaxis()->SetTitle("Peak RMS (mV)");
-    	Gr[i]->GetYaxis()->SetTitleOffset(1.4);
-    	Gr[i]->GetYaxis()->SetRangeUser(0.,20.);
-      }else if (i == 2){
-    	Gr[i]->SetTitle( Form("Run# %d | N of Events in Peak(fitted region) vs Block No. for PS | %s",nrun,date.c_str()) );
-    	Gr[i]->GetXaxis()->SetTitle("Block Number");
-    	Gr[i]->GetYaxis()->SetTitle("N of Events in Peak(fitted region)");
-    	Gr[i]->GetYaxis()->SetTitleOffset(1.4);
-      }// else if (i == 3){
-      // 	Gr[i]->SetTitle( Form("Run# %d | HV Correction Factor vs Block No. for PS blocks | %s",nrun,date.c_str()) );
-      // 	Gr[i]->GetXaxis()->SetTitle("Block Number");
-      // 	Gr[i]->GetYaxis()->SetTitle("HV Correction Factor");
-      // 	Gr[i]->GetYaxis()->SetTitleOffset(1.4);
-      // 	Gr[i]->GetYaxis()->SetRangeUser(0.4,1.6);
-      // }      
-      Gr[i]->Draw("AP");
-      CGr[i]->Write();
-    }  
+  for( int i = 0; i < 3; i++ ){
+    CGr[i]->cd();
+    gPad->SetGridy();
+    Gr[i]->SetLineColor(2);
+    Gr[i]->SetLineWidth(2);
+    Gr[i]->SetMarkerColor(1);
+    Gr[i]->SetMarkerStyle(20);
+    Gr[i]->GetXaxis()->SetLabelSize(0.04);
+    Gr[i]->GetYaxis()->SetLabelSize(0.04);
+    if(i == 0 ){
+      if(!trigAmp){    	
+	Gr[i]->SetTitle(Form("Run# %d | Peak Position(FADC) vs. Block No. for PS Blocks | %s",nrun,date.c_str()) );
+	Gr[i]->GetYaxis()->SetTitle("Peak Position at FADC (mV)");
+      }else{
+	Gr[i]->SetTitle(Form("Run# %d | Peak Position(Trigger) vs. Block No. for PS Blocks | %s",nrun,date.c_str()) );
+	Gr[i]->GetYaxis()->SetTitle("Peak Position at Trigger (mV)");
+      }
+      Gr[i]->GetXaxis()->SetTitle("Block Number");
+      Gr[i]->GetYaxis()->SetRangeUser(0.,40.);
+    } else if (i == 1){
+      Gr[i]->SetTitle( Form("Run# %d | Peak RMS vs. Block No. for PS Blocks | %s",nrun,date.c_str()) ); 
+      Gr[i]->GetXaxis()->SetTitle("Block Number");
+      Gr[i]->GetYaxis()->SetTitle("Peak RMS (mV)");
+      Gr[i]->GetYaxis()->SetTitleOffset(1.4);
+      Gr[i]->GetYaxis()->SetRangeUser(0.,20.);
+    }else if (i == 2){
+      Gr[i]->SetTitle( Form("Run# %d | N of Events in Peak(fitted region) vs Block No. for PS | %s",nrun,date.c_str()) );
+      Gr[i]->GetXaxis()->SetTitle("Block Number");
+      Gr[i]->GetYaxis()->SetTitle("N of Events in Peak(fitted region)");
+      Gr[i]->GetYaxis()->SetTitleOffset(1.4);
+    }// else if (i == 3){
+    // 	Gr[i]->SetTitle( Form("Run# %d | HV Correction Factor vs Block No. for PS blocks | %s",nrun,date.c_str()) );
+    // 	Gr[i]->GetXaxis()->SetTitle("Block Number");
+    // 	Gr[i]->GetYaxis()->SetTitle("HV Correction Factor");
+    // 	Gr[i]->GetYaxis()->SetTitleOffset(1.4);
+    // 	Gr[i]->GetYaxis()->SetRangeUser(0.4,1.6);
+    // }      
+    Gr[i]->Draw("AP");
+    CGr[i]->Write();
+  }  
 
-    if(trigAmp){
-      CGr[0]->SaveAs( Form("%s[",OutF_diagPlots.Data()) );
-      for( int i=0; i<3; i++ ) CGr[i]->SaveAs( Form("%s",OutF_diagPlots.Data()) );
-      CGr[2]->SaveAs( Form("%s]",OutF_diagPlots.Data()) );
-    }else{
-      CGr[0]->SaveAs( Form("%s[",OutF_diagPlots.Data()) );
-      for( int i=0; i<3; i++ ) CGr[i]->SaveAs( Form("%s",OutF_diagPlots.Data()) );
-      CGr[2]->SaveAs( Form("%s]",OutF_diagPlots.Data()) );
-    }
+  if(trigAmp){
+    CGr[0]->SaveAs( Form("%s[",OutF_diagPlots.Data()) );
+    for( int i=0; i<3; i++ ) CGr[i]->SaveAs( Form("%s",OutF_diagPlots.Data()) );
+    CGr[2]->SaveAs( Form("%s]",OutF_diagPlots.Data()) );
+  }else{
+    CGr[0]->SaveAs( Form("%s[",OutF_diagPlots.Data()) );
+    for( int i=0; i<3; i++ ) CGr[i]->SaveAs( Form("%s",OutF_diagPlots.Data()) );
+    CGr[2]->SaveAs( Form("%s]",OutF_diagPlots.Data()) );
+  }
 }
 
 
