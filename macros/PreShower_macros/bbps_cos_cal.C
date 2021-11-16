@@ -44,13 +44,14 @@ string getDate();
 TH1F* MakeHisto( Int_t, Int_t, Int_t, const char*, Double_t, Double_t );
 void processEvent( int, bool );
 void goodHistoTest( double, int, int );
-void makeSummaryPlots( int, string, bool );
+void makeSummaryPlots( string, string, bool );
 void GetTrigtoFADCratio();
 
 // Declare vectors necessary to make diagnostic plots
 double blocks[kNrows*kNcols]={0.}, peakPos[kNrows*kNcols]={0.}, peakPosErr[kNrows*kNcols]={0.};
 double RMS[kNrows*kNcols]={0.}, RMSErr[kNrows*kNcols]={0.}; 
 double NinPeak[kNrows*kNcols]={0.}, HVCrrFact[kNrows*kNcols]={0.};
+vector<int> runList, eventsReplayed;
 vector<double> trigTofadcRatio;
 TString OutF_peaks, OutF_diagPlots;
 
@@ -117,7 +118,7 @@ namespace psgui {
 
 
 // Main
-void bbps_cos_cal ( int nrun = 366, int event = -1 ){
+void bbps_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
 
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings 
 
@@ -125,30 +126,59 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
   gStyle->SetLabelSize(0.08,"XY");
   gStyle->SetTitleFontSize(0.08);
 
-  bool trigAmp = 0;
+  // Initializing the parameters [Be very careful before changing]
+  int nRuns = 1;
+  string runnumber;
   string date = getDate();
-  bool diagPlots = 0, histo_limits = 0;
+  bool trigAmp = 1, multiRuns = 0;
+  bool diagPlots = 1, histo_limits = 0;
   int hADCamp_bin = 45, hamptointratio_bin = 18;
   double hADCamp_min = 0., hamptointratio_min = 2.; 
   double hADCamp_max = 45., hamptointratio_max = 5.;
 
   // Take user inputs
-  cout << " Run number? " << endl;
-  cin >> nrun;
-  psgui::runLabel->SetText(TString::Format("Run %d",nrun));
-  cout << " No. of events replayed? [-1 => All] " << endl; 
-  cin >> event;
-  cout << " Want Summary plots? [0=NO, 1=YES] " << endl; 
-  cin >> diagPlots;
-  cout << " Want trigger amp? [0=NO, 1=YES] " << endl;
-  cin >> trigAmp;
-  cout << " Need to change histogram settings? [0=NO, 1=YES] " << endl;
-  cin >> histo_limits;
-
-  if(histo_limits){
-    cout << " nbins? h_min? h_max? [Default: nbins=45, h_min=0., h_max=45.] " << endl;
-    cin >> hADCamp_bin >> hADCamp_min >> hADCamp_max;
+  if(userInput){
+    cout << " Multiple Runs? [0=NO, 1=YES] " << endl;
+    cin >> multiRuns;
+    if(multiRuns){
+      cout << " How many runs? " << endl;
+      cin >> nRuns;
+      int temp1=0, temp2=0;
+      for(int nr=0; nr<nRuns; nr++){
+	cout << " Run " << nr+1 << "?" << " Events replayed? " << endl;
+	cin >> temp1 >> temp2;
+	runList.push_back(temp1);
+	eventsReplayed.push_back(temp2);
+      }
+      if(nRuns==2){
+	runnumber = to_string(runList[0]) + "&" + to_string(runList[nRuns-1]);
+      }else runnumber = to_string(runList[0]) + "->" + to_string(runList[nRuns-1]);
+    }else{
+      cout << " Run number? " << endl;
+      cin >> nrun;
+      cout << " No. of events replayed? [-1 => All] " << endl; 
+      cin >> event;
+      runList.push_back(nrun);
+      eventsReplayed.push_back(event);
+      runnumber = to_string(nrun);
+    }
+    cout << " Want Summary plots? [0=NO, 1=YES] " << endl; 
+    cin >> diagPlots;
+    cout << " Want trigger amp? [0=NO, 1=YES] " << endl;
+    cin >> trigAmp;
+    cout << " Need to change histogram settings? [0=NO, 1=YES] " << endl;
+    cin >> histo_limits;
+    if(histo_limits){
+      cout << " nbins? h_min? h_max? [Default: nbins=45, h_min=0., h_max=45.] " << endl;
+      cin >> hADCamp_bin >> hADCamp_min >> hADCamp_max;
+    }
+  }else{
+    runList.push_back(nrun);
+    eventsReplayed.push_back(event);
+    runnumber = to_string(nrun);
   }
+
+  psgui::runLabel->SetText(TString::Format("Run %s",runnumber.c_str()));
 
   int ncell = kNrows*kNcols;
   memset(trigTofadc_ratiosPS, 0, ncell*sizeof(double));
@@ -161,17 +191,37 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
   // Out files
   TString OutFile, OutFile2, OutRootFile;
   if(!trigAmp){
-    OutFile = Form("Output/run_%d_ps_peak_FADC.txt",nrun);
-    OutFile2 = Form("Output/fit_results/bbpreshower_%d_FitResults_FADC.txt",nrun);
-    OutRootFile = Form("hist/run_%d_ps_peak_FADC.root",nrun);
-    OutF_peaks = Form("plots/PS_signal_peak_FADC_%d.pdf",nrun);
-    OutF_diagPlots = Form("plots/BBPS_summary_plots_FADC_%d.pdf",nrun);
+    if(!multiRuns){
+      OutFile = Form("Output/run_%d_ps_peak_FADC.txt",nrun);
+      OutFile2 = Form("Output/fit_results/bbpreshower_%d_FitResults_FADC.txt",nrun);
+      OutRootFile = Form("hist/run_%d_ps_peak_FADC.root",nrun);
+      OutF_peaks = Form("plots/PS_signal_peak_FADC_%d.pdf",nrun);
+      OutF_diagPlots = Form("plots/BBPS_summary_plots_FADC_%d.pdf",nrun);
+    }else{
+      OutFile = Form("Output/run_%d_%d_ps_peak_FADC.txt",runList[0],runList[nRuns-1]);
+      OutFile2 = Form("Output/fit_results/bbpreshower_%d_%d_FitResults_FADC.txt"
+		      ,runList[0],runList[nRuns-1]);
+      OutRootFile = Form("hist/run_%d_%d_ps_peak_FADC.root",runList[0],runList[nRuns-1]);
+      OutF_peaks = Form("plots/PS_signal_peak_FADC_%d_%d.pdf",runList[0],runList[nRuns-1]);
+      OutF_diagPlots = Form("plots/BBPS_summary_plots_FADC_%d_%d.pdf"
+			    ,runList[0],runList[nRuns-1]);
+    }
   }else{
-    OutFile = Form("Output/run_%d_ps_peak_Trigger.txt",nrun);
-    OutFile2 = Form("Output/fit_results/bbpreshower_%d_FitResults_Trigger.txt",nrun);
-    OutRootFile = Form("hist/run_%d_ps_peak_Trigger.root",nrun);
-    OutF_peaks = Form("plots/PS_signal_peak_Trigger_%d.pdf",nrun);
-    OutF_diagPlots = Form("plots/BBPS_summary_plots_Trigger_%d.pdf",nrun);
+    if(!multiRuns){
+      OutFile = Form("Output/run_%d_ps_peak_Trigger.txt",nrun);
+      OutFile2 = Form("Output/fit_results/bbpreshower_%d_FitResults_Trigger.txt",nrun);
+      OutRootFile = Form("hist/run_%d_ps_peak_Trigger.root",nrun);
+      OutF_peaks = Form("plots/PS_signal_peak_Trigger_%d.pdf",nrun);
+      OutF_diagPlots = Form("plots/BBPS_summary_plots_Trigger_%d.pdf",nrun);
+    }else{
+      OutFile = Form("Output/run_%d_%d_ps_peak_Trigger.txt",runList[0],runList[nRuns-1]);
+      OutFile2 = Form("Output/fit_results/bbpreshower_%d_%d_FitResults_Trigger.txt",
+		      runList[0],runList[nRuns-1]);
+      OutRootFile = Form("hist/run_%d_%d_ps_peak_Trigger.root",runList[0],runList[nRuns-1]);
+      OutF_peaks = Form("plots/PS_signal_peak_Trigger_%d_%d.pdf",runList[0],runList[nRuns-1]);
+      OutF_diagPlots = Form("plots/BBPS_summary_plots_Trigger_%d_%d.pdf",
+			    runList[0],runList[nRuns-1]);
+    }
   }
   ofstream outfile_data, fitData;
   TFile *outhist_data = new TFile(OutRootFile,"RECREATE");
@@ -187,11 +237,14 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
   if(!T) { 
     T = new TChain("T");
     //TString dataDIR = gSystem->Getenv("OUT_DIR");
-    TString filename = Form("../../Rootfiles/bbshower_%d_%d.root", nrun, event);
-    TString filename_seg = Form("../../Rootfiles/bbshower_%d_%d_seg_*.root", nrun, event);
-    
-    T->Add(filename);
-    T->Add(filename_seg);
+    for(int rn=0; rn<nRuns; rn++){
+      TString filename = Form("../../Rootfiles/bbshower_%d_%d.root",runList[rn],eventsReplayed[rn]);
+      TString filename_seg = Form("../../Rootfiles/bbshower_%d_%d_seg_*.root", 
+				  runList[rn],eventsReplayed[rn]);
+      T->Add(filename);
+      T->Add(filename_seg);
+    }    
+
     T->SetBranchStatus("*",0);
     T->SetBranchStatus("bb.ps.*",1);
     T->SetBranchAddress("bb.ps.a_p",fadc_datat::a);
@@ -445,7 +498,7 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
 
   // Generating diagnostic plots
   if( diagPlots ){
-    makeSummaryPlots( nrun, date, trigAmp );
+    makeSummaryPlots( runnumber, date, trigAmp );
   }
 
   // Close all the outFiles
@@ -453,7 +506,7 @@ void bbps_cos_cal ( int nrun = 366, int event = -1 ){
   outfile_data.close();
   
   // Post analysis reporting
-  cout << "Finished loop over run " << nrun << "." << endl;
+  cout << "Finished loop over run " << runnumber << "." << endl;
   cout << " --------- " << endl;
   cout << " Peak positions written to : " << OutFile << endl;
   cout << " Fit parameters written to : " << OutFile2  << endl;
@@ -485,7 +538,8 @@ string getDate(){
 
 
 // ---------------- Create generic histogram function ----------------
-TH1F* MakeHisto(Int_t row, Int_t col, Int_t bins, const char* suf="", Double_t min=0., Double_t max=50.)
+TH1F* MakeHisto(Int_t row, Int_t col, Int_t bins, const char* suf="", 
+		Double_t min=0., Double_t max=50.)
 {
   TH1F *h = new TH1F(TString::Format("h_R%d_C%d_Blk%02d%s", row+1, col+1, row*kNcols+col, suf),
 		     TString::Format("%d_%d", row+1, col+1), bins, min, max);
@@ -636,7 +690,7 @@ void goodHistoTest( double tdcVal, int row, int col ){
 
 
 // ---------------- Create diagnostic plots ----------------
-void makeSummaryPlots( int nrun, string date, bool trigAmp = 0 ){
+void makeSummaryPlots( string runnumber, string date, bool trigAmp = 0 ){
   char CName[9], CTitle[100];
   TCanvas *CGr[4];
   TGraph *Gr[4];
@@ -672,22 +726,26 @@ void makeSummaryPlots( int nrun, string date, bool trigAmp = 0 ){
     Gr[i]->GetYaxis()->SetLabelSize(0.04);
     if(i == 0 ){
       if(!trigAmp){    	
-	Gr[i]->SetTitle(Form("Run# %d | Peak Position(FADC) vs. Block No. for PS Blocks | %s",nrun,date.c_str()) );
+	Gr[i]->SetTitle(Form("Run# %s | Peak Position(FADC) vs. Block No. for PS Blocks | %s",
+			     runnumber.c_str(),date.c_str()) );
 	Gr[i]->GetYaxis()->SetTitle("Peak Position at FADC (mV)");
       }else{
-	Gr[i]->SetTitle(Form("Run# %d | Peak Position(Trigger) vs. Block No. for PS Blocks | %s",nrun,date.c_str()) );
+	Gr[i]->SetTitle(Form("Run# %s | Peak Position(Trigger) vs. Block No. for PS Blocks | %s",
+			     runnumber.c_str(),date.c_str()) );
 	Gr[i]->GetYaxis()->SetTitle("Peak Position at Trigger (mV)");
       }
       Gr[i]->GetXaxis()->SetTitle("Block Number");
       Gr[i]->GetYaxis()->SetRangeUser(0.,40.);
     } else if (i == 1){
-      Gr[i]->SetTitle( Form("Run# %d | Peak RMS vs. Block No. for PS Blocks | %s",nrun,date.c_str()) ); 
+      Gr[i]->SetTitle( Form("Run# %s | Peak RMS vs. Block No. for PS Blocks | %s",
+			    runnumber.c_str(),date.c_str()) ); 
       Gr[i]->GetXaxis()->SetTitle("Block Number");
       Gr[i]->GetYaxis()->SetTitle("Peak RMS (mV)");
       Gr[i]->GetYaxis()->SetTitleOffset(1.4);
       Gr[i]->GetYaxis()->SetRangeUser(0.,20.);
     }else if (i == 2){
-      Gr[i]->SetTitle( Form("Run# %d | N of Events in Peak(fitted region) vs Block No. for PS | %s",nrun,date.c_str()) );
+      Gr[i]->SetTitle( Form("Run# %s | N of Events in Peak(fitted region) vs Block No. for PS | %s",
+			    runnumber.c_str(),date.c_str()) );
       Gr[i]->GetXaxis()->SetTitle("Block Number");
       Gr[i]->GetYaxis()->SetTitle("N of Events in Peak(fitted region)");
       Gr[i]->GetYaxis()->SetTitleOffset(1.4);
