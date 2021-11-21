@@ -1,0 +1,53 @@
+bb.bbtrig.detmap = 
+ 5     18     0     15  -1 #      0
+  5     19     0     8  -1 #      0
+  5     3     96    127    0 ## 1
+ 
+bb.bbtrig.chanmap =  0 1  2  3  4  5  6  7   8  9 10 11 12 13 14 15 
+                     16 17 18 19 20 21 22 23 24
+                      0 1  2  3  4  5  6  7  
+                      8  9 10 11 12 13 14 15 
+                     16 17 18 19 20 21 22 23 
+                     24 -1 -1 -1 -1 -1 -1 -1000                   
+
+## Number of rows and columns
+bb.bbtrig.ncols =  25
+bb.bbtrig.nrows = 1
+## Position of first module
+bb.bbtrig.xyz    = -1.105  0.255  0.000
+## Space between modules
+bb.bbtrig.dxdydz =  10.000  10.000  0.000
+## Positions in [m] where +z is roated by bb.theta
+bb.bbtrig.position = 0 0 2.5319 ## Need to re-check this number
+## Size
+bb.bbtrig.size   =  0.595 2.295 0.37 # in meters
+## adc channels to mV assume F250 set fot 2V for 4096
+bb.bbtrig.adc.conv = 0.4882
+# Threshold for pulse finding in waveform (mV)
+bb.bbtrig.adc.thres = 5.0
+# Number of bins (bin=4ns) at the beginning of waveform used to determing average Pedestal
+bb.bbtrig.adc.NPedBin = 4
+# Number of bins (bin=4ns) before Threshold Bin to use in integrating pulse
+bb.bbtrig.adc.NSB = 3
+# Number of bins (bin=4ns) before Threshold Bin to use in integrating pulse
+bb.bbtrig.adc.NSA = 12
+# Number of bin for fixed Threshold if no Threshold Crossing is found
+bb.bbtrig.adc.FixThresBin = 14
+# Convert adc integral in pC to GeV
+bb.bbtrig.adc.gain = 1.0
+#
+## tdc.cal & reftdc.cal has been updated from 0.112->0.0936 following Rachel's calculation
+#
+bb.bbtrig.tdc.cal = 0.0936
+#
+bb.bbtrig.tdc.offset = 0
+#
+bb.bbtrig.tdc.GoodTimeCut = 80.
+#
+bb.bbtrig.reftdc.cal = 0.0936
+#
+bb.bbtrig.reftdc.offset = 0
+#
+bb.bbtrig.reftdc.GoodTimeCut = 40.
+
+                

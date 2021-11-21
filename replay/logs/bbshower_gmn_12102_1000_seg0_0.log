@@ -1,0 +1,48 @@
+==== Thu Nov 18 15:07:09 2021 Started analysis, run 12102
+Reading from "file:///adaqeb1/data1/e1209019_12102.evio.0.0" (GMN run)
+Event limit reached.
+==== Thu Nov 18 15:07:29 2021 Summary for run 12102
+Counter summary:
+1010  events read
+1010  events decoded
+1000  physics events
+10    other event types
+1000  physics events analyzed
+23    events accepted
+987   skipped after Coarse Reconstruct
+
+Cut summary:
+Name                      Def                        Called     Passed
+-----------------------------------------------------------------------------
+BLOCK: RawDecode
+RawDecode_master          1                          1010       1010 (100%)
+
+BLOCK: Decode
+Decode_master             1                          1000       1000 (100%)
+
+BLOCK: CoarseReconstruct
+HitsPreShower             bb.ps.nclus>0              1000       13   (1.3%)
+HitsShower                bb.sh.nclus>0              1000       213  (21.3%)
+GoodPreShower             bb.ps.ngoodADChits>0       1000       91   (9.1%)
+GoodShower                bb.sh.ngoodADChits>0       1000       214  (21.4%)
+GoodEvent                 HitsPreShower&&HitsShower  1000       13   (1.3%)
+CoarseReconstruct_master  GoodEvent                  1000       13   (1.3%)
+
+BLOCK: Physics
+GoodTrack                 BB.gold.index>-1           13         1    (7.69%)
+Physics_master            1                          13         13   (100%)
+
+Timing summary:
+Init             : Real Time =   4.43 seconds Cpu Time =   4.26 seconds
+Begin            : Real Time =   0.02 seconds Cpu Time =   0.03 seconds
+RawDecode        : Real Time =   4.99 seconds Cpu Time =   4.94 seconds
+Decode           : Real Time =   9.73 seconds Cpu Time =   9.77 seconds
+CoarseTracking   : Real Time =   0.04 seconds Cpu Time =   0.04 seconds
+CoarseReconstruct: Real Time =   0.03 seconds Cpu Time =   0.03 seconds
+Tracking         : Real Time =   0.00 seconds Cpu Time =   0.00 seconds
+Reconstruct      : Real Time =   0.00 seconds Cpu Time =   0.00 seconds
+Physics          : Real Time =   0.00 seconds Cpu Time =   0.00 seconds
+End              : Real Time =   0.05 seconds Cpu Time =   0.05 seconds
+Output           : Real Time =   0.25 seconds Cpu Time =   0.24 seconds
+Cuts             : Real Time =   0.01 seconds Cpu Time =   0.02 seconds
+Total            : Real Time =  19.57 seconds Cpu Time =  19.38 seconds

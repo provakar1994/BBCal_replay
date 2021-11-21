@@ -1,0 +1,250 @@
+==== Tue Nov 16 23:24:39 2021 Started analysis, run 11991
+Reading from "file:///cache/mss/halla/sbs/raw/e1209019_11991.evio.0.0" (GMN run)
+End of file.
+==== Tue Nov 16 23:47:27 2021 Summary for run 11991
+Counter summary:
+102269  events read
+102269  events decoded
+102235  physics events
+7       slow control events
+27      other event types
+102235  physics events analyzed
+7869    events accepted
+31275   skipped after Coarse Reconstruct
+63125   skipped after Physics
+
+Cut summary:
+Name                      Def                        Called     Passed
+-------------------------------------------------------------------------------
+BLOCK: RawDecode
+RawDecode_master          1                          102269     102269 (100%)
+
+BLOCK: Decode
+Decode_master             1                          102235     102235 (100%)
+
+BLOCK: CoarseReconstruct
+HitsPreShower             bb.ps.nclus>0              102235     70960  (69.4%)
+HitsShower                bb.sh.nclus>0              102235     101221 (99%)
+GoodPreShower             bb.ps.ngoodADChits>0       102235     84903  (83%)
+GoodShower                bb.sh.ngoodADChits>0       102235     101452 (99.2%)
+GoodEvent                 HitsPreShower&&HitsShower  102235     70960  (69.4%)
+CoarseReconstruct_master  GoodEvent                  102235     70960  (69.4%)
+
+BLOCK: Physics
+GoodTrack                 BB.gold.index>-1           70960      7835   (11%)
+Physics_master            GoodTrack                  70960      7835   (11%)
+
+Timing summary:
+Init             : Real Time =   4.31 seconds Cpu Time =   4.17 seconds
+Begin            : Real Time =   0.95 seconds Cpu Time =   0.95 seconds
+RawDecode        : Real Time = 501.69 seconds Cpu Time = 231.03 seconds
+Decode           : Real Time = 546.37 seconds Cpu Time = 543.24 seconds
+CoarseTracking   : Real Time =   0.17 seconds Cpu Time =   0.22 seconds
+CoarseReconstruct: Real Time =   5.20 seconds Cpu Time =   5.13 seconds
+Tracking         : Real Time = 293.03 seconds Cpu Time = 294.73 seconds
+Reconstruct      : Real Time =   0.94 seconds Cpu Time =   0.92 seconds
+Physics          : Real Time =   0.14 seconds Cpu Time =   0.06 seconds
+End              : Real Time =   8.20 seconds Cpu Time =   8.20 seconds
+Output           : Real Time =   3.46 seconds Cpu Time =   3.20 seconds
+Cuts             : Real Time =   1.56 seconds Cpu Time =   1.82 seconds
+Total            : Real Time = 1368.12 seconds Cpu Time = 1095.50 seconds
+ Continuing analysis, run 11991
+Reading from "file:///cache/mss/halla/sbs/raw/e1209019_11991.evio.0.1" (GMN run)
+End of file.
+==== Wed Nov 17 00:12:41 2021 Summary for run 11991
+Counter summary:
+204663  events read
+204663  events decoded
+204603  physics events
+15      slow control events
+45      other event types
+204603  physics events analyzed
+15758   events accepted
+62520   skipped after Coarse Reconstruct
+126385  skipped after Physics
+
+Cut summary:
+Name                      Def                        Called     Passed
+-------------------------------------------------------------------------------
+BLOCK: RawDecode
+RawDecode_master          1                          204663     204663 (100%)
+
+BLOCK: Decode
+Decode_master             1                          204603     204603 (100%)
+
+BLOCK: CoarseReconstruct
+HitsPreShower             bb.ps.nclus>0              204603     142083 (69.4%)
+HitsShower                bb.sh.nclus>0              204603     202558 (99%)
+GoodPreShower             bb.ps.ngoodADChits>0       204603     169917 (83%)
+GoodShower                bb.sh.ngoodADChits>0       204603     202990 (99.2%)
+GoodEvent                 HitsPreShower&&HitsShower  204603     142083 (69.4%)
+CoarseReconstruct_master  GoodEvent                  204603     142083 (69.4%)
+
+BLOCK: Physics
+GoodTrack                 BB.gold.index>-1           142083     15698  (11%)
+Physics_master            GoodTrack                  142083     15698  (11%)
+
+Timing summary:
+Init             : Real Time =   4.31 seconds Cpu Time =   4.17 seconds
+Begin            : Real Time =   0.95 seconds Cpu Time =   0.95 seconds
+RawDecode        : Real Time = 1161.52 seconds Cpu Time = 460.30 seconds
+Decode           : Real Time = 1091.23 seconds Cpu Time = 1086.08 seconds
+CoarseTracking   : Real Time =   0.35 seconds Cpu Time =   0.39 seconds
+CoarseReconstruct: Real Time =  10.35 seconds Cpu Time =   9.87 seconds
+Tracking         : Real Time = 580.79 seconds Cpu Time = 585.79 seconds
+Reconstruct      : Real Time =   1.87 seconds Cpu Time =   1.86 seconds
+Physics          : Real Time =   0.28 seconds Cpu Time =   0.22 seconds
+End              : Real Time =  17.11 seconds Cpu Time =  16.72 seconds
+Output           : Real Time =   6.62 seconds Cpu Time =   6.35 seconds
+Cuts             : Real Time =   3.12 seconds Cpu Time =   3.29 seconds
+Total            : Real Time = 2882.72 seconds Cpu Time = 2179.88 seconds
+ Continuing analysis, run 11991
+Reading from "file:///cache/mss/halla/sbs/raw/e1209019_11991.evio.0.2" (GMN run)
+End of file.
+==== Wed Nov 17 00:34:22 2021 Summary for run 11991
+Counter summary:
+307262  events read
+307262  events decoded
+307176  physics events
+23      slow control events
+63      other event types
+307176  physics events analyzed
+23595   events accepted
+93907   skipped after Coarse Reconstruct
+189760  skipped after Physics
+
+Cut summary:
+Name                      Def                        Called     Passed
+-------------------------------------------------------------------------------
+BLOCK: RawDecode
+RawDecode_master          1                          307262     307262 (100%)
+
+BLOCK: Decode
+Decode_master             1                          307176     307176 (100%)
+
+BLOCK: CoarseReconstruct
+HitsPreShower             bb.ps.nclus>0              307176     213269 (69.4%)
+HitsShower                bb.sh.nclus>0              307176     304075 (99%)
+GoodPreShower             bb.ps.ngoodADChits>0       307176     255030 (83%)
+GoodShower                bb.sh.ngoodADChits>0       307176     304755 (99.2%)
+GoodEvent                 HitsPreShower&&HitsShower  307176     213269 (69.4%)
+CoarseReconstruct_master  GoodEvent                  307176     213269 (69.4%)
+
+BLOCK: Physics
+GoodTrack                 BB.gold.index>-1           213269     23509  (11%)
+Physics_master            GoodTrack                  213269     23509  (11%)
+
+Timing summary:
+Init             : Real Time =   4.31 seconds Cpu Time =   4.17 seconds
+Begin            : Real Time =   0.95 seconds Cpu Time =   0.96 seconds
+RawDecode        : Real Time = 1625.35 seconds Cpu Time = 685.28 seconds
+Decode           : Real Time = 1623.79 seconds Cpu Time = 1617.03 seconds
+CoarseTracking   : Real Time =   0.52 seconds Cpu Time =   0.54 seconds
+CoarseReconstruct: Real Time =  15.34 seconds Cpu Time =  14.69 seconds
+Tracking         : Real Time = 862.89 seconds Cpu Time = 868.98 seconds
+Reconstruct      : Real Time =   2.77 seconds Cpu Time =   2.82 seconds
+Physics          : Real Time =   0.41 seconds Cpu Time =   0.31 seconds
+End              : Real Time =  26.29 seconds Cpu Time =  25.48 seconds
+Output           : Real Time =   9.62 seconds Cpu Time =   9.38 seconds
+Cuts             : Real Time =   4.64 seconds Cpu Time =   4.91 seconds
+Total            : Real Time = 4183.17 seconds Cpu Time = 3240.41 seconds
+ Continuing analysis, run 11991
+Reading from "file:///cache/mss/halla/sbs/raw/e1209019_11991.evio.0.3" (GMN run)
+End of file.
+==== Wed Nov 17 00:55:16 2021 Summary for run 11991
+Counter summary:
+409865  events read
+409865  events decoded
+409752  physics events
+32      slow control events
+81      other event types
+409752  physics events analyzed
+31623   events accepted
+125263  skipped after Coarse Reconstruct
+252979  skipped after Physics
+
+Cut summary:
+Name                      Def                        Called     Passed
+-------------------------------------------------------------------------------
+BLOCK: RawDecode
+RawDecode_master          1                          409865     409865 (100%)
+
+BLOCK: Decode
+Decode_master             1                          409752     409752 (100%)
+
+BLOCK: CoarseReconstruct
+HitsPreShower             bb.ps.nclus>0              409752     284489 (69.4%)
+HitsShower                bb.sh.nclus>0              409752     405623 (99%)
+GoodPreShower             bb.ps.ngoodADChits>0       409752     340091 (83%)
+GoodShower                bb.sh.ngoodADChits>0       409752     406547 (99.2%)
+GoodEvent                 HitsPreShower&&HitsShower  409752     284489 (69.4%)
+CoarseReconstruct_master  GoodEvent                  409752     284489 (69.4%)
+
+BLOCK: Physics
+GoodTrack                 BB.gold.index>-1           284489     31510  (11.1%)
+Physics_master            GoodTrack                  284489     31510  (11.1%)
+
+Timing summary:
+Init             : Real Time =   4.31 seconds Cpu Time =   4.17 seconds
+Begin            : Real Time =   0.95 seconds Cpu Time =   0.96 seconds
+RawDecode        : Real Time = 2042.98 seconds Cpu Time = 908.45 seconds
+Decode           : Real Time = 2155.67 seconds Cpu Time = 2149.42 seconds
+CoarseTracking   : Real Time =   0.69 seconds Cpu Time =   0.76 seconds
+CoarseReconstruct: Real Time =  20.28 seconds Cpu Time =  19.81 seconds
+Tracking         : Real Time = 1144.61 seconds Cpu Time = 1151.32 seconds
+Reconstruct      : Real Time =   3.66 seconds Cpu Time =   3.63 seconds
+Physics          : Real Time =   0.54 seconds Cpu Time =   0.48 seconds
+End              : Real Time =  35.82 seconds Cpu Time =  34.59 seconds
+Output           : Real Time =  12.71 seconds Cpu Time =  12.45 seconds
+Cuts             : Real Time =   6.16 seconds Cpu Time =   6.43 seconds
+Total            : Real Time = 5436.76 seconds Cpu Time = 4299.96 seconds
+ Continuing analysis, run 11991
+Reading from "file:///cache/mss/halla/sbs/raw/e1209019_11991.evio.0.4" (GMN run)
+End of file.
+==== Wed Nov 17 01:16:00 2021 Summary for run 11991
+Counter summary:
+512566  events read
+512566  events decoded
+512427  physics events
+40      slow control events
+99      other event types
+512427  physics events analyzed
+39600   events accepted
+156615  skipped after Coarse Reconstruct
+316351  skipped after Physics
+
+Cut summary:
+Name                      Def                        Called     Passed
+-------------------------------------------------------------------------------
+BLOCK: RawDecode
+RawDecode_master          1                          512566     512566 (100%)
+
+BLOCK: Decode
+Decode_master             1                          512427     512427 (100%)
+
+BLOCK: CoarseReconstruct
+HitsPreShower             bb.ps.nclus>0              512427     355812 (69.4%)
+HitsShower                bb.sh.nclus>0              512427     507273 (99%)
+GoodPreShower             bb.ps.ngoodADChits>0       512427     425279 (83%)
+GoodShower                bb.sh.ngoodADChits>0       512427     508438 (99.2%)
+GoodEvent                 HitsPreShower&&HitsShower  512427     355812 (69.4%)
+CoarseReconstruct_master  GoodEvent                  512427     355812 (69.4%)
+
+BLOCK: Physics
+GoodTrack                 BB.gold.index>-1           355812     39461  (11.1%)
+Physics_master            GoodTrack                  355812     39461  (11.1%)
+
+Timing summary:
+Init             : Real Time =   4.31 seconds Cpu Time =   4.17 seconds
+Begin            : Real Time =   0.95 seconds Cpu Time =   0.96 seconds
+RawDecode        : Real Time = 2447.16 seconds Cpu Time = 1132.19 seconds
+Decode           : Real Time = 2689.77 seconds Cpu Time = 2682.86 seconds
+CoarseTracking   : Real Time =   0.86 seconds Cpu Time =   0.92 seconds
+CoarseReconstruct: Real Time =  25.29 seconds Cpu Time =  24.88 seconds
+Tracking         : Real Time = 1428.63 seconds Cpu Time = 1436.64 seconds
+Reconstruct      : Real Time =   4.56 seconds Cpu Time =   4.60 seconds
+Physics          : Real Time =   0.67 seconds Cpu Time =   0.58 seconds
+End              : Real Time =  45.14 seconds Cpu Time =  43.46 seconds
+Output           : Real Time =  15.81 seconds Cpu Time =  15.46 seconds
+Cuts             : Real Time =   7.67 seconds Cpu Time =   7.96 seconds
+Total            : Real Time = 6681.31 seconds Cpu Time = 5364.22 seconds

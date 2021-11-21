@@ -1,0 +1,7 @@
+Rint.History: .root_history
+Rint.Logon        /adaqfs/home/a-onl/sbs/sbs_devel/install/scripts/rootlogon.C
+
+Unix.*.Root.DynamicPath:   .:lib64:$(ROOTSYS)/lib
+Unix.*.Root.MacroPath:     .:/adaqfs/home/a-onl/sbs/sbs_devel/install/scripts:$(ROOTSYS)/macros
+
+ACLiC.IncludePaths:       -I/adaqfs/home/a-onl/sbs/sbs_devel/install/include

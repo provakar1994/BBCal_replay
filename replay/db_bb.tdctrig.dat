@@ -1,0 +1,29 @@
+bb.tdctrig.detmap = 
+  5     2     122    127     -1 ## 
+
+bb.tdctrig.chanmap =  0 1  2  3  4  5   
+## Number of rows and columns
+bb.tdctrig.ncols =  6
+bb.tdctrig.nrows = 1
+## Position of first module
+bb.tdctrig.xyz    = -1.105  0.255  0.000
+## Space between modules
+bb.tdctrig.dxdydz =  10.000  10.000  0.000
+## Positions in [m] where +z is roated by bb.theta
+bb.tdctrig.position = 0 0 2.5319 ## Need to re-check this number
+## Size
+bb.tdctrig.size   =  0.595 2.295 0.37 # in meters
+#
+bb.tdctrig.tdc.cal = 0.0936
+#
+bb.tdctrig.tdc.offset = 0
+#
+bb.tdctrig.tdc.GoodTimeCut = 800. 0. 0. 0. 0. 300.
+#bb.tdctrig.tdc.GoodTimeCut = 40.
+#
+bb.tdctrig.reftdc.cal = 0.0936
+#
+bb.tdctrig.reftdc.offset = 0
+#
+bb.tdctrig.reftdc.GoodTimeCut = 40.
+                

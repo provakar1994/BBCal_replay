@@ -1,0 +1,50 @@
+==== Wed Nov 17 12:53:22 2021 Started analysis, run 11994
+Reading from "file:///cache/mss/halla/sbs/raw/e1209019_11994.evio.0.0" (GMN run)
+End of file.
+==== Wed Nov 17 13:14:29 2021 Summary for run 11994
+Counter summary:
+87212  events read
+87212  events decoded
+87188  physics events
+3      slow control events
+21     other event types
+87188  physics events analyzed
+6624   events accepted
+20238  skipped after Coarse Reconstruct
+60350  skipped after Physics
+
+Cut summary:
+Name                      Def                        Called     Passed
+------------------------------------------------------------------------------
+BLOCK: RawDecode
+RawDecode_master          1                          87212      87212 (100%)
+
+BLOCK: Decode
+Decode_master             1                          87188      87188 (100%)
+
+BLOCK: CoarseReconstruct
+HitsPreShower             bb.ps.nclus>0              87188      66950 (76.8%)
+HitsShower                bb.sh.nclus>0              87188      86657 (99.4%)
+GoodPreShower             bb.ps.ngoodADChits>0       87188      79806 (91.5%)
+GoodShower                bb.sh.ngoodADChits>0       87188      86782 (99.5%)
+GoodEvent                 HitsPreShower&&HitsShower  87188      66950 (76.8%)
+CoarseReconstruct_master  GoodEvent                  87188      66950 (76.8%)
+
+BLOCK: Physics
+GoodTrack                 BB.gold.index>-1           66950      6600  (9.86%)
+Physics_master            GoodTrack                  66950      6600  (9.86%)
+
+Timing summary:
+Init             : Real Time =   4.45 seconds Cpu Time =   4.30 seconds
+Begin            : Real Time =   0.84 seconds Cpu Time =   0.84 seconds
+RawDecode        : Real Time = 356.90 seconds Cpu Time = 205.57 seconds
+Decode           : Real Time = 505.60 seconds Cpu Time = 506.14 seconds
+CoarseTracking   : Real Time =   0.13 seconds Cpu Time =   0.14 seconds
+CoarseReconstruct: Real Time =   4.79 seconds Cpu Time =   5.17 seconds
+Tracking         : Real Time = 380.84 seconds Cpu Time = 381.31 seconds
+Reconstruct      : Real Time =   0.69 seconds Cpu Time =   0.67 seconds
+Physics          : Real Time =   0.11 seconds Cpu Time =   0.18 seconds
+End              : Real Time =   7.24 seconds Cpu Time =   7.24 seconds
+Output           : Real Time =   2.38 seconds Cpu Time =   2.18 seconds
+Cuts             : Real Time =   1.14 seconds Cpu Time =   1.19 seconds
+Total            : Real Time = 1266.74 seconds Cpu Time = 1116.54 seconds

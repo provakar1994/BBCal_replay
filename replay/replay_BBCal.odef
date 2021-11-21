@@ -1,0 +1,107 @@
+# Sample outout definition file
+
+#ADC from calorimeter
+#block *
+block g.*
+block bb.*trig.*
+block bb.ps.n*
+block bb.sh.n*
+block bb.ps.ngoodADChits
+block bb.sh.ngoodADChits
+block bb.ps.a*col
+block bb.ps.a*row
+block bb.ps.ped
+block bb.ps.a*
+block bb.sh.a*col
+block bb.sh.a*row
+block bb.sh.ped
+block bb.sh.cl*
+block bb.sh.a*
+#block bb.ps.*samp*
+#block bb.sh.*samp*
+block bb.sh.*
+block bb.ps.*
+block bb.tdctrig.*
+variable sbs.hcal.rowblk
+variable sbs.hcal.nclus
+
+# ## PS 
+# th2f hped_vs_elem_ps 'Pedestal vs element ID : PS' bb.ps.adcelemID[I] bb.ps.ped[I] 52 0 52 200 0 200 bb.ps.a_time[I]>0 
+# th2f hADCtime_vs_elem_ps 'ADC time vs element ID : PS' bb.ps.adcelemID[I] bb.ps.a_time[I] 52 0 52 200 0 200 bb.ps.a_time[I]>0 
+# th2f hADCamp_vs_elem_ps 'ADC amplitude(mV) vs element ID : PS' bb.ps.adcelemID[I] bb.ps.a_amp_p[I] 52 0 52 100 0 100 bb.ps.a_time[I]>0 
+# th2f hADCint_vs_elem_ps 'ADC integral(pC) vs element ID : PS' bb.ps.adcelemID[I] bb.ps.a_p[I] 52 0 52 80 0 80 bb.ps.a_time[I]>0 
+# th2f hADCeng_vs_elem_ps 'ADC integral(GeV) vs element ID : PS' bb.ps.adcelemID[I] bb.ps.a_c[I] 52 0 52 100 0 1 bb.ps.a_time[I]>0 
+# th1f helemID_ps 'PS Elements (total 52 of them)' bb.ps.adcelemID[I] 52 0 52 bb.ps.a_time[I]>0
+# # Cluster
+# th1f hclus_mult_ps 'Cluster multiplicity : PS' bb.ps.nclus 8 0 8 bb.ps.nclus>0
+# th1f hHEclus_eng_ps 'Energy of the best cluster(GeV) : PS' bb.ps.e 100 0 3 bb.ps.nclus>0
+# th2f hHEclus_pos_ps 'Position of best cluster : PS' bb.ps.colblk bb.ps.rowblk+1 2 0 2 26 1 27 bb.ps.nclus>0 
+
+# ## SH
+# th2f hped_vs_elem_sh 'Pedestal vs element ID : SH' bb.sh.adcelemID[I] bb.sh.ped[I] 189 0 189 200 0 200 bb.sh.a_time[I]>0 
+# th2f hADCtime_vs_elem_sh 'ADC time vs element ID : SH' bb.sh.adcelemID[I] bb.sh.a_time[I] 189 0 189 200 0 200 bb.sh.a_time[I]>0 
+# th2f hADCamp_vs_elem_sh 'ADC amplitude(mV) vs element ID : SH' bb.sh.adcelemID[I] bb.sh.a_amp_p[I] 189 0 189 100 0 100 bb.sh.a_time[I]>0 
+# th2f hADCint_vs_elem_sh 'ADC integral(pC) vs element ID : SH' bb.sh.adcelemID[I] bb.sh.a_p[I] 189 0 189 60 0 60 bb.sh.a_time[I]>0 
+# th2f hADCeng_vs_elem_sh 'ADC integral(GeV) vs element ID : SH' bb.sh.adcelemID[I] bb.sh.a_c[I] 189 0 189 100 0 1 bb.sh.a_time[I]>0 
+# th1f helemID_sh 'SH Elements (total 189 of them)' bb.sh.adcelemID[I] 189 0 189 bb.sh.a_time[I]>0
+# # Cluster
+# th1f hclus_mult_sh 'Cluster multiplicity : SH' bb.sh.nclus 12 0 12 bb.sh.nclus>0
+# th1f hHEclus_eng_sh 'Energy of the best cluster(GeV) : SH' bb.sh.e 100 0 5 bb.sh.nclus>0
+# th2f hHEclus_pos_sh 'Position of best cluster : SH' bb.sh.colblk+1 bb.sh.rowblk+1 7 1 8 27 1 28 bb.sh.nclus>0
+
+# ## PS+SH Cluster
+# th2f hHEclus_cor_sh_ps 'PS Cluster Eng. vs SH Cluster Eng (GeV).' bb.sh.e bb.ps.e 100 0 1 100 0 1.5 bb.sh.nclus>0&&bb.ps.nclus>0
+# th2f hps_shPlusps_e 'PS Cluster Eng. vs SH+PS Cluster Eng (GeV).' bb.ps.e+bb.sh.e bb.ps.e 100 0 3 100 0 1.5 bb.sh.nclus>0&&bb.ps.nclus>0
+
+# ## BBCal trigger
+# # ADC
+# th2f hped_vs_elem_trig 'Pedestal vs element ID : BBTrig' bb.bbtrig.adcelemID[I] bb.bbtrig.ped[I] 25 0 25 200 0 200 bb.bbtrig.a_time[I]>0 
+# th2f hADCtime_vs_elem_trig 'ADC time vs element ID : BBTrig' bb.bbtrig.adcelemID[I] bb.bbtrig.a_time[I] 25 0 25 200 0 200 bb.bbtrig.a_time[I]>0 
+# th2f hADCamp_vs_elem_trig 'ADC amplitude(mV) vs element ID : BBTrig' bb.bbtrig.adcelemID[I] bb.bbtrig.a_amp_p[I] 25 0 25 100 0 100 bb.bbtrig.a_time[I]>0 
+# th1f helemID_trig 'BBCal Trigger Elements (total 25 sums)' bb.bbtrig.adcelemID[I] 25 0 25 bb.bbtrig.a_time[I]>60.
+# # TDC
+# th2f htdc_vs_elem_trig 'TDC vs element ID : BBTrig (High)' bb.bbtrig.tdcelemID[I] bb.bbtrig.tdc[I] 25 0 25 200 -200 200 
+
+
+## PS 
+th2d hped_vs_elem_ps 'Pedestal vs element ID : PS' bb.ps.adcelemID[I] bb.ps.ped[I] 52 0 52 200 0 200 bb.ps.a_time[I]>0 
+th2d hADCtime_vs_elem_ps 'ADC time vs element ID : PS' bb.ps.adcelemID[I] bb.ps.a_time[I] 52 0 52 200 0 200 bb.ps.a_time[I]>0 
+th2d hADCamp_vs_elem_ps 'ADC amplitude(mV) vs element ID : PS' bb.ps.adcelemID[I] bb.ps.a_amp_p[I] 52 0 52 100 0 100 bb.ps.a_time[I]>0 
+th2d hADCint_vs_elem_ps 'ADC integral(pC) vs element ID : PS' bb.ps.adcelemID[I] bb.ps.a_p[I] 52 0 52 80 0 80 bb.ps.a_time[I]>0 
+th2d hADCeng_vs_elem_ps 'ADC integral(GeV) vs element ID : PS' bb.ps.adcelemID[I] bb.ps.a_c[I] 52 0 52 100 0 1 bb.ps.a_time[I]>0 
+th1d helemID_ps 'PS Elements (total 52 of them)' bb.ps.adcelemID[I] 52 0 52 bb.ps.a_time[I]>0
+# Cluster
+th1d hclus_mult_ps 'Cluster multiplicity : PS' bb.ps.nclus 8 0 8 bb.ps.nclus>0&&bb.ps.idblk!=-1
+th1d hHEclus_size_ps 'Best cluster size dist. : PS' bb.ps.nblk 12 0 12 bb.ps.nclus>0&&bb.ps.idblk!=-1
+th1d hHEclus_eng_ps 'Energy of the best cluster(GeV) : PS' bb.ps.e 100 0 5 bb.ps.nclus>0&&bb.ps.idblk!=-1
+th2d hHEclus_pos_ps 'Position of best cluster : PS' bb.ps.colblk bb.ps.rowblk+1 2 0 2 26 1 27 bb.ps.nclus>0&&bb.ps.idblk!=-1 
+
+## SH
+th2d hped_vs_elem_sh 'Pedestal vs element ID : SH' bb.sh.adcelemID[I] bb.sh.ped[I] 189 0 189 200 0 200 bb.sh.a_time[I]>0 
+th2d hADCtime_vs_elem_sh 'ADC time vs element ID : SH' bb.sh.adcelemID[I] bb.sh.a_time[I] 189 0 189 200 0 200 bb.sh.a_time[I]>0 
+th2d hADCamp_vs_elem_sh 'ADC amplitude(mV) vs element ID : SH' bb.sh.adcelemID[I] bb.sh.a_amp_p[I] 189 0 189 100 0 100 bb.sh.a_time[I]>0 
+th2d hADCint_vs_elem_sh 'ADC integral(pC) vs element ID : SH' bb.sh.adcelemID[I] bb.sh.a_p[I] 189 0 189 60 0 60 bb.sh.a_time[I]>0 
+th2d hADCeng_vs_elem_sh 'ADC integral(GeV) vs element ID : SH' bb.sh.adcelemID[I] bb.sh.a_c[I] 189 0 189 100 0 1 bb.sh.a_time[I]>0 
+th1d helemID_sh 'SH Elements (total 189 of them)' bb.sh.adcelemID[I] 189 0 189 bb.sh.a_time[I]>0
+# Cluster
+th1d hclus_mult_sh 'Cluster multiplicity : SH' bb.sh.nclus 12 0 12 bb.sh.nclus>0
+th1d hHEclus_size_sh 'Best cluster size dist. : SH' bb.sh.nblk 12 0 12 bb.sh.nclus>0
+th1d hHEclus_eng_sh 'Energy of the best cluster(GeV) : SH' bb.sh.e 100 0 5 bb.sh.nclus>0
+th2d hHEclus_pos_sh 'Position of best cluster : SH' bb.sh.colblk+1 bb.sh.rowblk+1 7 1 8 27 1 28 bb.sh.nclus>0
+
+## PS+SH Cluster
+th2d hHEclus_cor_sh_ps 'PS Cluster Eng. vs SH Cluster Eng (GeV).' bb.sh.e bb.ps.e 100 0 1 100 0 1.5 bb.sh.nclus>0&&bb.ps.nclus>0
+th2d hps_shPlusps_e 'PS Cluster Eng. vs SH+PS Cluster Eng (GeV).' bb.ps.e+bb.sh.e bb.ps.e 100 0 3 100 0 1.5 bb.sh.nclus>0&&bb.ps.nclus>0
+
+## BBCal Resolution
+th1d hbbcal_res 'BBCal_eng/tr_p : No cut' (bb.sh.e+bb.ps.e)/bb.tr.p 100 0 2
+
+## BBCal trigger
+# ADC
+th2d hped_vs_elem_trig 'Pedestal vs element ID : BBTrig' bb.bbtrig.adcelemID[I] bb.bbtrig.ped[I] 25 0 25 200 0 200 bb.bbtrig.a_time[I]>0 
+th2d hADCtime_vs_elem_trig 'ADC time vs element ID : BBTrig' bb.bbtrig.adcelemID[I] bb.bbtrig.a_time[I] 25 0 25 200 0 200 bb.bbtrig.a_time[I]>0 
+th2d hADCamp_vs_elem_trig 'ADC amplitude(mV) vs element ID : BBTrig' bb.bbtrig.adcelemID[I] bb.bbtrig.a_amp_p[I] 25 0 25 100 0 100 bb.bbtrig.a_time[I]>0 
+th1d helemID_trig 'BBCal Trigger Elements (total 25 sums)' bb.bbtrig.adcelemID[I] 25 0 25 bb.bbtrig.a_time[I]>0
+# TDC
+th2d htdc_vs_elem_trig 'TDC vs element ID : BBTrig (High)' bb.bbtrig.tdcelemID[I] bb.bbtrig.tdc[I] 25 0 25 200 -200 200 
+
