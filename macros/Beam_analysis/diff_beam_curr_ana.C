@@ -14,19 +14,73 @@
 #include "gmn_tree.C"
 
 // Detector parameters
-const int kNrows = 27;
+const int kNrows = 27; 
 const int kNcols = 7;
 
-gmn_tree *T;
-int gCurrentEntry = -1;
+void diff_beam_curr_ana(int nrun=100, int nevent=-1, int fseg=0, int mseg=4 ){
 
-void diff_beam_curr_ana(){
+  TChain *C = new TChain("T");
+  gmn_tree *T = new gmn_tree(C);
 
-  TFile *f1 = new TFile("","READ");
-  TFile *f2 = new TFile("","READ");
-  TFile *f4 = new TFile("","READ");
-  TFile *f8 = new TFile("","READ");
+  TString filename = Form("../../Rootfiles/bbshower_gmn_%d_%d"
+			  "_stream0_seg%d_%d.root",nrun,nevent,fseg,mseg);
+  C->Add(filename);
 
-  TH2F *h2_nclus_nblk = new TH2F("h2_nclus_nblk","",10,0,10,12,0,12);
+  TString outFile = Form("hist/nclus_nblk_e_%d_%d.root",nrun,nevent);
+  TFile *fout = new TFile(outFile,"RECREATE");
+  fout->cd();
+
+  gStyle->SetOptStat(0);
+  TH2F *h2_nclus_nblk = new TH2F("h2_nclus_nblk","Number of block vs"
+				 " Cluster ID; Cluster ID [0=>Best]; "
+				 "Number of Blocks involved",12,0,12,12,1,13);
+  TH2F *h2_nclus_eng = new TH2F("h2_nclus_eng","Energy of block vs"
+				 " Cluster ID; Cluster ID [0=>Best]; "
+				 "Energy of the block involved",12,0,12,200,0.,4.);
+
+  
+  Long64_t nevents = C->GetEntries();
+
+  // Looping through events
+  double progress = 0.;
+  while(progress<1.0){
+    int barwidth = 70;
+    for (int nev = 0; nev < nevents; nev++){ 
+ 
+      T->GetEntry(nev);
+
+      // cout << " nclus= " << T->bb_sh_nclus << endl;
+      
+      // SH Clustering
+      for( int cl=0; cl<(int)T->bb_sh_nclus; cl++ ){
+	
+	double clus_ID = T->bb_sh_clus_id[cl]; 
+	double num_Block = T->bb_sh_clus_nblk[cl];
+	double clus_eng = T->bb_sh_clus_e[cl];
+
+	h2_nclus_nblk->Fill(cl,num_Block);
+	h2_nclus_eng->Fill(cl,clus_eng);
+
+      }//
+
+
+      // ---- \/ ----     
+      cout << "[";
+      int pos = barwidth * progress;
+      for(int i=0; i<barwidth; ++i){
+    	if(i<pos) cout << "=";
+    	else if(i==pos) cout << ">";
+    	else cout << " ";
+      }
+      progress = (double)((nev+1.)/nevents);
+      cout << "] " << int(progress*100.) << "%\r";
+      cout.flush();
+    }
+  }
+  cout << endl << endl;
+
+  fout->Write();
+  fout->Close();
+  fout->Delete();
 
 } 
