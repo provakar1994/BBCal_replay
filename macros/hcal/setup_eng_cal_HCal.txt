@@ -1,0 +1,51 @@
+$OUT_DIR/gmn_replayed_11182_stream0_seg18_20.root
+#LH2 full field
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11263*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11265*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11267*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11268*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11252*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11251*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11250*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11249*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11248*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11247*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11246*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11242*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11244*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11245*
+#LH2 quarter field
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11301*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11302*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11303*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11304*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11305*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11306*
+/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11307*
+/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11308*
+/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11309*
+/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11310*
+/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11311*
+#LH2 inverted quarter field
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11276*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11277*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11279*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11280*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11281*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11282*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11283*
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11284*
+#LH2 Zero Field 
+#/adaqfs/home/a-onl/sbs/Rootfiles/gmn_replayed_11332*
+endlist
+sbs.hcal.nclus>0
+endcut
+E_beam 1.92
+Min_Event_Per_Channel 10
+Min_MB_Ratio 0.1
+p_rec_Offset 1.05
+W_mean 0.93
+W_sigma 0.04
+Scale_Factor_for_BadChannels 1.
+
+
