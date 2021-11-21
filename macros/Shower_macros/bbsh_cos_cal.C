@@ -47,7 +47,8 @@ void makeSummaryPlots( string, string, bool );
 void GetTrigtoFADCratio();
 
 // Declare vectors necessary to make diagnostic plots
-double blocks[kNrows*kNcols]={0.}, peakPos[kNrows*kNcols]={0.}, peakPosErr[kNrows*kNcols]={0.};
+double blocks[kNrows*kNcols]={0.}, peakPos[kNrows*kNcols]={0.},
+  peakPosErr[kNrows*kNcols]={0.};
 double RMS[kNrows*kNcols]={0.}, RMSErr[kNrows*kNcols]={0.}; 
 double NinPeak[kNrows*kNcols]={0.}, HVCrrFact[kNrows*kNcols]={0.};
 vector<int> runList, eventsReplayed;
@@ -106,7 +107,8 @@ namespace shgui {
       //frame1->AddFrame(displayNextButton,frame1LH);
       frame1->AddFrame(exitButton,frame1LH);
       //frame1->Resize(800, displayNextButton->GetDefaultHeight());
-      main->AddFrame(frame1, new TGLayoutHints(kLHintsBottom | kLHintsRight, 2, 2, 5, 1));
+      main->AddFrame(frame1, new TGLayoutHints(kLHintsBottom | 
+					       kLHintsRight, 2, 2, 5, 1));
 
       // Create the tab widget
       fTab = new TGTab(main, 300, 300);
@@ -166,7 +168,8 @@ void bbsh_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
       }
       if(nRuns==2){
 	runnumber = to_string(runList[0]) + "&" + to_string(runList[nRuns-1]);
-      }else runnumber = to_string(runList[0]) + "->" + to_string(runList[nRuns-1]);
+      }else runnumber = to_string(runList[0]) + "->" + 
+	      to_string(runList[nRuns-1]);
     }else{
       cout << " Run number? " << endl;
       cin >> nrun;
@@ -183,7 +186,8 @@ void bbsh_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
     cout << " Need to change histogram settings? [0=NO, 1=YES] " << endl;
     cin >> histo_limits;
     if(histo_limits){
-      cout << " nbins? h_min? h_max? [Default: nbins=45, h_min=0., h_max=45.] " << endl;
+      cout << " nbins? h_min? h_max? [Default: nbins=45,"
+	" h_min=0., h_max=45.] " << endl;
       cin >> hADCamp_bin >> hADCamp_min >> hADCamp_max;
     }
   }else{
@@ -207,7 +211,8 @@ void bbsh_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
   if(!trigAmp){
     if(!multiRuns){
       OutFile = Form("Output/run_%d_sh_peak_FADC.txt",nrun);
-      OutFile2 = Form("Output/fit_results/bbshower_%d_FitResults_FADC.txt",nrun);
+      OutFile2 = Form("Output/fit_results/bbshower_%d_"
+		      "FitResults_FADC.txt",nrun);
       OutRootFile = Form("hist/run_%d_sh_peak_FADC.root",nrun);
       OutF_peaks = Form("plots/SH_signal_peak_FADC_%d.pdf",nrun);
       OutF_diagPlots = Form("plots/BBSH_summary_plots_FADC_%d.pdf",nrun);
@@ -274,7 +279,8 @@ void bbsh_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
     for(int r = 0; r < kNrows; r++) {
       for(int c = 0; c < kNcols; c++) {
 	hADCamp[r][c] = MakeHisto(r, c, hADCamp_bin, "_i", hADCamp_min, hADCamp_max);
-	hamptointratio[r][c] = MakeHisto(r, c, hamptointratio_bin, "_r", hamptointratio_min, hamptointratio_max);
+	hamptointratio[r][c] = MakeHisto(r, c, hamptointratio_bin, "_r", 
+					 hamptointratio_min, hamptointratio_max);
       }
     }
   }
@@ -770,7 +776,7 @@ void GetTrigtoFADCratio(){
   ifstream infile_data;
   infile_data.open(InFile);
   TString currentline;
-  if (infile_data.is_open() ) {
+  if (infile_data.is_open()) {
     // cout << " Reading trigger to FADC ratios from " << InFile << endl;
     TString temp1, temp2;
     while( currentline.ReadLine( infile_data ) ){
@@ -789,7 +795,7 @@ void GetTrigtoFADCratio(){
     }
     infile_data.close();
   } else {
-    cerr << " No file : " << InFile << endl;
+    cerr << "--!--" << endl << " No file : " << InFile << endl;
     throw;
   }
 }

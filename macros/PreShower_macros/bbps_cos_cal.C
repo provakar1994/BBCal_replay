@@ -71,10 +71,15 @@ namespace psgui {
   TGCompositeFrame* AddTabSub(Int_t sub) {
     tf = fTab->AddTab(Form("PS Sub%d",sub+1));
 
-    TGCompositeFrame *fF5 = new TGCompositeFrame(tf, (12+1)*kCanvSize,(6+1)*kCanvSize , kHorizontalFrame);
-    TGLayoutHints *fL4 = new TGLayoutHints(kLHintsTop | kLHintsLeft | kLHintsExpandX |
+    TGCompositeFrame *fF5 = new TGCompositeFrame(tf, (12+1)*kCanvSize,
+						 (6+1)*kCanvSize , 
+						 kHorizontalFrame);
+    TGLayoutHints *fL4 = new TGLayoutHints(kLHintsTop | kLHintsLeft | 
+					   kLHintsExpandX |
 					   kLHintsExpandY, 5, 5, 5, 5);
-    TRootEmbeddedCanvas *fEc1 = new TRootEmbeddedCanvas(Form("psSubCanv%d",sub), fF5, 6*kCanvSize,8*kCanvSize);
+    TRootEmbeddedCanvas *fEc1 = new TRootEmbeddedCanvas(Form("psSubCanv%d",sub),
+							fF5, 6*kCanvSize,
+							8*kCanvSize);
     canv[sub] = fEc1;
     fF5->AddFrame(fEc1,fL4);
     tf->AddFrame(fF5,fL4);
@@ -328,7 +333,7 @@ void bbps_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
       double binWidth = hADCamp[r][c]->GetBinWidth(maxBin);
       double stdDev = hADCamp[r][c]->GetStdDev();
       
-      if( hADCamp[r][c]->GetEntries()>20 && stdDev>4.*binWidth){
+      if( hADCamp[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
 	// Create fit functions for each module
 	fgaus->SetLineColor(2);
@@ -798,7 +803,7 @@ void GetTrigtoFADCratio(){
     }
     infile_data.close();
   } else {
-    cerr << " No file : " << InFile << endl;
+    cerr << "--!--" << endl << " No file : " << InFile << endl;
     throw;
   }
 }
