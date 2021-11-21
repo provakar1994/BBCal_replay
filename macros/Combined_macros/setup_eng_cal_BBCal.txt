@@ -1,11 +1,11 @@
 ## SBS-4: LH2, Full BB Field, 30% SBS Field : Set 10 (See log below)
-#Run_list/sbs4_run_list_lh2_sbs30.txt
+Run_list/sbs4_run_list_lh2_sbs30.txt
 #
 ## SBS-4: LH2, Full BB Field, 0 SBS Field : Set 11
 #Run_list/sbs4_run_list_lh2_sbs0.txt
 #
 ## SBS-4: LH2, Full BB Field, 50% SBS Field : Set 12
-Run_list/sbs4_run_list_lh2_sbs50.txt
+#Run_list/sbs4_run_list_lh2_sbs50.txt
 #
 ## SBS-1: LH2, 50% BB Field, 25% SBS Filed(OppPol) : Set 9 
 #Run_list/sbs1_run_list_lh2_sbs-25_bb50.txt
@@ -13,7 +13,7 @@ Run_list/sbs4_run_list_lh2_sbs50.txt
 ## SBS-1: LH2, Full BB Field, 0 SBS Field : Set 4 
 #Run_list/sbs1_run_list_lh2_sbs0.txt
 #
-## SBS-1: LH2, Full BB Field, 25% SBS Field(OppPol) : Set 5 
+## SBS-1: LH2, Full BB Field, -25% SBS Field : Set 5 
 #Run_list/sbs1_run_list_lh2_sbs-25.txt
 #
 ## SBS-1: LH2, Full BB Field, 25% SBS Field : Set 6 
@@ -28,14 +28,14 @@ Run_list/sbs4_run_list_lh2_sbs50.txt
 endRunlist
 bb.sh.nclus>0&&bb.ps.nclus>0
 endcut
-Set 12 # Keep log below
+Set 10 # Keep log below
 E_beam 3.728 # SBS-1=1.92,SBS-4=3.728
-Min_Event_Per_Channel 500
+Min_Event_Per_Channel 1000
 Min_MB_Ratio 0.1
-p_rec_Offset 1.009		 # a.k.a fudge factor (FF)
-W_mean 0.9318
-W_sigma 0.07416
-Corr_Factor_Enrg_Calib_w_Cosmic 1.38  # a.k.a SF. SBS-1=1.21, SBS-4=1.38
+p_rec_Offset 1.0		 # a.k.a fudge factor (FF)
+W_mean 0.9345
+W_sigma 0.07194
+Corr_Factor_Enrg_Calib_w_Cosmic 1.28  # a.k.a cF.
 
 
 ***** Log ***** 
@@ -52,15 +52,15 @@ Corr_Factor_Enrg_Calib_w_Cosmic 1.38  # a.k.a SF. SBS-1=1.21, SBS-4=1.38
 				still not done (LH2).
 
 ** W peak moves around with SBS field strength. **
-# 4    SBS 0 field runs:     	W_mean=0.9403, W_sigma=0.02333, FF=1.042, SF=1.21
+# 4    SBS 0 field runs:     	W_mean=0.9403, W_sigma=0.02333, FF=1.042, cF=1.21
        11287    	     				
-# 5    SBS 25% (OppPol) runs:	W_mean=0.9367, W_sigma=0.02253, FF=1.04
+# 5    SBS -25% runs:		W_mean=0.9367, W_sigma=0.02253, FF=1.04, cF=1.37
        11276
-# 6    SBS 25% runs:		W_mean=0.9318, W_sigma=0.02218, FF=1.05
+# 6    SBS 25% runs:		W_mean=0.9318, W_sigma=0.02218, FF=1.05, cF=1.27
        11304
-# 7    SBS 50% runs:		W_mean=0.9375, W_sigma=0.02232, FF=1.05
+# 7    SBS 50% runs:		W_mean=0.9375, W_sigma=0.02232, FF=1.05, cF=1.28
        11242
-# 8    SBS 100% runs:		W_mean=0.9391, W_sigma=0.02447, FF=1.055	
+# 8    SBS 100% runs:		W_mean=0.9391, W_sigma=0.02447, FF=1.055, cF=1.31
        11226, 11228, 11235
 # 9    BB 50%, SBS -25% runs:	W_mean=, W_sigma=, FF=
        11284
@@ -70,9 +70,9 @@ Corr_Factor_Enrg_Calib_w_Cosmic 1.38  # a.k.a SF. SBS-1=1.21, SBS-4=1.38
 ***** Starting to look at SBS-4 data. Preliminary optics calibration *****
       	       was finished for SBS-1 config (SBS 0 field).
 
-# 10   SBS 30% runs:	        W_mean=0.9396, W_sigma=0.0850, FF=1.0
-       11548
-# 11   SBS 0 field runs		W_mean=0.9379, W_sigma=0.0704, FF=0.99, SF=1.38
+# 10   SBS 30% runs:	        W_mean=0.9345, W_sigma=0.07194, FF=1.0, cF=1.28
+       11547, 11548
+# 11   SBS 0 field runs		W_mean=0.9379, W_sigma=0.0704, FF=0.99, cF=1.38
        11588
 # 12   SBS 50% field runs	W_mean=0.9318, W_sigma=0.07416, FF=1.009
        11590
