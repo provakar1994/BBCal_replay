@@ -356,7 +356,7 @@ void bbsh_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
       double binWidth = hADCamp[r][c]->GetBinWidth(maxBin);
       double stdDev = hADCamp[r][c]->GetStdDev();
 
-      if(hADCamp[r][c]->GetEntries()>20 && stdDev>4.*binWidth){ 
+      if(hADCamp[r][c]->GetEntries()>20 && stdDev>2.*binWidth){ 
 
 	// Create fit functions for each module
 	fgaus->SetLineColor(2);
