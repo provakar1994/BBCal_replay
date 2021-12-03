@@ -190,8 +190,8 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
 
   // Physics histograms
   Double_t cF = Corr_Factor_Enrg_Calib_w_Cosmic;
-  TH1D *h_W = new TH1D("h_W","W distribution",200,0.7,1.6);
-  TH1D *h_Q2 = new TH1D("h_Q2","Q2 distribution",100,0.,4.);
+  TH1D *h_W = new TH1D("h_W","W distribution",1000,0.,10.);  // (200,0.7,1.6);
+  TH1D *h_Q2 = new TH1D("h_Q2","Q2 distribution",1000,0.,10.);  // (200,0.,4.);
   TH1D *h_res_BBCal = new TH1D("h_res_BBCal","E_clus/p_rec",200,0.2,1.6);
   TH1D *h_res_BBCal_custom = new TH1D("h_res_BBCal_custom","E_clus/p_rec",200,0.2,1.6);
   TH1D *h_clusE = new TH1D("h_clusE","Best Cluster Energy (SH+PS)",350,0.,3.5);
@@ -223,6 +223,18 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
       // if( nevent%1000 == 0){
       //   cout << nevent << "/" << Nevents << endl;
       // }
+      // Creating a progress bar
+      cout << "[";
+      int pos = barwidth * progress;
+      for(int i=0; i<barwidth; ++i){
+	if(i<pos) cout << "=";
+	else if(i==pos) cout << ">";
+	else cout << " ";
+      }
+      progress = (double)((nevent+1.)/Nevents);
+      cout << "] " << int(progress*100.) << "%\r";
+      cout.flush();
+
       T->GetEntry(nevent);
     
       E_e = 0;
@@ -363,17 +375,17 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
 	}   
       }
   
-      // Creating a progress bar
-      cout << "[";
-      int pos = barwidth * progress;
-      for(int i=0; i<barwidth; ++i){
-	if(i<pos) cout << "=";
-	else if(i==pos) cout << ">";
-	else cout << " ";
-      }
-      progress = (double)((nevent+1.)/Nevents);
-      cout << "] " << int(progress*100.) << "%\r";
-      cout.flush();
+      // // Creating a progress bar
+      // cout << "[";
+      // int pos = barwidth * progress;
+      // for(int i=0; i<barwidth; ++i){
+      // 	if(i<pos) cout << "=";
+      // 	else if(i==pos) cout << ">";
+      // 	else cout << " ";
+      // }
+      // progress = (double)((nevent+1.)/Nevents);
+      // cout << "] " << int(progress*100.) << "%\r";
+      // cout.flush();
     }
   }
   cout << endl << endl;
