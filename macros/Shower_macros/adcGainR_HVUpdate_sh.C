@@ -68,7 +68,7 @@ void adcGainR_HVUpdate_sh(Int_t set=0, Int_t nrun=0) {
   GainR = Form("Gain/eng_cal_gainRatio_sh_%d_1.txt",set);
   OutFile = Form("hv_set/sh_hv_calib_w_BEAM_set_%d.set",
 		 set);
-  OutPlots = Form("hv_set/sh_hv_calib_w_BEAM_set_%d.set",
+  OutPlots = Form("hv_set/sh_hv_calib_w_BEAM_set_%d.pdf",
 		 set);
  
 
