@@ -26,26 +26,26 @@ static const Int_t shNRow=27;
 
 Double_t HV_Value[2][16][12];
 Int_t HV_Block[2][16][12];
-Int_t frun=0, lrun=0;
-bool multiRun=0;
 
 void SetHVMap();
 void ReadHV(Int_t nrun);
 void UpdateHV();
 void ReadAlpha();
+void ReadGainR();
 void ReadPeak(Int_t nrun);
 string getDate();
 
 vector<double> gAlpha;
 vector<double> sigPeakTrig; 
 vector<double> sigPeakErr;
+vector<double> adcGainR;
 
 Double_t HVUpdate[shNCol*shNRow];
 Double_t HV_Crate[shNCol*shNRow];
 Double_t HV_Slot[shNCol*shNRow];
 Double_t HV_Chan[shNCol*shNRow];
 
-TH2F* h_hv_xy_new = new TH2F("hv_xy_new","; SH col; SH row",
+TH2F* h_hv_xy_new = new TH2F("hv_xy_new","HV New (V); SH col; SH row",
 			     7,1,8,27,1,28);
 TH2F* h_hv_xy_old = new TH2F("hv_xy_old","HV Old (V); SH col; SH row",
 			     7,1,8,27,1,28);
@@ -53,15 +53,7 @@ TH2F* h_hv_xy_shift = new TH2F("hv_xy_shift","Absolute Shift(V)"
 			       " [fabs(HVOld-HVNew)]; SH col; SH row",
 			       7,1,8,27,1,28);
 
-void test(Int_t nrun=0, Double_t des_TrigAmp=15., 
-			bool userInput=0) {
-  if(userInput){
-    multiRun = 1;
-    cout << " Enter 1st run number that was analyzed " << endl;
-    cin >> frun;
-    cout << " Now, enter Last run number that was analyzed " << endl;
-    cin >> lrun;
-  }
+void test(Int_t set=0, Int_t nrun=0) {
 
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings 
 
@@ -71,23 +63,20 @@ void test(Int_t nrun=0, Double_t des_TrigAmp=15.,
   TCanvas *c2 = new TCanvas("c2","c2",1200,800);
   
   TString date = getDate();
-  TString OutFile, OutPlots;
-  if(!multiRun){
-    OutFile = Form("hv_set/sh_hv_calib_run_%d_%dmV.set",
-		   nrun,(int)des_TrigAmp);
-    OutPlots = Form("plots/sh_hv_calib_run_%d_%dmV.pdf",
-		    nrun,(int)des_TrigAmp);
-  }else{
-    OutFile = Form("hv_set/sh_hv_calib_run_%d_%d_%dmV.set",
-		   frun,lrun,(int)des_TrigAmp);
-    OutPlots = Form("plots/sh_hv_calib_run_%d_%d_%dmV.pdf",
-		    frun,lrun,(int)des_TrigAmp);
-  }
+  TString GainR, OutFile, OutPlots;
+
+  GainR = Form("Gain/eng_cal_gainRatio_sh_%d_1.txt",set);
+  OutFile = Form("hv_set/sh_hv_calib_w_BEAM_set_%d.set",
+		 set);
+  OutPlots = Form("hv_set/sh_hv_calib_w_BEAM_set_%d.set",
+		 set);
+ 
 
   cout << "---" << endl;
   ReadHV(nrun);
   ReadAlpha();
-  ReadPeak(nrun);
+  ReadGainR(GainR);
+  //ReadPeak(nrun);
   cout << "---" << endl;
   ofstream outfile_hv;
   outfile_hv.open(OutFile);
@@ -104,9 +93,10 @@ void test(Int_t nrun=0, Double_t des_TrigAmp=15.,
 	  int col = blk - shNCol*row;
 
 	  double alphaINV = 1./gAlpha.at(blk);
-	  double ampRatio = des_TrigAmp/sigPeakTrig.at(blk);
+	  //double ampRatio = des_TrigAmp/sigPeakTrig.at(blk);
+	  double gainRatio = adcGainR.at(blk);
 	  double HV_old = HV_Value[nc][ns][nch];
-	  double HV_new = HV_Value[nc][ns][nch]*pow(ampRatio,alphaINV);
+	  double HV_new = HV_Value[nc][ns][nch]*pow(gainRatio,alphaINV);
 	  if(fabs(HV_new)>2000){
 	    cout << " *!* New HV for SH Ch. " << row+1 << "-" << col+1
 		 << " seems too high! " << endl;
@@ -128,7 +118,6 @@ void test(Int_t nrun=0, Double_t des_TrigAmp=15.,
   gStyle->SetOptStat(0);
   gStyle->SetPaintTextFormat("4.2f");
   c1->cd(1);
-  h_hv_xy_new->SetTitle(Form("HV New (V) [%0.1f mV Trig. Amp.]",des_TrigAmp));
   h_hv_xy_new->Draw("text col");
   // h_hv_xy_new->SetMarkerSize(1.8);
   h_hv_xy_new->GetZaxis()->SetRangeUser(-2000.,-800.);
@@ -251,49 +240,49 @@ void ReadAlpha(){
   }
 }//
 
-void ReadPeak(Int_t nrun) {
-  string InFile;
-  if(!multiRun){
-    InFile = Form("Output/run_%d_sh_peak_Trigger.txt",nrun);
-  }else InFile = Form("Output/run_%d_%d_sh_peak_Trigger.txt",frun,lrun);
-  ifstream infile_data;
-  infile_data.open(InFile);
-  string readline;
-  int counter=0;
-  if (infile_data.is_open() ) {
-    cout << " Reading Trigger Peaks : "<< InFile << endl;
-    while (getline(infile_data,readline)) {
-      istringstream tokenStream(readline);
-      string token;
-      char delimiter = ' ';
-      Int_t test=1;
-      while (getline(tokenStream,token,delimiter))  {
-	TString temptoken=token;
-	if ( test ==1) {
-	  sigPeakTrig.push_back(temptoken.Atof());
-	  test=0;
-	} else {
-	  sigPeakErr.push_back(temptoken.Atof());
-	  test=1;
-	}
-	counter++;
-      }
-    }
-    if(counter!=2*shNCol*shNRow){
-      cerr << "--!--" << endl << InFile 
-	   << " is BROKEN!!! Please check and try again. " << endl 
-	   << "--!--" << endl;
-      throw;
-    }
-    infile_data.close();
-  } else {
-    cerr << endl << " No file : " << InFile 
-	 << " <--- ** Attention **" << endl << endl;
-    throw;
-  }
-}//
+// void ReadPeak(Int_t nrun) {
+//   string InFile;
+//   if(!multiRun){
+//     InFile = Form("Output/run_%d_sh_peak_Trigger.txt",nrun);
+//   }else InFile = Form("Output/run_%d_%d_sh_peak_Trigger.txt",frun,lrun);
+//   ifstream infile_data;
+//   infile_data.open(InFile);
+//   string readline;
+//   int counter=0;
+//   if (infile_data.is_open() ) {
+//     cout << " Reading Trigger Peaks : "<< InFile << endl;
+//     while (getline(infile_data,readline)) {
+//       istringstream tokenStream(readline);
+//       string token;
+//       char delimiter = ' ';
+//       Int_t test=1;
+//       while (getline(tokenStream,token,delimiter))  {
+// 	TString temptoken=token;
+// 	if ( test ==1) {
+// 	  sigPeakTrig.push_back(temptoken.Atof());
+// 	  test=0;
+// 	} else {
+// 	  sigPeakErr.push_back(temptoken.Atof());
+// 	  test=1;
+// 	}
+// 	counter++;
+//       }
+//     }
+//     if(counter!=2*shNCol*shNRow){
+//       cerr << "--!--" << endl << InFile 
+// 	   << " is BROKEN!!! Please check and try again. " << endl 
+// 	   << "--!--" << endl;
+//       throw;
+//     }
+//     infile_data.close();
+//   } else {
+//     cerr << endl << " No file : " << InFile 
+// 	 << " <--- ** Attention **" << endl << endl;
+//     throw;
+//   }
+// }//
 
-void ReadGain( TString adcGain ){
+void ReadGainR( TString adcGain ){
   ifstream adcGain_data;
   adcGain_data.open(adcGain);
   string readline;
@@ -306,12 +295,17 @@ void ReadGain( TString adcGain ){
       char delimiter = ' ';
       while(getline(tokenStream,token,delimiter)){
 	TString temptoken=token;
-	oldADCgainSH[elemID] = temptoken.Atof();
+	adcGainR.push_back(temptoken.Atof());
 	elemID++;
       }
     }
+    if(elemID!=shNCol*shNRow){
+      cerr << " Broken file : " << adcGain << endl;
+      throw;
+    }
   }else{
-    cout << " No file : " << adcGain << endl;
+    cerr << " No file : " << adcGain << endl;
+    throw;
   }
   adcGain_data.close();
 }//
