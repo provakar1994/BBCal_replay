@@ -1,5 +1,8 @@
-## SBS-4: LH2, Full BB Field, 30% SBS Field : Set 10 (See log below)
-Run_list/sbs4_run_list_lh2_sbs30.txt
+## SBS-11: LH2, Full BB Field, 100% SBS Field : Set 14 (See log below)
+Run_list/sbs11_run_list_lh2_sbs100.txt
+#
+## SBS-4: LH2, Full BB Field, 30% SBS Field : Set 10
+#Run_list/sbs4_run_list_lh2_sbs30.txt
 #
 ## SBS-4: LH2, Full BB Field, 0 SBS Field : Set 11
 #Run_list/sbs4_run_list_lh2_sbs0.txt
@@ -28,14 +31,14 @@ Run_list/sbs4_run_list_lh2_sbs30.txt
 endRunlist
 bb.sh.nclus>0&&bb.ps.nclus>0
 endcut
-Set 10 # Keep log below
-E_beam 3.728 # SBS-1=1.92,SBS-4=3.728
+Set 14 # Keep log below
+E_beam 9.91 # SBS-1=1.92,SBS-4=3.728,SBS-11=9.91
 Min_Event_Per_Channel 1000
 Min_MB_Ratio 0.1
 p_rec_Offset 1.0		 # a.k.a fudge factor (FF)
-W_mean 0.9345
-W_sigma 0.07194
-Corr_Factor_Enrg_Calib_w_Cosmic 1.28  # a.k.a cF.
+W_mean 2.0
+W_sigma 1.0
+Corr_Factor_Enrg_Calib_w_Cosmic 1.0  # a.k.a cF.
 
 
 ***** Log ***** 
@@ -76,3 +79,8 @@ Corr_Factor_Enrg_Calib_w_Cosmic 1.28  # a.k.a cF.
        11588
 # 12   SBS 50% field runs	W_mean=0.9318, W_sigma=0.07416, FF=1.009
        11590
+
+***** Starting to look at SBS-11 data *****
+
+# 14   SBS 100% runs:	        W_mean=0.9345, W_sigma=0.07194, FF=1.0, cF=1.28
+       12415
