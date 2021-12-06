@@ -211,7 +211,10 @@ void clust_eng_bbsh(const char *configfilename){
     for(int c=0; c<kNcols; c++){
       sub = r/7;
       subCanv[sub]->cd((r%7)*kNcols + c + 1);
-      //hClusteng[r][c]->Draw();
+      // hClusteng[r][c]->SetTitle(Form("Clust Eng. | %d-%d",r+1,c+1));
+      // hClusteng[r][c]->Draw();
+    
+      hResolution[r][c]->SetTitle(Form("Clust_eng/tr_p | %d-%d",r+1,c+1));
       hResolution[r][c]->Draw();
     }
   }
@@ -247,7 +250,7 @@ string getDate(){
 TH1F* MakeHisto(Int_t row, Int_t col, Int_t bins, const char* suf="", Double_t min=0., Double_t max=50.)
 {
   TH1F *h = new TH1F(TString::Format("h_R%d_C%d_Blk_%d%s",row,col,row*kNcols+col,suf),
-		     TString::Format("Clust Eng. | %d-%d",row+1,col+1),bins,min,max);
+		     "",bins,min,max);
   //h->SetStats(0);
   h->SetLineWidth(1);
   h->SetLineColor(2);
