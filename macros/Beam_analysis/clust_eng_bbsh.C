@@ -23,6 +23,7 @@ TCanvas *subCanv[4];
 
 // Declare necessary histograms
 TH1F *hClusteng[kNrows][kNcols];
+TH1F *hResolution[kNrows][kNcols];
 // int hClusteng_bin = 175;
 // double hClusteng_min = 0.5;
 // double hClusteng_max = 3.0;
@@ -165,9 +166,11 @@ void clust_eng_bbsh(const char *configfilename){
 
   TString OutPeaks;
   if(!Multiple_runs){
-    OutPeaks = Form("plots/bbcal_clusEng_p_blk_%d.pdf",fst_run);
+    // OutPeaks = Form("plots/bbcal_clusEng_p_blk_%d.pdf",fst_run);
+    OutPeaks = Form("plots/bbcal_resolu_p_blk_%d.pdf",fst_run);
   }else{
-    OutPeaks = Form("plots/bbcal_clusEng_p_blk_%d_%d.pdf",fst_run,lst_run);
+    // OutPeaks = Form("plots/bbcal_clusEng_p_blk_%d_%d.pdf",fst_run,lst_run);
+    OutPeaks = Form("plots/bbcal_resolu_p_blk_%d_%d.pdf",fst_run,lst_run);
   }
 
   //TFile *fout = new TFile(Form("clust_eng_p_blk_%d.root",run),"RECREATE");
@@ -175,6 +178,7 @@ void clust_eng_bbsh(const char *configfilename){
   for(int r = 0; r < kNrows; r++) {
     for(int c = 0; c < kNcols; c++) {
       hClusteng[r][c] = MakeHisto(r, c, nBins, "_i", h_min, h_max);
+      hResolution[r][c] = MakeHisto(r, c, nBins, "_j", h_min, h_max);
     }
   }
 
@@ -207,9 +211,8 @@ void clust_eng_bbsh(const char *configfilename){
     for(int c=0; c<kNcols; c++){
       sub = r/7;
       subCanv[sub]->cd((r%7)*kNcols + c + 1);
-      //if( hClusteng[r][c]->GetEntries() > 0. ){
-	hClusteng[r][c]->Draw();
-	//}
+      //hClusteng[r][c]->Draw();
+      hResolution[r][c]->Draw();
     }
   }
 
@@ -220,7 +223,7 @@ void clust_eng_bbsh(const char *configfilename){
   // Post analysis reporting
   cout << "Finishing analysis .." << endl;
   cout << " --------- " << endl;
-  cout << " Cluster energy peaks saved to : " << OutPeaks << endl;
+  cout << " Plots saved to : " << OutPeaks << endl;
   cout << " --------- " << endl;
   
 } //main
@@ -271,8 +274,10 @@ void processEvent( int entry = -1 ){
   T->GetEntry(gCurrentEntry);
 
   Double_t ClusEng = T->bb_sh_e+T->bb_ps_e;
-  if( T->bb_sh_nclus>0&&T->bb_ps_nclus>0 ){
-    hClusteng[(int)T->bb_sh_rowblk][(int)T->bb_sh_colblk]->Fill(ClusEng); //Our eng cal with cosmics is off by 25%
+  Double_t Resolution = (T->bb_sh_e+T->bb_ps_e)/T->bb_tr_p[0];
+  if( T->bb_sh_nclus>0&&T->bb_ps_nclus>0&&T->bb_ps_nclus!=-1 ){
+    hClusteng[(int)T->bb_sh_rowblk][(int)T->bb_sh_colblk]->Fill( ClusEng );
+    hResolution[(int)T->bb_sh_rowblk][(int)T->bb_sh_colblk]->Fill( Resolution );
   }
 
   // if( T->bb_sh_nclus>0&&T->bb_ps_nclus>0 ){
