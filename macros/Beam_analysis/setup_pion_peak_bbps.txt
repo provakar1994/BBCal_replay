@@ -1,0 +1,8 @@
+../../Rootfiles/gmn_replayed_13193_stream0*
+endlist
+Multiple_runs 0
+fst_run 13193
+lst_run 13193
+nBins 45
+h_min 0.0
+h_max 1.5
