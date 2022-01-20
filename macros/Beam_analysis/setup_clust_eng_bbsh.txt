@@ -1,8 +1,8 @@
-../../Rootfiles/mkj3_bbshower_11994_0_-1*
+../../Rootfiles/gmn_replayed_13234_stream0*
 endlist
 Multiple_runs 0
-fst_run 11994
-lst_run 11994
+fst_run 13234
+lst_run 13234
 nBins 90
-h_min 0.5
-h_max 3.5
+h_min 0.0
+h_max 2.5
