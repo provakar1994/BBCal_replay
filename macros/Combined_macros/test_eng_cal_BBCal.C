@@ -3,7 +3,7 @@
   + BigBite Preshower) detector. It does so by minimizing the chi2 of the difference between calorimeter
   cluster energy and the reconstructed electron energy(we get that from tracking information). It reads
   in the old adc gain coefficients (GeV/pC) and ratios and writes the new ones in file. One needs a configfile 
-  to execute this script. Example content of such a file is attached in the end. To execute, follow:
+  to execute this script. Example content of such a file is attached at the end. To execute, follow:
   ----
   [a-onl@aonl2 macros]$ pwd
   /adaqfs/home/a-onl/sbs/BBCal_replay/macros
@@ -11,7 +11,7 @@
   root [0] .L Combined_macros/test_eng_cal_BBCal.C+
   root [1] test_eng_cal_BBCal("Combined_macros/setup_eng_cal_BBCal.txt")
   ----
-  P. Datta  <pdbforce@jlab.org>  Created  15 Oct 2021 (Based on AJR Puckett & E. Fuchey's version)
+  P. Datta  <pdbforce@jlab.org>  Created  15 Oct 2021 (Based on AJR Puckett & E Fuchey's version)
 */
 #include <iostream>
 #include <sstream>
@@ -21,9 +21,6 @@
 #include "TCut.h"
 #include "TH1D.h"
 #include "TH2D.h"
-#include "TLine.h"
-#include "TCanvas.h"
-#include "TLegend.h"
 #include "TMath.h"
 #include "TMatrixD.h"
 #include "TVectorD.h"
@@ -52,7 +49,7 @@ Double_t oldADCratioSH[kNcolsSH*kNrowsSH] = {0.};
 Double_t oldADCgainPS[kNcolsPS*kNrowsPS] = {0.};  
 Double_t oldADCratioPS[kNcolsPS*kNrowsPS] = {0.};  
 
-void test_eng_cal_BBCal(const char *configfilename, int iter=1)
+void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 {
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
 
@@ -66,6 +63,7 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
   Double_t p_rec_Offset = 1.;
   Double_t W_mean = 0.;
   Double_t W_sigma = 0.;
+  bool cut_on_W = 0;
   Double_t Corr_Factor_Enrg_Calib_w_Cosmic = 1.;
 
   TMatrixD M(ncell,ncell), M_inv(ncell,ncell);
@@ -80,8 +78,10 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
   Int_t nevents_per_cell[ncell];
 
   // Define a clock to check macro processing time
-  TStopwatch *st = new TStopwatch();
-  st->Start(kTRUE);
+  TStopwatch *sw = new TStopwatch();
+  TStopwatch *sw2 = new TStopwatch();
+  sw->Start();
+  sw2->Start();
 
   // Reading config file
   ifstream configfile(configfilename);
@@ -138,6 +138,10 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	W_sigma = sval.Atof();
       }
+      if( skey == "cut_on_W" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	cut_on_W = sval.Atoi();
+      }
       if( skey == "Corr_Factor_Enrg_Calib_w_Cosmic" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	Corr_Factor_Enrg_Calib_w_Cosmic = sval.Atof();
@@ -172,17 +176,27 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
 
   gStyle->SetOptStat(0);
   gStyle->SetPalette(60);
-  TH2D *h2_SHeng_P_SHblk_raw = new TH2D("h2_SHeng_P_SHblk_raw","Raw E_clus(SH) per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_res_P_SHblk_raw = new TH2D("h2_res_P_SHblk_raw","Raw E_clus/p_rec per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_count = new TH2D("h2_count","Count for E_clus/p_rec per per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_res_P_SHblk_trPOS_raw = new TH2D("h2_res_P_SHblk_trPOS_raw","Raw E_clus/p_rec per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
-  TH2D *h2_count_trP = new TH2D("h2_count_trP","Count for E_clus/p_rec per per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
+  TH2D *h2_SHeng_P_SHblk_raw = new TH2D("h2_SHeng_P_SHblk_raw","Raw E_clus(SH) per SH block",
+					kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_res_P_SHblk_raw = new TH2D("h2_res_P_SHblk_raw","Raw E_clus/p_rec per SH block",
+				      kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_count = new TH2D("h2_count","Count for E_clus/p_rec per per SH block",
+			    kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_res_P_SHblk_trPOS_raw = new TH2D("h2_res_P_SHblk_trPOS_raw","Raw E_clus/p_rec per SH"
+					    " block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
+  TH2D *h2_count_trP = new TH2D("h2_count_trP","Count for E_clus/p_rec per per SH block(TrPos)",
+				kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
 
-  TH2D *h2_PSeng_P_PSblk_raw = new TH2D("h2_PSeng_P_PSblk_raw","Raw E_clus(PS) per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_res_P_PSblk_raw = new TH2D("h2_res_P_PSblk_raw","Raw E_clus/p_rec per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_count_PS = new TH2D("h2_count_PS","Count for E_clus/p_rec per per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_res_P_PSblk_trPOS_raw = new TH2D("h2_res_P_PSblk_trPOS_raw","Raw E_clus/p_rec per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
-  TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec per per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
+  TH2D *h2_PSeng_P_PSblk_raw = new TH2D("h2_PSeng_P_PSblk_raw","Raw E_clus(PS) per PS block",
+					kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_res_P_PSblk_raw = new TH2D("h2_res_P_PSblk_raw","Raw E_clus/p_rec per PS block",
+				      kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_count_PS = new TH2D("h2_count_PS","Count for E_clus/p_rec per per PS block",
+			       kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_res_P_PSblk_trPOS_raw = new TH2D("h2_res_P_PSblk_trPOS_raw","Raw E_clus/p_rec per PS block(TrPos)",
+					    kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
+  TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec per per PS block(TrPos)",
+				   kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
   TString outFile = Form("hist/eng_cal_BBCal_%d_%d.root",Set,iter);
   TFile *fout = new TFile(outFile,"RECREATE");
@@ -190,50 +204,70 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
 
   // Physics histograms
   Double_t cF = Corr_Factor_Enrg_Calib_w_Cosmic;
-  TH1D *h_W = new TH1D("h_W","W distribution",1000,0.,10.);  // (200,0.7,1.6);
-  TH1D *h_Q2 = new TH1D("h_Q2","Q2 distribution",1000,0.,10.);  // (200,0.,4.);
+  TH1D *h_W = new TH1D("h_W","W distribution",200,0.,5.);  // (200,0.7,1.6);
+  TH1D *h_Q2 = new TH1D("h_Q2","Q2 distribution",200,0.,6.);
   TH1D *h_res_BBCal = new TH1D("h_res_BBCal","E_clus/p_rec",200,0.2,1.6);
   TH1D *h_res_BBCal_custom = new TH1D("h_res_BBCal_custom","E_clus/p_rec",200,0.2,1.6);
-  TH1D *h_clusE = new TH1D("h_clusE","Best Cluster Energy (SH+PS)",350,0.,3.5);
-  TH1D *h_clusE_custom = new TH1D("h_clusE_custom",Form("Best Cluster Energy (SH+PS) u (sh/ps.e)*%2.2f",cF),350,0.,3.5);
-  TH1D *h_SHclusE = new TH1D("h_SHclusE","Best SH Cluster Energy",300,0.,3.0);
-  TH1D *h_SHclusE_custom = new TH1D("h_SHclusE_custom",Form("Best SH Cluster Energy u (sh.e)*%2.2f",cF),300,0.,3.0);
+  TH1D *h_clusE = new TH1D("h_clusE","Best Cluster Energy (SH+PS)",350,0.,5.);
+  TH1D *h_clusE_custom = new TH1D("h_clusE_custom",Form("Best Cluster Energy (SH+PS)"
+							" u (sh/ps.e)*%2.2f",cF),350,0.,5.);
+  TH1D *h_SHclusE = new TH1D("h_SHclusE","Best SH Cluster Energy",300,0.,5.0);
+  TH1D *h_SHclusE_custom = new TH1D("h_SHclusE_custom",Form("Best SH Cluster Energy u"
+							    " (sh.e)*%2.2f",cF),300,0.,5.0);
   TH1D *h_PSclusE = new TH1D("h_PSclusE","Best PS Cluster Energy",150,0.,1.5);
-  TH1D *h_PSclusE_custom = new TH1D("h_PSclusE_custom",Form("Best PS Cluster Energy u (ps.e)*%2.2f",cF),150,0.,1.5);
-  TH2D *h2_P_rec_vs_P_ang = new TH2D("h2_P_rec_vs_P_ang","Track p vs Track ang",100,30,45,250,0.5,3.0); //(45,60)
+  TH1D *h_PSclusE_custom = new TH1D("h_PSclusE_custom",Form("Best PS Cluster Energy u"
+							    " (ps.e)*%2.2f",cF),150,0.,1.5);
+  TH2D *h2_P_rec_vs_P_ang = new TH2D("h2_P_rec_vs_P_ang","Track p vs Track ang",
+				     100,10,60,240,0.,6.0); //(45,60)
 
-  TH2D *h2_SHeng_P_SHblk = new TH2D("h2_SHeng_P_SHblk",Form("Average E_clus(SH)*%2.2f per SH block",cF),kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_res_P_SHblk = new TH2D("h2_res_P_SHblk",Form("Average E_clus*%2.2f/p_rec per SH block",cF),kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_res_P_SHblk_trPOS = new TH2D("h2_res_P_SHblk_trPOS",Form("Average E_clus*%2.2f/p_rec per SH block(TrPos)",cF),
-					kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
+  TH2D *h2_EovP_vs_P = new TH2D("h2_EovP_vs_P","E/p vs p; p (GeV); E/p",15,1.2,4.2,200,0.6,1.4);
+  TH2D *h2_EovP_vs_P_mod = new TH2D("h2_EovP_vs_P_mod","E/p vs p; p (GeV); E/p",15,1.2,4.2,200,0.6,1.4);
 
-  TH2D *h2_PSeng_P_PSblk = new TH2D("h2_PSeng_P_PSblk",Form("Average E_clus(PS)*%2.2f per PS block",cF),kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_res_P_PSblk = new TH2D("h2_res_P_PSblk",Form("Average E_clus*%2.2f/p_rec per PS block",cF),kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_res_P_PSblk_trPOS = new TH2D("h2_res_P_PSblk_trPOS",Form("Average E_clus*%2.2f/p_rec per PS block(TrPos)",cF),
-					kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
+  TH2D *h2_SHeng_P_SHblk = new TH2D("h2_SHeng_P_SHblk","Average E_clus(SH)*%2.2f per SH block",
+				    kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_res_P_SHblk = new TH2D("h2_res_P_SHblk","Average E_clus*%2.2f/p_rec per SH block",
+				  kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_res_P_SHblk_trPOS = new TH2D("h2_res_P_SHblk_trPOS","Average E_clus*%2.2f/p_rec per SH "
+					"block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
+
+  TH2D *h2_PSeng_P_PSblk = new TH2D("h2_PSeng_P_PSblk","Average E_clus(PS)*%2.2f per PS block",
+				    kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_res_P_PSblk = new TH2D("h2_res_P_PSblk","Average E_clus*%2.2f/p_rec per PS block",
+				  kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_res_P_PSblk_trPOS = new TH2D("h2_res_P_PSblk_trPOS","Average E_clus*%2.2f/p_rec per PS "
+					"block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
   Long64_t Nevents = C->GetEntries();  
-  cout << endl << "Processing " << Nevents << " events ...." << endl;
+  cout << endl << "Processing " << Nevents << " events.." << endl;
 
-  // Looping through events
-  double progress = 0.;
+  // Looping over events =========================================================================== //
+  Double_t progress = 0.;
+  Double_t timekeeper = 0., timeremains = 0.;
   while(progress<1.0){
-    int barwidth = 70;
+    Int_t barwidth = 70;
     for(Long64_t nevent = 0; nevent<Nevents; nevent++){
-      // if( nevent%1000 == 0){
-      //   cout << nevent << "/" << Nevents << endl;
-      // }
-      // Creating a progress bar
+
+     // Creating a progress bar
       cout << "[";
-      int pos = barwidth * progress;
-      for(int i=0; i<barwidth; ++i){
+      Int_t pos = barwidth * progress;
+      for(Int_t i=0; i<barwidth; ++i){
 	if(i<pos) cout << "=";
 	else if(i==pos) cout << ">";
 	else cout << " ";
       }
+
+      // Calculating remaining time 
+      sw2->Stop();
+      timekeeper += sw2->RealTime();
+      if( nevent%100000 == 0 && nevent!=0 ) 
+	timeremains = timekeeper*( double(Nevents)/double(nevent) - 1. ); 
+      sw2->Reset();
+      sw2->Continue();
+
       progress = (double)((nevent+1.)/Nevents);
-      cout << "] " << int(progress*100.) << "%\r";
+      cout << "] " << int(progress*100.) << "%, " << int(timeremains/60.) << " mins to go.. \r";
       cout.flush();
+      // ------
 
       T->GetEntry(nevent);
     
@@ -260,16 +294,20 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
       Double_t W = 0.;
 
       h_Q2->Fill(Q2);
-      if( W2>0.&&fabs(T->bb_tdctrig_tdc[0]-T->bb_tdctrig_tdc[4]-510.)<20. ){
+      if( W2>0. ){
 	W = TMath::Sqrt(W2);  
 	h_W->Fill(W);
       }
 
       // Choosing only events which had clusters in both PS and SH.
-      if( T->bb_sh_nclus==0 || T->bb_ps_nclus==0 || T->bb_ps_idblk==-1 ) continue;
+      if( T->bb_sh_nclus==0 || T->bb_ps_nclus==0 || T->bb_ps_idblk==-1 || T->bb_ps_e<0.1 ) continue;
+
+      // cut on W
+      if( cut_on_W ) if( fabs(W-W_mean)>W_sigma ) continue;
    
-      if( T->bb_tr_tg_th[tr_min]>-0.15 && T->bb_tr_tg_th[tr_min]<0.15 && T->bb_tr_tg_ph[tr_min]>-0.3 &&
-	  T->bb_tr_tg_ph[tr_min]<0.3 && fabs(W-W_mean)<W_sigma ){ //cut on good tracks and W
+      // cut on good tracks
+      if( T->bb_tr_tg_th[tr_min]>-0.15 && T->bb_tr_tg_th[tr_min]<0.15 && T->bb_tr_tg_ph[tr_min]>-0.3 
+	  && T->bb_tr_tg_ph[tr_min]<0.3 ){  
 
 	Int_t cl_max = -1;
 	Double_t nblk = -1.;
@@ -286,8 +324,9 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
 
 	// Reject events with max on the edge
 	if(T->bb_sh_clus_row[cl_max]==0 || T->bb_sh_clus_row[cl_max]==26 ||
-	   T->bb_sh_clus_col[cl_max]==0 || T->bb_sh_clus_col[cl_max]==6) continue;
-    
+	   T->bb_sh_clus_col[cl_max]==0 || T->bb_sh_clus_col[cl_max]==6) continue; 
+
+
 	// Loop over all the blocks in main cluster and fill in A's
 	Double_t ClusEngSH_mod=0.;
 	Int_t shrow = 0;
@@ -332,31 +371,35 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
 
 	// Checking to see if there is any bias in track recostruction ----
 	//SH
-	h2_SHeng_P_SHblk_raw->Fill( shcol, shrow, (T->bb_sh_e)*Corr_Factor_Enrg_Calib_w_Cosmic );
-	h2_res_P_SHblk_raw->Fill( shcol, shrow, (clusEngBBCal/p_rec) );
+	h2_SHeng_P_SHblk_raw->Fill( shcol, shrow, ClusEngSH_mod );
+	h2_res_P_SHblk_raw->Fill( shcol, shrow, (clusEngBBCal_mod/p_rec) );
 	h2_count->Fill( shcol, shrow, 1.);
 	h2_SHeng_P_SHblk->Divide( h2_SHeng_P_SHblk_raw, h2_count );
 	h2_res_P_SHblk->Divide( h2_res_P_SHblk_raw, h2_count );
 
-	double xtrATsh = T->bb_tr_x[cl_max] + zposSH*T->bb_tr_th[cl_max];
-	double ytrATsh = T->bb_tr_y[cl_max] + zposSH*T->bb_tr_ph[cl_max];
-	h2_res_P_SHblk_trPOS_raw->Fill( ytrATsh, xtrATsh, (clusEngBBCal/p_rec) );
+	Double_t xtrATsh = T->bb_tr_x[cl_max] + zposSH*T->bb_tr_th[cl_max];
+	Double_t ytrATsh = T->bb_tr_y[cl_max] + zposSH*T->bb_tr_ph[cl_max];
+	h2_res_P_SHblk_trPOS_raw->Fill( ytrATsh, xtrATsh, (clusEngBBCal_mod/p_rec) );
 	h2_count_trP->Fill( ytrATsh, xtrATsh, 1. );
 	h2_res_P_SHblk_trPOS->Divide( h2_res_P_SHblk_trPOS_raw, h2_count_trP );
 
 	//PS
-	h2_PSeng_P_PSblk_raw->Fill( pscol, psrow, (T->bb_ps_e)*Corr_Factor_Enrg_Calib_w_Cosmic );
-	h2_res_P_PSblk_raw->Fill( pscol, psrow, (clusEngBBCal/p_rec) );
+	h2_PSeng_P_PSblk_raw->Fill( pscol, psrow, ClusEngPS_mod );
+	h2_res_P_PSblk_raw->Fill( pscol, psrow, (clusEngBBCal_mod/p_rec) );
 	h2_count_PS->Fill( pscol, psrow, 1.);
 	h2_PSeng_P_PSblk->Divide( h2_PSeng_P_PSblk_raw, h2_count_PS );
 	h2_res_P_PSblk->Divide( h2_res_P_PSblk_raw, h2_count_PS );
 
-	double xtrATps = T->bb_tr_x[cl_max] + zposPS*T->bb_tr_th[cl_max];
-	double ytrATps = T->bb_tr_y[cl_max] + zposPS*T->bb_tr_ph[cl_max];
-	h2_res_P_PSblk_trPOS_raw->Fill( ytrATps, xtrATps, (clusEngBBCal/p_rec) );
+	Double_t xtrATps = T->bb_tr_x[cl_max] + zposPS*T->bb_tr_th[cl_max];
+	Double_t ytrATps = T->bb_tr_y[cl_max] + zposPS*T->bb_tr_ph[cl_max];
+	h2_res_P_PSblk_trPOS_raw->Fill( ytrATps, xtrATps, (clusEngBBCal_mod/p_rec) );
 	h2_count_trP_PS->Fill( ytrATps, xtrATps, 1. );
 	h2_res_P_PSblk_trPOS->Divide( h2_res_P_PSblk_trPOS_raw, h2_count_trP_PS );
 	// -----
+
+	// E/p vs. p
+	h2_EovP_vs_P->Fill( p_rec, clusEngBBCal/p_rec );
+	h2_EovP_vs_P_mod->Fill( p_rec, clusEngBBCal_mod/p_rec );
 
 	// Let's customize the histograms
 	//h2_SHeng_P_SHblk->GetZaxis()->SetRangeUser(0.6,1.0); //(1.0,2.0);
@@ -375,17 +418,6 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
 	}   
       }
   
-      // // Creating a progress bar
-      // cout << "[";
-      // int pos = barwidth * progress;
-      // for(int i=0; i<barwidth; ++i){
-      // 	if(i<pos) cout << "=";
-      // 	else if(i==pos) cout << ">";
-      // 	else cout << " ";
-      // }
-      // progress = (double)((nevent+1.)/Nevents);
-      // cout << "] " << int(progress*100.) << "%\r";
-      // cout.flush();
     }
   }
   cout << endl << endl;
@@ -395,16 +427,23 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
 
   //Diagnostic histograms
   TH1D *h_nevent_blk_SH = new TH1D("h_nevent_blk_SH","No. of Good Events; SH Blocks",189,0,189);
-  TH1D *h_coeff_Ratio_SH = new TH1D("h_coeff_Ratio_SH","Ratio of Gain Coefficients(new/old); SH Blocks",189,0,189);
-  TH1D *h_coeff_blk_SH = new TH1D("h_coeff_blk_SH","ADC Gain Coefficients(GeV/pC); SH Blocks",189,0,189);
-  TH1D *h_Old_Coeff_blk_SH = new TH1D("h_Old_Coeff_blk_SH","Old ADC Gain Coefficients(GeV/pC); SH Blocks",189,0,189);
-  TH2D *h_coeff_detView_SH = new TH2D("h_coeff_detView_SH","ADC Gain Coefficients(Detector View)",kNcolsSH,1,kNcolsSH+1,kNrowsSH,1,kNrowsSH+1);
+  TH1D *h_coeff_Ratio_SH = new TH1D("h_coeff_Ratio_SH","Ratio of Gain Coefficients(new/old); SH Blocks"
+				    ,189,0,189);
+  TH1D *h_coeff_blk_SH = new TH1D("h_coeff_blk_SH","ADC Gain Coefficients(GeV/pC); SH Blocks"
+				  ,189,0,189);
+  TH1D *h_Old_Coeff_blk_SH = new TH1D("h_Old_Coeff_blk_SH","Old ADC Gain Coefficients(GeV/pC); SH Blocks"
+				      ,189,0,189);
+  TH2D *h_coeff_detView_SH = new TH2D("h_coeff_detView_SH","ADC Gain Coefficients(Detector View)",
+				      kNcolsSH,1,kNcolsSH+1,kNrowsSH,1,kNrowsSH+1);
 
   TH1D *h_nevent_blk_PS = new TH1D("h_nevent_blk_PS","No. of Good Events; PS Blocks",52,0,52);
-  TH1D *h_coeff_Ratio_PS = new TH1D("h_coeff_Ratio_PS","Ratio of Gain Coefficients(new/old); PS Blocks",52,0,52);
+  TH1D *h_coeff_Ratio_PS = new TH1D("h_coeff_Ratio_PS","Ratio of Gain Coefficients(new/old); PS Blocks"
+				    ,52,0,52);
   TH1D *h_coeff_blk_PS = new TH1D("h_coeff_blk_PS","ADC Gain Coefficients(GeV/pC); PS Blocks",52,0,52);
-  TH1D *h_Old_Coeff_blk_PS = new TH1D("h_Old_Coeff_blk_PS","Old ADC Gain Coefficients(GeV/pC); PS Blocks",52,0,52);
-  TH2D *h_coeff_detView_PS = new TH2D("h_coeff_detView_PS","ADC Gain Coefficients(Detector View)",kNcolsPS,1,kNcolsPS+1,kNrowsPS,1,kNrowsPS+1);
+  TH1D *h_Old_Coeff_blk_PS = new TH1D("h_Old_Coeff_blk_PS","Old ADC Gain Coefficients(GeV/pC); PS Blocks"
+				      ,52,0,52);
+  TH2D *h_coeff_detView_PS = new TH2D("h_coeff_detView_PS","ADC Gain Coefficients(Detector View)",
+				      kNcolsPS,1,kNcolsPS+1,kNrowsPS,1,kNrowsPS+1);
 
   // Leave the bad channels out of the calculation
   for(Int_t j = 0; j<ncell; j++){
@@ -427,7 +466,7 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
   CoeffR = M_inv*B;
 
   // SH : Filling diagnostic histograms
-  int cell = 0;
+  Int_t cell = 0;
   adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter);
   gainRatio_SH = Form("Gain/eng_cal_gainRatio_sh_%d_%d.txt",Set,iter);
   ofstream adcGainSH_outData, gainRatioSH_outData;
@@ -546,9 +585,13 @@ void test_eng_cal_BBCal(const char *configfilename, int iter=1)
   cout << " New adc gain coefficients (GeV/pC) for PS written to : " << adcGain_PS << endl;
   cout << " --------- " << endl;
 
-  st->Stop();
-  cout << "CPU time elapsed = " << st->CpuTime() << " s. Real time = " 
-       << st->RealTime() << " s. " << endl << endl;
+  sw->Stop();
+  sw2->Stop();
+  cout << "CPU time elapsed = " << sw->CpuTime() << " s. Real time = " 
+       << sw->RealTime() << " s. " << endl << endl;
+
+  sw->Delete();
+  sw2->Delete();
 }
 
 
@@ -603,6 +646,7 @@ void ReadGain( TString adcGain, bool SHorPS, bool GainOrRatio ){
   p_rec_Offset 1.0
   W_mean 0.9379
   W_sigma 0.02
+  cut_on_W 1
   Corr_Factor_Enrg_Calib_w_Cosmic 1.0 
   ----
 */
