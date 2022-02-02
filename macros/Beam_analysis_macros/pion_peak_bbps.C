@@ -201,11 +201,62 @@ void pion_peak_bbps (const char *configfilename){
   }
   cout << endl << endl;
 
+  TString outFile = Form("hist/pion_peak_%d.root",fst_run);
+  TFile *fout = new TFile(outFile,"RECREATE");
+  fout->cd();
+  TH1F *h_pionPeakpos = new TH1F("h_pionPeakpos","Pion peak positions in PS; PreShower(PS) blokcs",52,0,52);
+  h_pionPeakpos->GetYaxis()->SetRangeUser(0.,0.2);
+  h_pionPeakpos->GetYaxis()->SetLabelSize(0.045);
+  h_pionPeakpos->GetXaxis()->SetLabelSize(0.045);
+  h_pionPeakpos->SetLineWidth(0);
+  h_pionPeakpos->SetMarkerStyle(kFullCircle);
+
+  // Let's fit the histograms with Gauss (twice)
+  TF1 *fgaus = new TF1("fgaus","gaus");
+
   int sub = 0;
   for(int r=0; r<kNrows; r++){
     for(int c=0; c<kNcols; c++){
       sub = r/7;
       subCanv[sub]->cd((r%7)*kNcols + c + 1);
+
+      int lowerBinC = h_min;
+      int upperBinC = h_max;
+      int maxBin = hClusteng[r][c]->GetMaximumBin();
+      double maxBinCenter = hClusteng[r][c]->GetXaxis()->GetBinCenter( maxBin );
+      double maxCount = hClusteng[r][c]->GetMaximum();
+      double binWidth = hClusteng[r][c]->GetBinWidth(maxBin);
+      double stdDev = hClusteng[r][c]->GetStdDev();
+
+      if( hClusteng[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
+
+	// Create fit functions for each module
+	fgaus->SetLineColor(1);
+	fgaus->SetNpx(1000);
+
+	if( hClusteng[r][c]->GetBinContent(maxBin-1) == 0. ){
+	  while ( hClusteng[r][c]->GetBinContent(maxBin+1) < hClusteng[r][c]->GetBinContent(maxBin) || 
+		  hClusteng[r][c]->GetBinContent(maxBin+1) == hClusteng[r][c]->GetBinContent(maxBin) ) 
+	    {
+	      maxBin++;
+	    };
+	  hClusteng[r][c]->GetXaxis()->SetRange( maxBin+1 , hClusteng[r][c]->GetNbinsX() );
+	  maxBin = hClusteng[r][c]->GetMaximumBin();
+	  maxBinCenter = hClusteng[r][c]->GetXaxis()->GetBinCenter( maxBin );
+	  maxCount = hClusteng[r][c]->GetMaximum();
+	  binWidth = hClusteng[r][c]->GetBinWidth(maxBin);
+	  stdDev = hClusteng[r][c]->GetStdDev();
+	}
+
+	// Frist fit
+	fgaus->SetParameters( maxCount,maxBinCenter,stdDev );
+	fgaus->SetRange( h_min, h_max );
+	hClusteng[r][c]->Fit(fgaus,"+RQ");
+
+	h_pionPeakpos->Fill( r*kNcols+c, fgaus->GetParameter(1) );
+
+      }
+
       hClusteng[r][c]->SetTitle(Form("Pion peak | %d-%d",r+1,c+1));
       hClusteng[r][c]->Draw();
     
@@ -217,11 +268,16 @@ void pion_peak_bbps (const char *configfilename){
   subCanv[0]->SaveAs(Form("%s[",OutPeaks.Data()));
   for( int canC=0; canC<4; canC++ ) subCanv[canC]->SaveAs(Form("%s",OutPeaks.Data()));
   subCanv[3]->SaveAs(Form("%s]",OutPeaks.Data()));
+
+  fout->Write();
+  fout->Close();
+  fout->Delete();
   
   // Post analysis reporting
   cout << "Finishing analysis .." << endl;
   cout << " --------- " << endl;
   cout << " Plots saved to : " << OutPeaks << endl;
+  cout << " Histogram saved to : " << outFile << endl;
   cout << " --------- " << endl;
   
 } //main
@@ -273,7 +329,7 @@ void processEvent( int entry = -1 ){
 
   Double_t ClusEng = T->bb_ps_e;
   //Double_t Resolution = (T->bb_sh_e+T->bb_ps_e)/T->bb_tr_p[0];
-  if( T->bb_ps_nclus>0&&T->bb_ps_nclus!=-1 ){
+  if( T->bb_ps_nclus>0&&T->bb_ps_idblk!=-1 ){
     hClusteng[(int)T->bb_ps_rowblk][(int)T->bb_ps_colblk]->Fill( ClusEng );
     //hResolution[(int)T->bb_sh_rowblk][(int)T->bb_sh_colblk]->Fill( Resolution );
   }
