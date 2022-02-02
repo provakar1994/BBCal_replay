@@ -161,16 +161,20 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   cout << endl;
   SHorPS = 1; // SH
   GainOrRatio = 1; // Gain
+  // adcGain_SH = Form("%s/eng_cal_gainCoeff_sh_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
   adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter-1);
   ReadGain(adcGain_SH,SHorPS,GainOrRatio);
   GainOrRatio = 0; // Ratio
+  // adcGain_SH = Form("%s/eng_cal_gainRatio_sh_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
   adcGain_SH = Form("Gain/eng_cal_gainRatio_sh_%d_%d.txt",Set,iter-1);
   ReadGain(adcGain_SH,SHorPS,GainOrRatio);
   SHorPS = 0; // PS
   GainOrRatio = 1;
+  // adcGain_PS = Form("%s/eng_cal_gainCoeff_ps_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
   adcGain_PS = Form("Gain/eng_cal_gainCoeff_ps_%d_%d.txt",Set,iter-1);
   ReadGain(adcGain_PS,SHorPS,GainOrRatio);
   GainOrRatio = 0; 
+  // adcGain_PS = Form("%s/eng_cal_gainRatio_ps_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
   adcGain_PS = Form("Gain/eng_cal_gainRatio_ps_%d_%d.txt",Set,iter-1);
   ReadGain(adcGain_PS,SHorPS,GainOrRatio);
 
@@ -198,6 +202,7 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec per per PS block(TrPos)",
 				   kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
+  // TString outFile = Form("%s/eng_cal_BBCal_%d_%d.root",getenv("HIST_DIR"),Set,iter);
   TString outFile = Form("hist/eng_cal_BBCal_%d_%d.root",Set,iter);
   TFile *fout = new TFile(outFile,"RECREATE");
   fout->cd();
@@ -307,7 +312,7 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
    
       // cut on good tracks
       if( T->bb_tr_tg_th[tr_min]>-0.15 && T->bb_tr_tg_th[tr_min]<0.15 && T->bb_tr_tg_ph[tr_min]>-0.3 
-	  && T->bb_tr_tg_ph[tr_min]<0.3 ){  
+	  && T->bb_tr_tg_ph[tr_min]<0.3 ){ //&& fabs( (T->bb_sh_e+T->bb_ps_e)/p_rec - 1. )<0.3 ){  
 
 	Int_t cl_max = -1;
 	Double_t nblk = -1.;
@@ -315,23 +320,28 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 
 	// ****** Shower ******
 	// Loop over all the clusters first: select highest energy
-	for(Int_t cl = 0; cl<T->bb_sh_nclus; cl++){
-	  if(T->bb_sh_clus_e[cl]>Emax){
-	    Emax = T->bb_sh_clus_e[cl];
-	    cl_max = cl;
-	  }
-	}
+	// for(Int_t cl = 0; cl<T->bb_sh_nclus; cl++){
+	//   if(T->bb_sh_clus_e[cl]>Emax){
+	//     Emax = T->bb_sh_clus_e[cl];
+	//     cl_max = cl;
+	//   }
+	// }
+	
+	cl_max = 0;
 
 	// Reject events with max on the edge
-	if(T->bb_sh_clus_row[cl_max]==0 || T->bb_sh_clus_row[cl_max]==26 ||
-	   T->bb_sh_clus_col[cl_max]==0 || T->bb_sh_clus_col[cl_max]==6) continue; 
+	// if(T->bb_sh_clus_row[cl_max]==0 || T->bb_sh_clus_row[cl_max]==26 ||
+	//    T->bb_sh_clus_col[cl_max]==0 || T->bb_sh_clus_col[cl_max]==6) continue; 
+
+	if(T->bb_sh_rowblk==0 || T->bb_sh_rowblk==26 ||
+	   T->bb_sh_colblk==0 || T->bb_sh_colblk==6) continue; 
 
 
 	// Loop over all the blocks in main cluster and fill in A's
 	Double_t ClusEngSH_mod=0.;
 	Int_t shrow = 0;
 	Int_t shcol = 0;
-	nblk = T->bb_sh_clus_nblk[cl_max];
+	nblk = T->bb_sh_nblk;
 	for(Int_t blk = 0; blk<nblk; blk++){
 	  Int_t blkID = int(T->bb_sh_clus_blk_id[blk]);
 	  shrow = int(T->bb_sh_clus_blk_row[blk]);
@@ -345,7 +355,7 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 	Double_t ClusEngPS_mod=0.;
 	Int_t psrow = 0;
 	Int_t pscol = 0;
-	nblk = T->bb_ps_clus_nblk[0];
+	nblk = T->bb_ps_nblk;
 	for(Int_t blk=0; blk<nblk; blk++){
 	  Int_t blkID = int(T->bb_ps_clus_blk_id[blk]);
 	  psrow = int(T->bb_ps_clus_blk_row[blk]);
@@ -467,7 +477,9 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 
   // SH : Filling diagnostic histograms
   Int_t cell = 0;
+  // adcGain_SH = Form("%s/eng_cal_gainCoeff_sh_%d_%d.txt",getenv("GAIN_DIR"),Set,iter);
   adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter);
+  // gainRatio_SH = Form("%s/eng_cal_gainRatio_sh_%d_%d.txt",getenv("GAIN_DIR"),Set,iter);
   gainRatio_SH = Form("Gain/eng_cal_gainRatio_sh_%d_%d.txt",Set,iter);
   ofstream adcGainSH_outData, gainRatioSH_outData;
   adcGainSH_outData.open(adcGain_SH);
@@ -515,7 +527,9 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   cout << endl;
 
   // PS : Filling diagnostic histograms
+  // adcGain_PS = Form("%s/eng_cal_gainCoeff_ps_%d_%d.txt",getenv("GAIN_DIR"),Set,iter);
   adcGain_PS = Form("Gain/eng_cal_gainCoeff_ps_%d_%d.txt",Set,iter);
+  // gainRatio_PS = Form("%s/eng_cal_gainRatio_ps_%d_%d.txt",getenv("GAIN_DIR"),Set,iter);
   gainRatio_PS = Form("Gain/eng_cal_gainRatio_ps_%d_%d.txt",Set,iter);
   ofstream adcGainPS_outData, gainRatioPS_outData;
   adcGainPS_outData.open(adcGain_PS);
