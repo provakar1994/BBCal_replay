@@ -1,4 +1,4 @@
-## SBS-8: LH2, Full BB Field, 70% SBS Field : Set 16 (See log below)
+## SBS-8: LH2, Full BB Field, 70% SBS Field : Set 16, Set 17 (See log below)
 Run_list/sbs8_run_list_lh2_sbs70.txt
 #
 ## SBS-14: LH2, Full BB Field, 70% SBS Field : Set 15
@@ -37,7 +37,7 @@ Run_list/sbs8_run_list_lh2_sbs70.txt
 endRunlist
 bb.sh.nclus>0&&bb.ps.nclus>0
 endcut
-Set 16 # Keep log below
+Set 0 # Keep log below
 E_beam 5.965 # SBS-1=1.92,SBS-4=3.728,SBS-11=9.91,SBS-14=5.965=SBS-8
 Min_Event_Per_Channel 1000
 Min_MB_Ratio 0.1
@@ -101,4 +101,6 @@ Corr_Factor_Enrg_Calib_w_Cosmic 1.0  # a.k.a cF.
 
 # 16   SBS 70% runs:	        W_mean=, W_sigma=, FF=, cF=
        13452, 13486
+# 17   SBS 70% runs:	        After one pass replay using coeff. got from Set 16, iter-1
+       13452, 13486		i.e. gainCoeff_16_1 = gainCoeff_17_0
 
