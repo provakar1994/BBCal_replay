@@ -1,0 +1,4 @@
+#../../Rootfiles/e1209019_fullreplay_13656_stream0_seg19_19.root
+../../Rootfiles/e1209019_fullreplay_13657_stream0*
+#../../Rootfiles/e1209019_fullreplay_13656_stream0*
+endlist
