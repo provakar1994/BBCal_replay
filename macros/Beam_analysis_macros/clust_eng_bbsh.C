@@ -20,6 +20,7 @@ const int kNcols = 7;
 gmn_tree *T;
 int gCurrentEntry = -1;
 TCanvas *subCanv[4];
+bool E_or_EovP = 1; // 0=E, 1=EovP
 
 // Declare necessary histograms
 TH1F *hClusteng[kNrows][kNcols];
@@ -160,17 +161,27 @@ void clust_eng_bbsh(const char *configfilename){
   	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
   	h_max = sval.Atof();
       }
+      if( skey == "E_or_EovP" ){
+  	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+  	E_or_EovP = sval.Atoi();
+      }
     } 
     delete tokens;
   }
 
   TString OutPeaks;
   if(!Multiple_runs){
-    OutPeaks = Form("plots/bbcal_clusEng_p_blk_%d.pdf",fst_run);
-    // OutPeaks = Form("plots/bbcal_resolu_p_blk_%d.pdf",fst_run);
+    if(E_or_EovP){
+      OutPeaks = Form("plots/bbcal_EovP_p_shblk_%d.pdf",fst_run);
+    }else{
+      OutPeaks = Form("plots/bbcal_clusEng_p_shblk_%d.pdf",fst_run);
+    }
   }else{
-    OutPeaks = Form("plots/bbcal_clusEng_p_blk_%d_%d.pdf",fst_run,lst_run);
-    // OutPeaks = Form("plots/bbcal_resolu_p_blk_%d_%d.pdf",fst_run,lst_run);
+    if(E_or_EovP){
+      OutPeaks = Form("plots/bbcal_EovP_p_shblk_%d_%d.pdf",fst_run,lst_run);
+    }else{
+      OutPeaks = Form("plots/bbcal_clusEng_p_shblk_%d_%d.pdf",fst_run,lst_run);
+    }
   }
 
   //TFile *fout = new TFile(Form("clust_eng_p_blk_%d.root",run),"RECREATE");
@@ -211,12 +222,15 @@ void clust_eng_bbsh(const char *configfilename){
     for(int c=0; c<kNcols; c++){
       sub = r/7;
       subCanv[sub]->cd((r%7)*kNcols + c + 1);
-      hClusteng[r][c]->SetTitle(Form("Clust Eng. | %d-%d",r+1,c+1));
-      hClusteng[r][c]->Draw();
-    
-      // hResolution[r][c]->SetTitle(Form("Clust_eng/tr_p | %d-%d",r+1,c+1));
-      // hResolution[r][c]->Draw();
-    }
+ 
+      if(E_or_EovP){
+	hResolution[r][c]->SetTitle(Form("Clust_eng/tr_p | %d-%d",r+1,c+1));
+	hResolution[r][c]->Draw();
+      }else{
+	hClusteng[r][c]->SetTitle(Form("Clust Eng. | %d-%d",r+1,c+1));
+	hClusteng[r][c]->Draw();
+      }
+   }
   }
 
   subCanv[0]->SaveAs(Form("%s[",OutPeaks.Data()));
@@ -279,21 +293,24 @@ void processEvent( int entry = -1 ){
   Double_t ClusEng = T->bb_sh_e+T->bb_ps_e;
   Double_t Resolution = (T->bb_sh_e+T->bb_ps_e)/T->bb_tr_p[0];
 
-  if( T->bb_sh_nclus>0&&T->bb_ps_nclus>0&&T->bb_ps_idblk!=-1
-      && T->bb_ps_e>0.1 // 100 MeV
-      // && T->bb_tr_tg_th[0]>-0.15 && T->bb_tr_tg_th[0]<0.15 
-      // && T->bb_tr_tg_ph[0]>-0.3 && T->bb_tr_tg_ph[0]<0.3
-      )
-    {
+  if(E_or_EovP){
+    if( T->bb_sh_nclus>0&&T->bb_ps_nclus>0&&T->bb_ps_idblk!=-1
+	&& T->bb_ps_e>0.1 // 100 MeV
+	&& T->bb_tr_tg_th[0]>-0.15 && T->bb_tr_tg_th[0]<0.15 
+	&& T->bb_tr_tg_ph[0]>-0.3 && T->bb_tr_tg_ph[0]<0.3 )
+      {
+	hResolution[(int)T->bb_sh_rowblk][(int)T->bb_sh_colblk]
+	  ->Fill( Resolution );
+      }
+  }else{
 
-    hClusteng[(int)T->bb_sh_rowblk][(int)T->bb_sh_colblk]->Fill( ClusEng );
-    hResolution[(int)T->bb_sh_rowblk][(int)T->bb_sh_colblk]->Fill( Resolution );
+    if( T->bb_sh_nclus>0&&T->bb_ps_nclus>0&&T->bb_ps_idblk!=-1
+	&& T->bb_ps_e>0.1 ){  // 100 MeV
 
+      hClusteng[ (int)T->bb_sh_rowblk ][ (int)T->bb_sh_colblk ]
+	->Fill( ClusEng );
     }
-
-  // if( T->bb_sh_nclus>0&&T->bb_ps_nclus>0 ){
-  //   hClusteng[ (int)T->bb_sh_rowblk ][ (int)T->bb_sh_colblk ]->Fill( T->bb_tr_p[0] );
-  // }
+  }
 
 } //processEvent
 

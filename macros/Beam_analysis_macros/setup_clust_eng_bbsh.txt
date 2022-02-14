@@ -1,8 +1,9 @@
-../../Rootfiles/gmn_replayed_13234_stream0*
+../../Rootfiles/e1209019_fullreplay_13657_stream0*
 endlist
 Multiple_runs 0
-fst_run 13234
-lst_run 13234
-nBins 90
-h_min 0.0
-h_max 2.5
+fst_run 13657
+lst_run 13657
+nBins 150
+h_min 0.8
+h_max 2.2
+E_or_EovP 0  # 0=E, 1=E/p
