@@ -204,7 +204,7 @@ void pion_peak_bbps (const char *configfilename){
   TString outFile = Form("hist/pion_peak_%d.root",fst_run);
   TFile *fout = new TFile(outFile,"RECREATE");
   fout->cd();
-  TH1F *h_pionPeakpos = new TH1F("h_pionPeakpos","Pion peak positions in PS; PreShower(PS) blokcs",52,0,52);
+  TH1F *h_pionPeakpos = new TH1F("h_pionPeakpos","Pion peak positions in PS; PreShower(PS) blocks",52,0,52);
   h_pionPeakpos->GetYaxis()->SetRangeUser(0.,0.2);
   h_pionPeakpos->GetYaxis()->SetLabelSize(0.045);
   h_pionPeakpos->GetXaxis()->SetLabelSize(0.045);
