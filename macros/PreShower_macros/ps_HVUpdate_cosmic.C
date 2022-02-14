@@ -108,7 +108,7 @@ void ps_HVUpdate_cosmic(Int_t nrun=0, Double_t des_TrigAmp=15.,
 	  double HV_old = HV_Value[nc][ns][nch];
 	  double HV_new = HV_Value[nc][ns][nch]*pow(ampRatio,
 						    alphaINV);
-	  if(fabs(HV_new)>1600){
+	  if(fabs(HV_new)>1600 || (HV_new != HV_new)){
 	    cout << " *!* New HV for PS Ch. " << row+1 << "-" 
 		 << col+1 << " seems too high! " << endl;
 	    outfile_hv << " " << HV_old;
