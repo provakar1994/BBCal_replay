@@ -30,7 +30,7 @@
 #include "TStopwatch.h"
 #include "gmn_tree.C"
 
-const Double_t Mp = 0.938; // GeV
+const Double_t Mp = 0.938272; // GeV
 
 const Int_t ncell = 241;   // 189(SH) + 52(PS), Convention: 0-188: SH; 189-240: PS.
 const Int_t kNcolsSH = 7;  // SH columns
@@ -42,12 +42,12 @@ const Double_t zposSH = 1.901952; //m
 const Double_t zposPS = 1.695704; //m
 
 void ReadGain(TString,bool,bool);
-bool SHorPS = 1; // SH = 1, PS = 0
-bool GainOrRatio = 1; // Gain = 1, Ratio = 0
-Double_t oldADCgainSH[kNcolsSH*kNrowsSH] = {0.};
-Double_t oldADCratioSH[kNcolsSH*kNrowsSH] = {0.};
-Double_t oldADCgainPS[kNcolsPS*kNrowsPS] = {0.};  
-Double_t oldADCratioPS[kNcolsPS*kNrowsPS] = {0.};  
+bool SHorPS=1; // SH = 1, PS = 0
+bool GainOrRatio=1; // Gain = 1, Ratio = 0
+Double_t oldADCgainSH[kNcolsSH*kNrowsSH]={0.};
+Double_t oldADCratioSH[kNcolsSH*kNrowsSH]={0.};
+Double_t oldADCgainPS[kNcolsPS*kNrowsPS]={0.};  
+Double_t oldADCratioPS[kNcolsPS*kNrowsPS]={0.};  
 
 void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 {
@@ -56,15 +56,24 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   TChain *C = new TChain("T");
   gmn_tree *T = new gmn_tree(C);
 
-  Int_t Set = 1;
-  Int_t Nmin = 10;
-  Double_t minMBratio = 0.1;
-  Double_t E_beam = 0.;
-  Double_t p_rec_Offset = 1.;
-  Double_t W_mean = 0.;
-  Double_t W_sigma = 0.;
-  bool cut_on_W = 0;
-  Double_t Corr_Factor_Enrg_Calib_w_Cosmic = 1.;
+  Int_t Set=0;
+  Int_t Nmin=10;
+  Double_t minMBratio=0.1;
+  Double_t E_beam=0.;
+  Double_t p_rec_Offset=1., p_min_cut=0.;
+  Double_t W_mean=0., W_sigma=0., EovP_cut_limit=0.3;
+  bool cut_on_W=0, cut_on_EovP=0, cut_on_p=0, farm_submit=0;
+  Double_t Corr_Factor_Enrg_Calib_w_Cosmic=1., cF=1.;
+  Double_t h_W_bin=200, h_W_min=0., h_W_max=5.;
+  Double_t h_Q2_bin=200, h_Q2_min=0., h_Q2_max=5.;
+  Double_t h_EovP_bin=200, h_EovP_min=0., h_EovP_max=5.;
+  Double_t h_clusE_bin=200, h_clusE_min=0., h_clusE_max=5.;
+  Double_t h_shE_bin=200, h_shE_min=0., h_shE_max=5.;
+  Double_t h_psE_bin=200, h_psE_min=0., h_psE_max=5.;
+  Double_t h2_p_bin=200, h2_p_min=0., h2_p_max=5.;
+  Double_t h2_pang_bin=200, h2_pang_min=0., h2_pang_max=5.;
+  Double_t h2_p_coarse_bin=25, h2_p_coarse_min=0., h2_p_coarse_max=5.;
+  Double_t h2_EovP_bin=200, h2_EovP_min=0., h2_EovP_max=5.;
 
   TMatrixD M(ncell,ncell), M_inv(ncell,ncell);
   TVectorD B(ncell), CoeffR(ncell);
@@ -73,7 +82,7 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   Double_t p_rec = 0.;
   Double_t A[ncell] = {0.};
   bool badCells[ncell]; // Cells that have events less than Nmin
-  TString adcGain_SH, gainRatio_SH;
+  TString adcGain_SH, gainRatio_SH, outFile;
   TString adcGain_PS, gainRatio_PS;
   Int_t nevents_per_cell[ncell];
 
@@ -105,7 +114,8 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
       globalcut += currentline;
     }    
   }
-  while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("#") ){
+  while( currentline.ReadLine( configfile ) ){
+    if( currentline.BeginsWith("#") ) continue;
     TObjArray *tokens = currentline.Tokenize(" ");
     Int_t ntokens = tokens->GetEntries();
     if( ntokens>1 ){
@@ -118,6 +128,10 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	E_beam = sval.Atof();
       }
+      if( skey == "farm_submit" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	farm_submit = sval.Atof();
+      }
       if( skey == "Min_Event_Per_Channel" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	Nmin = sval.Atof();
@@ -126,25 +140,113 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	minMBratio = sval.Atoi();
       }
+      if( skey == "W_cut" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	cut_on_W = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	W_mean = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	W_sigma = sval2.Atof();
+      }
+      if( skey == "p_cut" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	cut_on_p = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	p_min_cut = sval1.Atof();
+      }
+      if( skey == "EovP_cut" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	cut_on_EovP = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	EovP_cut_limit = sval1.Atof();
+      }
+      if( skey == "h_W" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h_W_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h_W_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h_W_max = sval2.Atof();
+      }
+      if( skey == "h_Q2" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h_Q2_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h_Q2_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h_Q2_max = sval2.Atof();
+      }
+      if( skey == "h_EovP" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h_EovP_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h_EovP_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h_EovP_max = sval2.Atof();
+      }
+      if( skey == "h_clusE" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h_clusE_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h_clusE_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h_clusE_max = sval2.Atof();
+      }
+      if( skey == "h_shE" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h_shE_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h_shE_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h_shE_max = sval2.Atof();
+      }
+      if( skey == "h_psE" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h_psE_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h_psE_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h_psE_max = sval2.Atof();
+      }
+      if( skey == "h2_p" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h2_p_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h2_p_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h2_p_max = sval2.Atof();
+      }
+      if( skey == "h2_pang" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h2_pang_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h2_pang_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h2_pang_max = sval2.Atof();
+      }
+      if( skey == "h2_p_coarse" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h2_p_coarse_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h2_p_coarse_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h2_p_coarse_max = sval2.Atof();
+      }
+      if( skey == "h2_EovP" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h2_EovP_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h2_EovP_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h2_EovP_max = sval2.Atof();
+      }
       if( skey == "p_rec_Offset" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	p_rec_Offset = sval.Atof();
       }
-      if( skey == "W_mean" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	W_mean = sval.Atof();
-      }
-      if( skey == "W_sigma" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	W_sigma = sval.Atof();
-      }
-      if( skey == "cut_on_W" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_W = sval.Atoi();
-      }
       if( skey == "Corr_Factor_Enrg_Calib_w_Cosmic" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	Corr_Factor_Enrg_Calib_w_Cosmic = sval.Atof();
+	cF = sval.Atof();
       }
       if( skey == "*****" ){
 	break;
@@ -161,91 +263,112 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   cout << endl;
   SHorPS = 1; // SH
   GainOrRatio = 1; // Gain
-  // adcGain_SH = Form("%s/eng_cal_gainCoeff_sh_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
-  adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter-1);
+  if(farm_submit)
+    adcGain_SH = Form("%s/eng_cal_gainCoeff_sh_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
+  else
+    adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter-1);
   ReadGain(adcGain_SH,SHorPS,GainOrRatio);
   GainOrRatio = 0; // Ratio
-  // adcGain_SH = Form("%s/eng_cal_gainRatio_sh_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
-  adcGain_SH = Form("Gain/eng_cal_gainRatio_sh_%d_%d.txt",Set,iter-1);
+  if(farm_submit)
+    adcGain_SH = Form("%s/eng_cal_gainRatio_sh_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
+  else
+    adcGain_SH = Form("Gain/eng_cal_gainRatio_sh_%d_%d.txt",Set,iter-1);
   ReadGain(adcGain_SH,SHorPS,GainOrRatio);
   SHorPS = 0; // PS
   GainOrRatio = 1;
-  // adcGain_PS = Form("%s/eng_cal_gainCoeff_ps_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
-  adcGain_PS = Form("Gain/eng_cal_gainCoeff_ps_%d_%d.txt",Set,iter-1);
+  if(farm_submit)
+    adcGain_PS = Form("%s/eng_cal_gainCoeff_ps_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
+  else
+    adcGain_PS = Form("Gain/eng_cal_gainCoeff_ps_%d_%d.txt",Set,iter-1);
   ReadGain(adcGain_PS,SHorPS,GainOrRatio);
   GainOrRatio = 0; 
-  // adcGain_PS = Form("%s/eng_cal_gainRatio_ps_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
-  adcGain_PS = Form("Gain/eng_cal_gainRatio_ps_%d_%d.txt",Set,iter-1);
+  if(farm_submit)
+    adcGain_PS = Form("%s/eng_cal_gainRatio_ps_%d_%d.txt",getenv("GAIN_DIR"),Set,iter-1);
+  else
+    adcGain_PS = Form("Gain/eng_cal_gainRatio_ps_%d_%d.txt",Set,iter-1);
   ReadGain(adcGain_PS,SHorPS,GainOrRatio);
 
   gStyle->SetOptStat(0);
   gStyle->SetPalette(60);
-  TH2D *h2_SHeng_P_SHblk_raw = new TH2D("h2_SHeng_P_SHblk_raw","Raw E_clus(SH) per SH block",
+  TH2D *h2_SHeng_vs_SHblk_raw = new TH2D("h2_SHeng_vs_SHblk_raw","Raw E_clus(SH) per SH block",
 					kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_res_P_SHblk_raw = new TH2D("h2_res_P_SHblk_raw","Raw E_clus/p_rec per SH block",
+  TH2D *h2_EovP_vs_SHblk_raw = new TH2D("h2_EovP_vs_SHblk_raw","Raw E_clus/p_rec per SH block",
 				      kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_count = new TH2D("h2_count","Count for E_clus/p_rec per per SH block",
 			    kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_res_P_SHblk_trPOS_raw = new TH2D("h2_res_P_SHblk_trPOS_raw","Raw E_clus/p_rec per SH"
-					    " block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
+  TH2D *h2_EovP_vs_SHblk_trPOS_raw = new TH2D("h2_EovP_vs_SHblk_trPOS_raw",
+					      "Raw E_clus/p_rec per SH block(TrPos)",
+					      kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
   TH2D *h2_count_trP = new TH2D("h2_count_trP","Count for E_clus/p_rec per per SH block(TrPos)",
 				kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
 
-  TH2D *h2_PSeng_P_PSblk_raw = new TH2D("h2_PSeng_P_PSblk_raw","Raw E_clus(PS) per PS block",
+  TH2D *h2_PSeng_vs_PSblk_raw = new TH2D("h2_PSeng_vs_PSblk_raw","Raw E_clus(PS) per PS block",
 					kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_res_P_PSblk_raw = new TH2D("h2_res_P_PSblk_raw","Raw E_clus/p_rec per PS block",
+  TH2D *h2_EovP_vs_PSblk_raw = new TH2D("h2_EovP_vs_PSblk_raw","Raw E_clus/p_rec per PS block",
 				      kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_count_PS = new TH2D("h2_count_PS","Count for E_clus/p_rec per per PS block",
 			       kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_res_P_PSblk_trPOS_raw = new TH2D("h2_res_P_PSblk_trPOS_raw","Raw E_clus/p_rec per PS block(TrPos)",
+  TH2D *h2_EovP_vs_PSblk_trPOS_raw = new TH2D("h2_EovP_vs_PSblk_trPOS_raw",
+					      "Raw E_clus/p_rec per PS block(TrPos)",
 					    kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
-  TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec per per PS block(TrPos)",
+  TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec"
+				   " per per PS block(TrPos)",
 				   kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
-  // TString outFile = Form("%s/eng_cal_BBCal_%d_%d.root",getenv("HIST_DIR"),Set,iter);
-  TString outFile = Form("hist/eng_cal_BBCal_%d_%d.root",Set,iter);
+  if(farm_submit)
+    outFile = Form("eng_cal_BBCal_%d_%d.root",Set,iter);
+  else
+    outFile = Form("hist/eng_cal_BBCal_%d_%d.root",Set,iter);
   TFile *fout = new TFile(outFile,"RECREATE");
   fout->cd();
 
   // Physics histograms
-  Double_t cF = Corr_Factor_Enrg_Calib_w_Cosmic;
-  TH1D *h_W = new TH1D("h_W","W distribution",200,0.,5.);  // (200,0.7,1.6);
-  TH1D *h_Q2 = new TH1D("h_Q2","Q2 distribution",200,0.,6.);
-  TH1D *h_res_BBCal = new TH1D("h_res_BBCal","E_clus/p_rec",200,0.2,1.6);
-  TH1D *h_res_BBCal_custom = new TH1D("h_res_BBCal_custom","E_clus/p_rec",200,0.2,1.6);
-  TH1D *h_clusE = new TH1D("h_clusE","Best Cluster Energy (SH+PS)",350,0.,5.);
-  TH1D *h_clusE_custom = new TH1D("h_clusE_custom",Form("Best Cluster Energy (SH+PS)"
-							" u (sh/ps.e)*%2.2f",cF),350,0.,5.);
-  TH1D *h_SHclusE = new TH1D("h_SHclusE","Best SH Cluster Energy",300,0.,5.0);
-  TH1D *h_SHclusE_custom = new TH1D("h_SHclusE_custom",Form("Best SH Cluster Energy u"
-							    " (sh.e)*%2.2f",cF),300,0.,5.0);
-  TH1D *h_PSclusE = new TH1D("h_PSclusE","Best PS Cluster Energy",150,0.,1.5);
-  TH1D *h_PSclusE_custom = new TH1D("h_PSclusE_custom",Form("Best PS Cluster Energy u"
-							    " (ps.e)*%2.2f",cF),150,0.,1.5);
+  TH1D *h_W = new TH1D("h_W","W distribution",h_W_bin,h_W_min,h_W_max);
+  TH1D *h_Q2 = new TH1D("h_Q2","Q2 distribution",h_Q2_bin,h_Q2_min,h_Q2_max);
+  TH1D *h_EovP = new TH1D("h_EovP","E_clus/p_rec",h_EovP_bin,h_EovP_min,h_EovP_max);
+  TH1D *h_EovP_custom = new TH1D("h_EovP_custom","E_clus/p_rec"
+				      ,h_EovP_bin,h_EovP_min,h_EovP_max);
+  TH1D *h_clusE = new TH1D("h_clusE","Best Cluster Energy (SH+PS)"
+			   ,h_clusE_bin,h_clusE_min,h_clusE_max);
+  TH1D *h_clusE_custom = new TH1D("h_clusE_custom",Form("Best Cluster Energy (SH+PS) u (sh/ps.e)*%2.2f",cF)
+				  ,h_clusE_bin,h_clusE_min,h_clusE_max);
+  TH1D *h_SHclusE = new TH1D("h_SHclusE","Best SH Cluster Energy"
+			     ,h_shE_bin,h_shE_min,h_shE_max);
+  TH1D *h_SHclusE_custom = new TH1D("h_SHclusE_custom",Form("Best SH Cluster Energy u (sh.e)*%2.2f",cF)
+				    ,h_shE_bin,h_shE_min,h_shE_max);
+  TH1D *h_PSclusE = new TH1D("h_PSclusE","Best PS Cluster Energy"
+			     ,h_psE_bin,h_psE_min,h_psE_max);
+  TH1D *h_PSclusE_custom = new TH1D("h_PSclusE_custom",Form("Best PS Cluster Energy u (ps.e)*%2.2f",cF)
+				    ,h_psE_bin,h_psE_min,h_psE_max);
   TH2D *h2_P_rec_vs_P_ang = new TH2D("h2_P_rec_vs_P_ang","Track p vs Track ang",
-				     100,10,60,240,0.,6.0); //(45,60)
+				     h2_pang_bin,h2_pang_min,h2_pang_max,
+				     h2_p_bin,h2_p_min,h2_p_max);
 
-  TH2D *h2_EovP_vs_P = new TH2D("h2_EovP_vs_P","E/p vs p; p (GeV); E/p",15,1.2,4.2,200,0.6,1.4);
-  TH2D *h2_EovP_vs_P_mod = new TH2D("h2_EovP_vs_P_mod","E/p vs p; p (GeV); E/p",15,1.2,4.2,200,0.6,1.4);
+  TH2D *h2_EovP_vs_P = new TH2D("h2_EovP_vs_P","E/p vs p; p (GeV); E/p",
+				h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,
+				h2_EovP_bin,h2_EovP_min,h2_EovP_max);
+  TH2D *h2_EovP_vs_P_mod = new TH2D("h2_EovP_vs_P_mod","E/p vs p; p (GeV); E/p",
+				h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,
+				h2_EovP_bin,h2_EovP_min,h2_EovP_max);
 
-  TH2D *h2_SHeng_P_SHblk = new TH2D("h2_SHeng_P_SHblk","Average E_clus(SH)*%2.2f per SH block",
+  TH2D *h2_SHeng_vs_SHblk = new TH2D("h2_SHeng_vs_SHblk","Average E_clus(SH)*%2.2f per SH block",
 				    kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_res_P_SHblk = new TH2D("h2_res_P_SHblk","Average E_clus*%2.2f/p_rec per SH block",
+  TH2D *h2_EovP_vs_SHblk = new TH2D("h2_EovP_vs_SHblk","Average E_clus*%2.2f/p_rec per SH block",
 				  kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_res_P_SHblk_trPOS = new TH2D("h2_res_P_SHblk_trPOS","Average E_clus*%2.2f/p_rec per SH "
+  TH2D *h2_EovP_vs_SHblk_trPOS = new TH2D("h2_EovP_vs_SHblk_trPOS","Average E_clus*%2.2f/p_rec per SH "
 					"block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
 
-  TH2D *h2_PSeng_P_PSblk = new TH2D("h2_PSeng_P_PSblk","Average E_clus(PS)*%2.2f per PS block",
+  TH2D *h2_PSeng_vs_PSblk = new TH2D("h2_PSeng_vs_PSblk","Average E_clus(PS)*%2.2f per PS block",
 				    kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_res_P_PSblk = new TH2D("h2_res_P_PSblk","Average E_clus*%2.2f/p_rec per PS block",
+  TH2D *h2_EovP_vs_PSblk = new TH2D("h2_EovP_vs_PSblk","Average E_clus*%2.2f/p_rec per PS block",
 				  kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_res_P_PSblk_trPOS = new TH2D("h2_res_P_PSblk_trPOS","Average E_clus*%2.2f/p_rec per PS "
+  TH2D *h2_EovP_vs_PSblk_trPOS = new TH2D("h2_EovP_vs_PSblk_trPOS","Average E_clus*%2.2f/p_rec per PS "
 					"block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
   Long64_t Nevents = C->GetEntries();  
   cout << endl << "Processing " << Nevents << " events.." << endl;
 
-  // Looping over events =========================================================================== //
+  // Looping over events ========================================================================//
   Double_t progress = 0.;
   Double_t timekeeper = 0., timeremains = 0.;
   while(progress<1.0){
@@ -270,7 +393,7 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
       sw2->Continue();
 
       progress = (double)((nevent+1.)/Nevents);
-      cout << "] " << int(progress*100.) << "%, " << int(timeremains/60.) << " mins to go.. \r";
+      cout << "] " << int(progress*100.) << "%, " << int(timeremains/60.) << "m \r";
       cout.flush();
       // ------
 
@@ -305,18 +428,24 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
       }
 
       // Choosing only events which had clusters in both PS and SH.
-      if( T->bb_sh_nclus==0 || T->bb_ps_nclus==0 || T->bb_ps_idblk==-1 || T->bb_ps_e<0.1 ) continue;
+      if( T->bb_sh_nclus==0 || T->bb_ps_nclus==0 || T->bb_ps_idblk==-1 || T->bb_ps_e<0.2 ) continue;
 
       // cut on W
       if( cut_on_W ) if( fabs(W-W_mean)>W_sigma ) continue;
+
+      // cut on E/p
+      if( cut_on_EovP ) if( fabs( (T->bb_sh_e+T->bb_ps_e)/p_rec - 1. )>EovP_cut_limit ) continue;
+
+      // cut on p
+      if( cut_on_p ) if( p_rec<p_min_cut ) continue;
    
       // cut on good tracks
-      if( T->bb_tr_tg_th[tr_min]>-0.15 && T->bb_tr_tg_th[tr_min]<0.15 && T->bb_tr_tg_ph[tr_min]>-0.3 
-	  && T->bb_tr_tg_ph[tr_min]<0.3 ){ //&& fabs( (T->bb_sh_e+T->bb_ps_e)/p_rec - 1. )<0.3 ){  
+      if( T->bb_tr_tg_th[tr_min]>-0.15 && T->bb_tr_tg_th[tr_min]<0.15 && 
+	  T->bb_tr_tg_ph[tr_min]>-0.3 && T->bb_tr_tg_ph[tr_min]<0.3 ){  
 
-	Int_t cl_max = -1;
-	Double_t nblk = -1.;
-	Double_t Emax = -10.;
+	Int_t cl_max=-1;
+	Double_t nblk=-1.;
+	Double_t Emax=-10.;
 
 	// ****** Shower ******
 	// Loop over all the clusters first: select highest energy
@@ -327,7 +456,7 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 	//   }
 	// }
 	
-	cl_max = 0;
+	cl_max=0;
 
 	// Reject events with max on the edge
 	// if(T->bb_sh_clus_row[cl_max]==0 || T->bb_sh_clus_row[cl_max]==26 ||
@@ -339,10 +468,10 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 
 	// Loop over all the blocks in main cluster and fill in A's
 	Double_t ClusEngSH_mod=0.;
-	Int_t shrow = 0;
-	Int_t shcol = 0;
+	Int_t shrow=0;
+	Int_t shcol=0;
 	nblk = T->bb_sh_nblk;
-	for(Int_t blk = 0; blk<nblk; blk++){
+	for(Int_t blk=0; blk<nblk; blk++){
 	  Int_t blkID = int(T->bb_sh_clus_blk_id[blk]);
 	  shrow = int(T->bb_sh_clus_blk_row[blk]);
 	  shcol = int(T->bb_sh_clus_blk_col[blk]);
@@ -353,8 +482,8 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
     
 	// ****** PreShower ******
 	Double_t ClusEngPS_mod=0.;
-	Int_t psrow = 0;
-	Int_t pscol = 0;
+	Int_t psrow=0;
+	Int_t pscol=0;
 	nblk = T->bb_ps_nblk;
 	for(Int_t blk=0; blk<nblk; blk++){
 	  Int_t blkID = int(T->bb_ps_clus_blk_id[blk]);
@@ -368,43 +497,43 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 	// Let's fill some interesting histograms
 	Double_t clusEngBBCal = (T->bb_sh_e + T->bb_ps_e)*Corr_Factor_Enrg_Calib_w_Cosmic;
 	Double_t clusEngBBCal_mod = ClusEngSH_mod + ClusEngPS_mod;
-	h_res_BBCal->Fill( (clusEngBBCal_mod/p_rec) );
+	h_EovP->Fill( (clusEngBBCal_mod/p_rec) );
 	h_clusE->Fill( clusEngBBCal_mod );
 	h_SHclusE->Fill( ClusEngSH_mod );
 	h_PSclusE->Fill( ClusEngPS_mod );
 	h2_P_rec_vs_P_ang->Fill( P_ang, p_rec );
 
-	h_res_BBCal_custom->Fill( (clusEngBBCal/p_rec) );
+	h_EovP_custom->Fill( (clusEngBBCal/p_rec) );
 	h_clusE_custom->Fill( clusEngBBCal );
 	h_SHclusE_custom->Fill( (T->bb_sh_e)*Corr_Factor_Enrg_Calib_w_Cosmic );
 	h_PSclusE_custom->Fill( (T->bb_ps_e)*Corr_Factor_Enrg_Calib_w_Cosmic );
 
 	// Checking to see if there is any bias in track recostruction ----
 	//SH
-	h2_SHeng_P_SHblk_raw->Fill( shcol, shrow, ClusEngSH_mod );
-	h2_res_P_SHblk_raw->Fill( shcol, shrow, (clusEngBBCal_mod/p_rec) );
+	h2_SHeng_vs_SHblk_raw->Fill( shcol, shrow, ClusEngSH_mod );
+	h2_EovP_vs_SHblk_raw->Fill( shcol, shrow, (clusEngBBCal_mod/p_rec) );
 	h2_count->Fill( shcol, shrow, 1.);
-	h2_SHeng_P_SHblk->Divide( h2_SHeng_P_SHblk_raw, h2_count );
-	h2_res_P_SHblk->Divide( h2_res_P_SHblk_raw, h2_count );
+	h2_SHeng_vs_SHblk->Divide( h2_SHeng_vs_SHblk_raw, h2_count );
+	h2_EovP_vs_SHblk->Divide( h2_EovP_vs_SHblk_raw, h2_count );
 
 	Double_t xtrATsh = T->bb_tr_x[cl_max] + zposSH*T->bb_tr_th[cl_max];
 	Double_t ytrATsh = T->bb_tr_y[cl_max] + zposSH*T->bb_tr_ph[cl_max];
-	h2_res_P_SHblk_trPOS_raw->Fill( ytrATsh, xtrATsh, (clusEngBBCal_mod/p_rec) );
+	h2_EovP_vs_SHblk_trPOS_raw->Fill( ytrATsh, xtrATsh, (clusEngBBCal_mod/p_rec) );
 	h2_count_trP->Fill( ytrATsh, xtrATsh, 1. );
-	h2_res_P_SHblk_trPOS->Divide( h2_res_P_SHblk_trPOS_raw, h2_count_trP );
+	h2_EovP_vs_SHblk_trPOS->Divide( h2_EovP_vs_SHblk_trPOS_raw, h2_count_trP );
 
 	//PS
-	h2_PSeng_P_PSblk_raw->Fill( pscol, psrow, ClusEngPS_mod );
-	h2_res_P_PSblk_raw->Fill( pscol, psrow, (clusEngBBCal_mod/p_rec) );
+	h2_PSeng_vs_PSblk_raw->Fill( pscol, psrow, ClusEngPS_mod );
+	h2_EovP_vs_PSblk_raw->Fill( pscol, psrow, (clusEngBBCal_mod/p_rec) );
 	h2_count_PS->Fill( pscol, psrow, 1.);
-	h2_PSeng_P_PSblk->Divide( h2_PSeng_P_PSblk_raw, h2_count_PS );
-	h2_res_P_PSblk->Divide( h2_res_P_PSblk_raw, h2_count_PS );
+	h2_PSeng_vs_PSblk->Divide( h2_PSeng_vs_PSblk_raw, h2_count_PS );
+	h2_EovP_vs_PSblk->Divide( h2_EovP_vs_PSblk_raw, h2_count_PS );
 
 	Double_t xtrATps = T->bb_tr_x[cl_max] + zposPS*T->bb_tr_th[cl_max];
 	Double_t ytrATps = T->bb_tr_y[cl_max] + zposPS*T->bb_tr_ph[cl_max];
-	h2_res_P_PSblk_trPOS_raw->Fill( ytrATps, xtrATps, (clusEngBBCal_mod/p_rec) );
+	h2_EovP_vs_PSblk_trPOS_raw->Fill( ytrATps, xtrATps, (clusEngBBCal_mod/p_rec) );
 	h2_count_trP_PS->Fill( ytrATps, xtrATps, 1. );
-	h2_res_P_PSblk_trPOS->Divide( h2_res_P_PSblk_trPOS_raw, h2_count_trP_PS );
+	h2_EovP_vs_PSblk_trPOS->Divide( h2_EovP_vs_PSblk_trPOS_raw, h2_count_trP_PS );
 	// -----
 
 	// E/p vs. p
@@ -412,12 +541,12 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 	h2_EovP_vs_P_mod->Fill( p_rec, clusEngBBCal_mod/p_rec );
 
 	// Let's customize the histograms
-	//h2_SHeng_P_SHblk->GetZaxis()->SetRangeUser(0.6,1.0); //(1.0,2.0);
-	h2_res_P_SHblk->GetZaxis()->SetRangeUser(0.8,1.2);
-	h2_res_P_SHblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
-	//h2_PSeng_P_PSblk->GetZaxis()->SetRangeUser(0.,0.5); //(0.3,1.0);
-	h2_res_P_PSblk->GetZaxis()->SetRangeUser(0.8,1.2);
-	h2_res_P_PSblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
+	//h2_SHeng_vs_SHblk->GetZaxis()->SetRangeUser(0.6,1.0); //(1.0,2.0);
+	h2_EovP_vs_SHblk->GetZaxis()->SetRangeUser(0.8,1.2);
+	h2_EovP_vs_SHblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
+	//h2_PSeng_vs_PSblk->GetZaxis()->SetRangeUser(0.,0.5); //(0.3,1.0);
+	h2_EovP_vs_PSblk->GetZaxis()->SetRangeUser(0.8,1.2);
+	h2_EovP_vs_PSblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
 
 	// Let's costruct the matrix
 	for(Int_t icol = 0; icol<ncell; icol++){
@@ -477,10 +606,14 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 
   // SH : Filling diagnostic histograms
   Int_t cell = 0;
-  // adcGain_SH = Form("%s/eng_cal_gainCoeff_sh_%d_%d.txt",getenv("GAIN_DIR"),Set,iter);
-  adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter);
-  // gainRatio_SH = Form("%s/eng_cal_gainRatio_sh_%d_%d.txt",getenv("GAIN_DIR"),Set,iter);
-  gainRatio_SH = Form("Gain/eng_cal_gainRatio_sh_%d_%d.txt",Set,iter);
+  if(farm_submit)
+    adcGain_SH = Form("eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter);
+  else
+    adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter);
+  if(farm_submit)
+    gainRatio_SH = Form("eng_cal_gainRatio_sh_%d_%d.txt",Set,iter);
+  else
+    gainRatio_SH = Form("Gain/eng_cal_gainRatio_sh_%d_%d.txt",Set,iter);
   ofstream adcGainSH_outData, gainRatioSH_outData;
   adcGainSH_outData.open(adcGain_SH);
   gainRatioSH_outData.open(gainRatio_SH);
@@ -527,10 +660,14 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   cout << endl;
 
   // PS : Filling diagnostic histograms
-  // adcGain_PS = Form("%s/eng_cal_gainCoeff_ps_%d_%d.txt",getenv("GAIN_DIR"),Set,iter);
-  adcGain_PS = Form("Gain/eng_cal_gainCoeff_ps_%d_%d.txt",Set,iter);
-  // gainRatio_PS = Form("%s/eng_cal_gainRatio_ps_%d_%d.txt",getenv("GAIN_DIR"),Set,iter);
-  gainRatio_PS = Form("Gain/eng_cal_gainRatio_ps_%d_%d.txt",Set,iter);
+  if(farm_submit)
+    adcGain_PS = Form("eng_cal_gainCoeff_ps_%d_%d.txt",Set,iter);
+  else
+    adcGain_PS = Form("Gain/eng_cal_gainCoeff_ps_%d_%d.txt",Set,iter);
+  if(farm_submit)
+    gainRatio_PS = Form("eng_cal_gainRatio_ps_%d_%d.txt",Set,iter);
+  else
+    gainRatio_PS = Form("Gain/eng_cal_gainRatio_ps_%d_%d.txt",Set,iter);
   ofstream adcGainPS_outData, gainRatioPS_outData;
   adcGainPS_outData.open(adcGain_PS);
   gainRatioPS_outData.open(gainRatio_PS);
