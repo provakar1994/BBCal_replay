@@ -1,4 +1,5 @@
-/lustre19/expphy/volatile/halla/sbs/datta/gmn-replays/rootfiles/e1209019_fullreplay_13656_stream0*
+/lustre19/expphy/volatile/halla/sbs/datta/gmn-replays/rootfiles/sbs9-sbs70p/e1209019_fullreplay_13696_stream0*
+/lustre19/expphy/volatile/halla/sbs/datta/gmn-replays/rootfiles/sbs9-sbs70p/e1209019_fullreplay_13697_stream0*
 #../../Rootfiles/e1209019_fullreplay_13656_stream0_seg19_19.root
 #../../Rootfiles/e1209019_fullreplay_13657_stream0*
 #../../Rootfiles/e1209019_fullreplay_13656_stream0*

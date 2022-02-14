@@ -1,4 +1,7 @@
-#../../Rootfiles/e1209019_fullreplay_13468_stream0_seg19_19.root
-../../Rootfiles/e1209019_fullreplay_13452_stream0*
-../../Rootfiles/e1209019_fullreplay_13486_stream0*
+#../../Rootfiles/e1209019_fullreplay_13486_stream0_seg19_19.root
+#../../Rootfiles/e1209019_fullreplay_13452_stream0*
+#../../Rootfiles/e1209019_fullreplay_13486_stream0*
+#/lustre19/expphy/volatile/halla/sbs/datta/gmn-replays/rootfiles/sbs8-sbs70p/e1209019_fullreplay_13486_stream0_seg0_0.root
+/lustre19/expphy/volatile/halla/sbs/datta/gmn-replays/rootfiles/sbs8-sbs70p/e1209019_fullreplay_13486_stream0*
+/lustre19/expphy/volatile/halla/sbs/datta/gmn-replays/rootfiles/sbs8-sbs70p/e1209019_fullreplay_13452_stream0*
 endlist

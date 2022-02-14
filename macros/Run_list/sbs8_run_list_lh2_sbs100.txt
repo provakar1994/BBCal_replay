@@ -1,0 +1,3 @@
+#/lustre19/expphy/volatile/halla/sbs/datta/gmn-replays/rootfiles/sbs8-sbs100p/e1209019_fullreplay_13537_stream0_seg0_0.root
+/lustre19/expphy/volatile/halla/sbs/datta/gmn-replays/rootfiles/sbs8-sbs100p/e1209019_fullreplay_13537_stream0*
+endlist

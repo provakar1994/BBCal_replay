@@ -1,2 +1,6 @@
-../../Rootfiles/mkj3_bbshower_11588_0_200000_seg_*
+#/lustre19/expphy/volatile/halla/sbs/seeds/GMN_Replays/e1209019_fullreplay_11573_stream0_seg13*
+/lustre19/expphy/volatile/halla/sbs/seeds/GMN_Replays/e1209019_fullreplay_11573_stream0*
+/lustre19/expphy/volatile/halla/sbs/seeds/GMN_Replays/e1209019_fullreplay_11587_stream0*
+/lustre19/expphy/volatile/halla/sbs/seeds/GMN_Replays/e1209019_fullreplay_11588_stream0*
+#../../Rootfiles/mkj3_bbshower_11588_0_200000_seg_*
 endlist
