@@ -12,13 +12,14 @@
 const double Mp = 0.938272;
 const double Mn = 0.939565;
 
-void plot_BB_HCAL_correlations( const char *rootfilename, const char *outfilename, double ebeam=5.965, 
+void plot_BB_HCAL_correlations( const char *rootfilename1, const char *rootfilename2, const char *outfilename, double ebeam=5.965, 
 				double bbtheta=26.5, double sbstheta=29.9, double hcaldist=11.0, double dx0=0.0, double dy0=0.0, double dxsigma=0.08, double dysigma=0.08, double Wmin=0.6, double Wmax=1.2, double dpel_min=-0.06, double dpel_max=0.06 ){
   //ifstream infile(configfilename);
 
   TChain *C = new TChain("T");
 
-  C->Add(rootfilename);
+  C->Add(rootfilename1);
+  C->Add(rootfilename2);
 
   // TString currentline;
 
