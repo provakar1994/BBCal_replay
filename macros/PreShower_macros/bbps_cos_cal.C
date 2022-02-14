@@ -740,7 +740,7 @@ void makeSummaryPlots( string runnumber, string date, bool trigAmp = 0 ){
 	Gr[i]->GetYaxis()->SetTitle("Peak Position at Trigger (mV)");
       }
       Gr[i]->GetXaxis()->SetTitle("Block Number");
-      Gr[i]->GetYaxis()->SetRangeUser(0.,40.);
+      Gr[i]->GetYaxis()->SetRangeUser(0.,60.);
     } else if (i == 1){
       Gr[i]->SetTitle( Form("Run# %s | Peak RMS vs. Block No. for PS Blocks | %s",
 			    runnumber.c_str(),date.c_str()) ); 

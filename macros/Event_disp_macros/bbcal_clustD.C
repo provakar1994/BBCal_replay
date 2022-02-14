@@ -113,11 +113,11 @@ TH1F *histos[kNrows][kNcols];
 TH2F* hSH_int = new TH2F("sh_int","Shower(a_p) ; Ncol ; Nrow",kNcols,1,kNcols+1,kNrows,1,kNrows+1);
 TH2F* hSH_intEng = new TH2F("sh_intE","Shower(a_c) ; Ncol ; Nrow",kNcols,1,kNcols+1,kNrows,1,kNrows+1);
 TH2F* hSH_clus_e = new TH2F("sh_clus_e","Shower Cluster ; Ncol ; Nrow",kNcols,1,kNcols+1,kNrows,1,kNrows+1);
-TH2F* hSH_xypos = new TH2F("sh_cl_tr","SH Clust. + Track Pos. ; y ; x",kNcols,-0.2992,0.2992,kNrows,-1.1542,1.1542);
+TH2F* hSH_xypos = new TH2F("sh_cl_tr","SH Clust. + Track Pos. ; Shower y (m) ; Shower x (m)",kNcols,-0.2992,0.2992,kNrows,-1.1542,1.1542);
 TH2F* hPS_int = new TH2F("ps_int","PreShower(a_p) ; Ncol ; Nrow",kNcolsPS,1,kNcolsPS+1,kNrowsPS,1,kNrowsPS+1);
 TH2F* hPS_intEng = new TH2F("ps_intE","PreShower(a_c) ; Ncol ; Nrow",kNcolsPS,1,kNcolsPS+1,kNrowsPS,1,kNrowsPS+1);
 TH2F* hPS_clus_e = new TH2F("ps_clus_e","PreShower Cluster ; Ncol ; Nrow",kNcolsPS,1,kNcolsPS+1,kNrowsPS,1,kNrowsPS+1);
-TH2F* hPS_xypos = new TH2F("ps_cl_tr","PS Clust. + Track Pos.; y ; x",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
+TH2F* hPS_xypos = new TH2F("ps_cl_tr","PS Clust. + Track Pos.; PreShower y (m) ; PreShower x (m)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
 bool is_number(const std::string& mystring)
 {
@@ -439,8 +439,8 @@ Int_t display(Int_t run = 290, Int_t event = 50000)
   gStyle->SetLabelSize(0.05,"XY");
   gStyle->SetTitleFontSize(0.08);
 
-  //TString filename = "bbshower_434_5000.root";
-  TString filename = Form("$OUT_DIR/mkj_bbshower_%d_%d.root",run,event);
+  TString filename = "../../Rootfiles/e1209019_fullreplay_13486_stream0_seg53_53.root";
+  //TString filename = Form("$OUT_DIR/mkj_bbshower_%d_%d.root",run,event);
   TFile *f = TFile::Open(filename); 
   TChain *C = (TChain*)f->Get("T");
   cout << "Opened up tree with nentries=" << C->GetEntries() << endl;

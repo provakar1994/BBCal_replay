@@ -107,7 +107,7 @@ void sh_HVUpdate_cosmic(Int_t nrun=0, Double_t des_TrigAmp=15.,
 	  double ampRatio = des_TrigAmp/sigPeakTrig.at(blk);
 	  double HV_old = HV_Value[nc][ns][nch];
 	  double HV_new = HV_Value[nc][ns][nch]*pow(ampRatio,alphaINV);
-	  if(fabs(HV_new)>2000){
+	  if(fabs(HV_new)>2000 || (HV_new != HV_new)){
 	    cout << " *!* New HV for SH Ch. " << row+1 << "-" << col+1
 		 << " seems too high! " << endl;
 	    outfile_hv << " " << HV_old;

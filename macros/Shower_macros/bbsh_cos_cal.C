@@ -624,7 +624,7 @@ void processEvent( int entry = -1, bool trigAmp = 0 ){
     for(c = 0; c < kNcols; c++) {
       Int_t m = r*kNcols+c;
       hADCamp[r][c]->SetTitle(Form("%d-%d ",r,c));
-      if(r==0){
+      if(r==0){  // bottom row
       	if((gPulse[r+2][c+1]&&gPulse[r+3][c+1]&&gPulse[r+4][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2])){
 	  if(trigAmp) {
 	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
@@ -633,7 +633,7 @@ void processEvent( int entry = -1, bool trigAmp = 0 ){
 	  }
 	  hamptointratio[r][c]->Fill( adc_amp[r][c]/adc[r][c] ); 
       	}
-      }else if(r==(kNrows-1)){
+      }else if(r==(kNrows-1)){  // top row
       	if((gPulse[r][c+1]&&gPulse[r-1][c+1]&&gPulse[r-2][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2])){
 	  if(trigAmp) {
 	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
@@ -642,7 +642,10 @@ void processEvent( int entry = -1, bool trigAmp = 0 ){
 	  }
 	  hamptointratio[r][c]->Fill( adc_amp[r][c]/adc[r][c] );  
       	}
-      }// else if(m==27){
+      }
+
+      // *** Special case : We need this when a block doesn't have signal -----
+      // else if(m==99){
       // 	if( (gPulse[r][c+1]&&gPulse[r+3][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2]) ){
       // 	  if(trigAmp) {
       // 	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
@@ -651,7 +654,7 @@ void processEvent( int entry = -1, bool trigAmp = 0 ){
       // 	  }
       // 	  hamptointratio[r][c]->Fill( adc_amp[r][c]/adc[r][c] );  
       // 	}
-      // }else if(m==41){
+      // }else if(m==85){
       // 	if( (gPulse[r-1][c+1]&&gPulse[r+2][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2]) ){
       // 	  if(trigAmp) {
       // 	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
@@ -661,7 +664,9 @@ void processEvent( int entry = -1, bool trigAmp = 0 ){
       // 	  hamptointratio[r][c]->Fill( adc_amp[r][c]/adc[r][c] );  
       // 	}
       // }
-      else{	
+      // ------
+
+      else{  // all other rows
       	if( (gPulse[r][c+1]&&gPulse[r+2][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2]) ){
 	  if(trigAmp) {
 	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
@@ -733,7 +738,7 @@ void makeSummaryPlots( string runnumber, string date, bool trigAmp = 0 ){
 	Gr[i]->GetYaxis()->SetTitle("Peak Position at Trigger (mV)");
       }
       Gr[i]->GetXaxis()->SetTitle("Block Number");
-      Gr[i]->GetYaxis()->SetRangeUser(0.,40.);
+      Gr[i]->GetYaxis()->SetRangeUser(0.,60.);
     } else if (i == 1){
       Gr[i]->SetTitle( Form("Run# %s | Peak RMS vs. Block No. for SH Blocks | %s",
 			    runnumber.c_str(),date.c_str()) ); 
