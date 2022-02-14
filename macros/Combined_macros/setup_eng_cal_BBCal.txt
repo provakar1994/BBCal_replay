@@ -1,4 +1,4 @@
-## SBS-9: LH2, Full BB Field, 70% SBS Field : Set 18 (See log below)
+## SBS-9: LH2, Full BB Field, 70% SBS Field : Set 18, Set 19
 Run_list/sbs9_run_list_lh2_sbs70.txt
 #
 ## SBS-8: LH2, Full BB Field, 70% SBS Field : Set 16, Set 17 
@@ -40,15 +40,29 @@ Run_list/sbs9_run_list_lh2_sbs70.txt
 endRunlist
 bb.sh.nclus>0&&bb.ps.nclus>0
 endcut
-Set 18 # Keep log below
+Set 19 # Keep log below
+farm_submit 0  # y/n(1/0)
 E_beam 4.015 # SBS-1=1.92,SBS-4=3.728,SBS-11=9.91,SBS-14=5.965=SBS-8,SBS-9=4.015
 Min_Event_Per_Channel 1000
 Min_MB_Ratio 0.1
-p_rec_Offset 0.965		 # a.k.a fudge factor (FF)
-W_mean 0.78217
-W_sigma 0.2
-cut_on_W 0  # 0=No, 1=Yes 
-Corr_Factor_Enrg_Calib_w_Cosmic 1.0  # a.k.a cF.
+# cuts ***
+W_cut 0 0.957 0.2  # y/n(1/0) mean sigma
+p_cut 0 1.6  # y/n(1/0) cut_limit # p>cut_limit
+EovP_cut 0 0.3  # y/n(1/0) cut_limit # |E/p-1|<cut_limit
+# histos ***
+h_W 200 0. 5.  # nbin, min, max
+h_Q2 200 0. 20.
+h_EovP 200 0.2 1.6
+h_clusE 200 0. 5.
+h_shE 120 0. 4.
+h_psE 100 0. 2.
+h2_p 135 0.5 5.
+h2_pang 120 20. 60.
+h2_p_coarse 21 0. 4.2
+h2_EovP 200 0.6 1.4
+# offsets ***
+p_rec_Offset 1.		 # a.k.a fudge factor (FF)
+Corr_Factor_Enrg_Calib_w_Cosmic 1.  # a.k.a cF.
 
 
 ***** Log ***** 
@@ -109,6 +123,7 @@ Corr_Factor_Enrg_Calib_w_Cosmic 1.0  # a.k.a cF.
 
 ***** Starting to look at SBS-9 data *****
 
-# 16   SBS 70% runs:	        W_mean=, W_sigma=, FF=, cF=
+# 18   SBS 70% runs:	        W_mean=0.935, W_sigma=0.1, FF=0.965, cF=1.
        13657
-
+# 19   SBS 70% runs:	        after 1st round of calibration
+       13657
