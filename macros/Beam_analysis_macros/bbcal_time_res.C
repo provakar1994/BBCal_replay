@@ -24,11 +24,13 @@ void bbcal_time_res( const char *rootfilename, Double_t percentdiff=20. ){
 
   C->Add(rootfilename);
 
-  Int_t maxtr=1000;
+  Int_t maxtr=1000, hodo_trindex=0;
   Double_t sh_nclus, sh_e, sh_rowblk, sh_colblk, sh_nblk;
   Double_t ps_nclus, ps_idblk, ps_e, ps_rowblk, ps_colblk;
+  Double_t hodo_nclus;
   Double_t sh_clblk_atime[maxtr], sh_clblk_e[maxtr];
   Double_t p[maxtr], pz[maxtr], tg_th[maxtr], tg_ph[maxtr];
+  Double_t hodo_tmean[maxtr], hodo_trIndex[maxtr];
 
   C->SetBranchStatus("*",0);
   //shower
@@ -66,6 +68,13 @@ void bbcal_time_res( const char *rootfilename, Double_t percentdiff=20. ){
   C->SetBranchAddress("bb.tr.tg_th",&tg_th);
   C->SetBranchStatus("bb.tr.tg_ph",1);
   C->SetBranchAddress("bb.tr.tg_ph",&tg_ph);
+  //hodo
+  C->SetBranchStatus("bb.hodotdc.nclus",1);
+  C->SetBranchAddress("bb.hodotdc.nclus",&hodo_nclus);
+  C->SetBranchStatus("bb.hodotdc.clus.tmean",1);
+  C->SetBranchAddress("bb.hodotdc.clus.tmean",&hodo_tmean);
+  C->SetBranchStatus("bb.hodotdc.clus.trackindex",1);
+  C->SetBranchAddress("bb.hodotdc.clus.trackindex",&hodo_trIndex);
 
   TString outFile = Form("hist/bbcal_time_res.root");
   TFile *fout = new TFile(outFile,"RECREATE");
@@ -73,6 +82,8 @@ void bbcal_time_res( const char *rootfilename, Double_t percentdiff=20. ){
 
   TH1D *h_W = new TH1D("h_W","W distribution",200,0.,5.);
   TH1D *h_Q2 = new TH1D("h_Q2","Q2 distribution",200,0.,10.);
+  TH1D *h_blk_count = new TH1D("h_blk_count","",100,0.,10.);
+  TH1D *h_blk_count_cut = new TH1D("h_blk_count_cut","",100,0.,10.);
   TH2D *h2_clustime_diff = new TH2D("h2_cltime_diff","",189,0,189,1000,-10.,10.);
   TH2D *h2_clustime_diff_cut = new TH2D("h2_cltime_diff_cut","",189,0,189,1000,-10.,10.);
   
@@ -96,14 +107,14 @@ void bbcal_time_res( const char *rootfilename, Double_t percentdiff=20. ){
       h_W->Fill(W);
     }
 
-    // good cluster cut
+    //good cluster cut
     if( sh_nclus==0 || ps_nclus==0 || ps_idblk==-1 || ps_e<0.2 ) continue;
 
-    // good track cut
+    //good track cut
     if( tg_th[0]>-0.15 && tg_th[0]<0.15 && 
 	tg_ph[0]>-0.3 && tg_ph[0]<0 ){
  
-      // avoiding clusters on the edge
+      //avoiding clusters on the edge
       if(sh_rowblk==0 || sh_rowblk==26 ||
 	 sh_colblk==0 || sh_colblk==6) continue; 
 
@@ -112,19 +123,24 @@ void bbcal_time_res( const char *rootfilename, Double_t percentdiff=20. ){
       Double_t eng_HEblk = sh_clblk_e[0];
       Double_t atime_HEblk = sh_clblk_atime[0];
       Int_t elemID = sh_rowblk*kNcolsSH + sh_colblk;
-      for(Int_t blk=1; blk<nblk; blk++){
+      Int_t count=0, count_cut=0;
 
+      for(Int_t blk=1; blk<nblk; blk++){
 	Double_t eng_blk = sh_clblk_e[blk];
 	Double_t atime_blk = sh_clblk_atime[blk];
 
 	if( (fabs( eng_HEblk-eng_blk )/eng_HEblk)*100. < percentdiff ){
 	  // && fabs(W-0.9515)<0.3 ){
 	  h2_clustime_diff_cut->Fill( elemID, atime_HEblk-atime_blk );
+	  count_cut += 1;
 	}
 	h2_clustime_diff->Fill( elemID, atime_HEblk-atime_blk );
-
+	count += 1;
       }
       
+      h_blk_count->Fill( count );
+      if(count_cut>0) h_blk_count_cut->Fill( count_cut );
+
     } // if, good track cut
 
 
