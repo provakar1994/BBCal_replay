@@ -18,13 +18,13 @@ The names of the directories are self-explanatory. Still, below is a brief descr
   -  `How-to` - Documentaion on how to execute all the different macros, how to carry out cosmic calibration procedure and then generate gain coefficients, et cetera can be found here.
   -  `Shower_macros` - All analysis scripts that only involve SH, such as SH cosmic calibration, getting new HV values for SH PMTs, et cetera can be found here.
   -  `PreShower_macros` - All analysis scripts that only involve PS, such as PS cosmic calibration, getting new HV values for PS PMTs, et cetera can be found here.
-  -  `Combined_macros` - General macros those are applicable to both SH and PS, such as **energy calibration script with beam**, script to calculate ADC gain with cosmic, et cetera, can be found here.
-     - `cfg` - Combined_macros/cfg contains all the configuration files for various SBS GMn configurations (taking into consideration different BB & SBS magnet settings within a configuration), which are needed to execute the **energy calibration script with beam** script.
+  -  `Combined_macros` - General macros those are applicable to both SH and PS, such as **energy calibration script (with beam)**, script to calculate ADC gain with cosmic, et cetera, can be found here.
+     - `cfg` - Combined_macros/cfg contains all the configuration files for various SBS GMn configurations (taking into consideration different BB & SBS magnet settings within a configuration), which are needed to execute the **energy calibration script (with beam)** script.
   -  `Event_disp_macros` - Scripts to look single BBCal events can be found here.
   -  `Output` - Various output .txt files get stored here.
   -  `hist` - All the output .root files get stored here.
   -  `plots` - Generated plots which are savend in .pdf format, get stored here.
-  -  `Gain` - ADC gain coefficients and ratios for both SH and PS which serve as both input and output files for the **energy calibration script with beam**, get stored here.
+  -  `Gain` - ADC gain coefficients and ratios for both SH and PS which serve as both input and output files for the **energy calibration script (with beam)**, get stored here.
   -  `hv_set` - All the .set files (complatible with JAVA HV GUI) containing HVs for both SH and PS PMTs can be found here.
   -  `Run_list` - Contains configuration specificc run lists.
   -  `hcal` - Has the hcal energy calibration machinary (with beam), which was developed for double checking purposes. 
