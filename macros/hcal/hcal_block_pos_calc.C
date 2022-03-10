@@ -1,3 +1,7 @@
+/* This script calculates xpos and ypos for HCal blocks
+   P. Datta <pdbforce@jlab.org> Created 03/10/2022
+*/
+
 #include <iostream>
 
 using namespace std;
@@ -6,7 +10,7 @@ using namespace std;
 const int krowhcal = 24;
 const int kcolhcal = 12;
 //distance between the centers of two neighboring blocks (including gap)
-const double blockoffset = 0.15254;
+const double blockoffset = 0.15;
 
 //HCal origin in local co-ordinate system
 double x_origin = 0.;
@@ -62,3 +66,7 @@ int main(){
   }
 
 }
+
+
+// HCal origin is offset in the Hall CoS by 0.365m in X-axis
+// So, for CoS=0, we should use the origin to be at (.365, 0.)
