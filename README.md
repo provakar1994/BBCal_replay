@@ -14,12 +14,12 @@ The names of the directories are self-explanatory. Still, below is a brief descr
 
 - `golden` - Contains values of alpha parameters for all SH and PS PMTs. 
 - `replay` - Contains machiary for BBCal standalone replay for SBS GMn data. The most up-to-date replay machinary for SBS GMn can be found in [SBS-replay](https://github.com/JeffersonLab/SBS-replay). Although, [SBS-offline](https://github.com/JeffersonLab/SBS-offline) contains all the event reconstruction codes. NOTE: It is necessary to modify the replay/.rootrc and the environment setup files depending on the user's working directory and software environmets for the replay to work properly. 
-- `macros` - All the calibration scripts and ROOT utility macros can be found here. Most of the scripts have some interdependencies in terms of input or output directory structure and for that to work properly, user should execute all the macros from this directory. Here is a brief description of the contents of several subdirectories BBCal_replay/macros has:
+- `macros` - All the calibration scripts and ROOT utility macros can be found here. Most of the scripts have some interdependencies in terms of input or output directory structure and for that to work properly, user should execute all the macros from this directory. Here is a brief description of the contents of several subdirectories _BBCal_replay/macros_ has:
   -  `How-to` - Documentaion on how to execute all the different macros, how to carry out cosmic calibration procedure and then generate gain coefficients, et cetera can be found here.
   -  `Shower_macros` - All analysis scripts that only involve SH, such as SH cosmic calibration, getting new HV values for SH PMTs, et cetera can be found here.
   -  `PreShower_macros` - All analysis scripts that only involve PS, such as PS cosmic calibration, getting new HV values for PS PMTs, et cetera can be found here.
   -  `Combined_macros` - General macros those are applicable to both SH and PS, such as **energy calibration script (with beam)**, script to calculate ADC gain with cosmic, et cetera, can be found here.
-     - `cfg` - Combined_macros/cfg contains all the configuration files for various SBS GMn configurations (taking into consideration different BB & SBS magnet settings within a configuration), which are needed to execute the **energy calibration script (with beam)** script.
+     - `cfg` - _Combined_macros/cfg_ contains all the configuration files for various SBS GMn configurations (taking into consideration different BB & SBS magnet settings within a configuration), which are needed to execute the **energy calibration script (with beam)** script.
   -  `Event_disp_macros` - Scripts to look single BBCal events can be found here.
   -  `Output` - Various output .txt files get stored here.
   -  `hist` - All the output .root files get stored here.
