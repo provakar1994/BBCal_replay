@@ -39,5 +39,5 @@ During GMn run, BBCal cosmic calibration at the start of every SBS configuration
 
 ## 4. Contact:
 In case of any questions or concerns please contact the authors,
->Authors: Provakar Datta (UConn), Mark K. Jones (JLab) <br> 
+>Authors: Provakar Datta (UConn), Mark K. Jones (JLab), Arun Tadepalli (JLab) <br> 
 >Contact: <provakar.datta@uconn.edu>
