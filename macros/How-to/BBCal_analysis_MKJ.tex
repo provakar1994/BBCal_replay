@@ -1,0 +1,220 @@
+\documentclass[]{article}
+
+%opening
+\title{BBCal analysis}
+\author{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+
+\section{Analyzing data file}
+\begin{enumerate}
+	\item Connect to tedbbdaq as user: daq pwd: D4q!23
+	\item cd Analysis/BBCal
+	\item source setup.csh
+	\item cd replay
+	\item analyzer
+\begin{itemize}
+	\item .L replay.C+
+	\item replay\_bbcosmics(runnumber,-1)
+	\item .q
+\end{itemize}
+\item This produces a root file, bbcal\_runnumber.root in 	rootfiles subdirectory
+\end{enumerate}
+
+\section{Analyzing root file}
+Root file has the following leaves in the tree ("T").
+The shower leaves are arrays of 189 members with index=(nr-1)*7+(nc-1) where nr is row number 1-27 and nc is column 1-7 and index = 0-188.
+The preshower leaves are of 54 members with with index=(nr-1)+(nc-1)*27 where nr is row number 1-27 and nc is column 1-2 and index = 0-53.
+For purposes of analyzing cosmic data, the following leaves are relevant:
+\begin{enumerate}
+	\item bb.sh.a (189 member array of shower raw ADC)
+	\item bb.sh.a\_p (189 member array of shower raw ADC - pedestal)
+	\item bb.ps.a (54 member array of preshower raw ADC)
+    \item bb.ps.a\_p (54 member array of preshower raw ADC - pedestal)
+\end{enumerate}
+
+\section{To create histograms and event display}
+\subsection{Create Shower histograms}
+\begin{enumerate}
+	\item cd Macros; root -l
+	\item .x Shower\_macros/make\_hist\_shower.C("bbcal\_nrun",nrun,{\it show\_track}) where nrun  is the integer run number of the analyzed data. {\it show\_track} is a flag for showing the event display which by default is kFALSE.
+	\item This macro creates a root file: hist/bbcal\_nrun\_shower\_hist.root
+	\item Histograms in the root file with histogram for each block that is identified by row (nr=1-27) and column (nc=1-7):
+	\begin{enumerate}
+		\item h\_shADC\_row{\it nr}\_col{\it nc} histogram of raw ADC (bb.sh.a) spectra
+		\item h\_shADC\_pedsub\_row{\it nr}\_col{\it nc} histogram of pedestal subtracted ADC (bb.sh.a\_p) spectra
+		\item h\_shADC\_pedsub\_cut\_row{\it nr}\_col{\it nc} histogram of pedestal subtracted ADC (bb.sh.a\_p) spectra with cut that any block in row 27 and any block in row 1 had a pedestal subtracted ADC value greater than 20 channels and that block had pedestal subtracted ADC value greater than 25 channels.
+	\end{enumerate}
+\end{enumerate}
+\subsection{Create PreShower histograms}
+For the preshower histograms Col 1 is also labeled "L" and Col 2 is also labeled "R".
+\begin{enumerate}
+	\item cd Macros; root -l
+	\item .x PreShower\_macros/make\_hist\_shower.C("bbcal\_nrun",nrun,{\it show\_track}) where nrun  is the integer run number of the analyzed data.  {\it show\_track} is a flag for showing the event display which by default is kFALSE.
+	\item This macro creates a root file: hist/bbcal\_nrun\_preshower\_hist.root
+	\item Histograms in the root file with histogram for each block that is identified by row (nr=1-27) and column (nc="L" or "R"):
+	\begin{enumerate}
+		\item h\_psADC\_{\it nc}{\it nr} histogram of raw ADC (bb.ps.a) spectra
+		\item h\_psADC\_pedsub\_{\it nc}{\it nr} histogram of pedestal subtracted ADC (bb.ps.a\_p) spectra
+		\item h\_psADC\_pedsub\_cut\_{\it nc}{\it nr} histogram of pedestal subtracted ADC (bb.ps.a\_p) spectra with cut that Col 1 in Row 2 and Row 26 or Col 2 in Row 2 and Row 26 had a pedestal subtracted ADC value greater than 100 channels and that block had pedestal subtracted ADC value greater than 20 channels.
+	\end{enumerate}
+\end{enumerate}
+\section{To plot pedestals and create pedestals for the BBCal database}
+\subsection{Shower pedestals}
+\begin{enumerate}
+	\item in the Macros subdirectory
+	\item root -l
+	\item .x Shower\_macros/plot\_ped.C("bbcal\_nrun")
+	\item Plots  h\_shADC\_row{\it nr}\_col{\it nc} histograms for 7 blocks for each row in one canvas. Saves all the plots in pdf file: plots/bbcal\_nrun\_ped.pdf
+	\item Fits the pedestal for each histogram with a gaussian.
+	\item Makes two 2D histograms of nrow versus ncol with each having the weight filled by the mean or sigma of the pedestal gaussian fit
+	\item Makes a 1D histogram of all the pedestal means.
+	\item Saves these plots in pdf file: plots/bbcal\_nrun\_ped\_2d.pdf
+	\item The pedestal means are printed to the terminal in a format that can be included in the  db\_bb.sh.dat file
+\end{enumerate}
+\subsection{PreShower pedestals}
+\begin{enumerate}
+	\item in the Macros subdirectory
+	\item root -l
+	\item .x PreShower\_macros/plot\_ped.C("bbcal\_nrun")
+	\item Plots  h\_psADC\_{\it nc}{\it nr} histograms for "L" and "R" block for each row in one canvas. Saves all the plots in pdf file: plots/bbcal\_nrun\_ps\_ped.pdf
+	\item Fits the pedestal for each histogram with a gaussian.
+	\item Makes two 2D histograms of nrow versus ncol with each having the weight filled by the mean or sigma of the pedestal gaussian fit
+	\item Makes a 1D histogram of all the pedestal means.
+	\item Saves these plots in pdf file: plots/bbcal\_nrun\_ps\_ped\_2d.pdf
+	\item The pedestal means are printed to the terminal in a format that can be included in the db\_bb.ps.dat file
+\end{enumerate}
+\section{Plotting pedestal subtracted ADC spectra}
+\subsection{Shower}
+\begin{enumerate}
+	\item in the Macros subdirectory: root -l
+	\item .x Shower\_macros/plot\_pedsub.C("bbcal\_nrun")
+	\item Plots  h\_shADC\_pedsub\_row{\it nr}\_col{\it nc} histograms for 7 blocks for each row in one canvas. Saves all the plots in pdf file: plots/bbcal\_nrun\_pedsub.pdf
+\end{enumerate}
+\subsection{PreShower}
+\begin{enumerate}
+	\item in the Macros subdirectory:  root -l
+	\item .x PreShower\_macros/plot\_pedsub.C("bbcal\_nrun")
+	\item Plots  h\_psADC\_pedsub\_{\it nc}{\it nr} histograms for 2 blocks for each row in one canvas. Saves all the plots in pdf file: plots/bbcal\_nrun\_ps\_pedsub.pdf
+\end{enumerate}
+\section{Plotting pedestal subtracted ADC spectra with event selection}
+\subsection{Shower}
+\begin{enumerate}
+	\item in the Macros subdirectory
+	\item root -l
+	\item .x Shower\_macros/plot\_pedsub\_select\_event.C("bbcal\_nrun",nrun,check\_all). check\_all is a Bool\_t and by default check\_all = kFALSE. 
+	\item Plots each block's ADC spectra and fits a guassian to each spectra. First tries to automatically do fit.
+	\begin{enumerate}
+		\item Finds the bin center,BINC,  with the maximum counts. If bin center $<$ 40, then finds bin center in range 40 and above.
+		\item Fits region between 0.7*BINC and 1.3*BINC
+	\end{enumerate} 
+     \item If check\_all = kTRUE or fit peak $<$ 100 or error on the fit peak $>$ 10 then enters a while loop:
+	\begin{enumerate}
+     \item ask: "enter icheck value (=1 set new fit parameters, =0 fit OK)". Enter 0 and leave while loop and go to next block fit .
+     \item if Enter 1 then ask: "enter starting values for  peak counts mean sigma". Enter values separated by space.
+     \item Fits ADC spectra with new starting values with fitting region between 0.6*mean to 1.4*mean .
+     \item plots the new fit and goes repeats the while loop.
+	\end{enumerate}       
+	\item Plots  h\_shADC\_pedsub\_cut\_row{\it nr}\_col{\it nc} histograms with fit for 7 blocks for each row in one canvas. Saves all the plots in pdf file: plots/bbcal\_nrun\_select\_event.pdf
+	\item Plots four 2d histograms of the row versus column weighted by integral, mean, peak channel and sigma. Plots 1d histogram of mean versus block number. Saves plots in  plots/bbcal\_nrun\_select\_event\_2d.pdf
+	\item Saves the mean and mean error in file Output/run\_nr\_peak.txt for use later.
+\end{enumerate}
+\subsection{PreShower}
+\begin{enumerate}
+	\item In the Macros subdirectory: root -l
+	\item .x PreShower\_macros/plot\_pedsub\_select\_event.C("bbcal\_nrun",nrun). 
+	\item Plots each block's ADC spectra and fits a guassian to each spectra. Automatically does a fit.
+	\begin{enumerate}
+		\item Finds the bin center,BINC,  with the maximum counts and RMS of the histogram. 
+		\item Fits region between BINC-RMS and BINC+RMS
+	\end{enumerate}       
+	\item Plots  h\_shADC\_pedsub\_cut\_row{\it nr}\_col{\it nc} histograms with fit for 7 rows in one canvas. Saves all the plots in pdf file: plots/bbcal\_nrun\_ps\_select\_event.pdf
+	\item Plots four 2d histograms of the row versus column weighted by integral, mean, peak channel and sigma. Plots 1d histogram of mean versus block number. Saves plots in  plots/bbcal\_nrun\_ps\_select\_event\_2d.pdf
+	\item Saves the mean and mean error in file Output/run\_nr\_ps\_peak.txt for use later.
+\end{enumerate}
+\section{Creating new HV file with constant HV shift}
+The subdirectory hv\_set is symbolically linked to /home/daq/slowc/BBCAL/hv\_set . For each run with run number = {\it nr}, one should save the HV into a file with name run\_{it nr}\_hv.set using the "Save HV" in the HV GUI.
+\subsection{Shower}
+\begin{enumerate} 
+	\item The code Shower\_macros/HV\_Peak.C is library of modules. In root load library : .L Shower\_macros/HV\_Peak.C+
+	\item In root: UpdateHV({\it nrun},{\it HV\_shift}) where nrun is the run number and HV\_shift is the desired shift in HV. To set the abs(HV) to larger (smaller) value then set positive (negative) HV\_shift.
+	\begin{enumerate}
+		\item Calls module SetHVMap() which creates a mapping between the HV slot and channel and the block row and column. This is based on the current documented HV mapping, so if that changes this module needs to be updated. The code assumes that there are two crates and 16 slots. For each crate, slot and channel it sets the block number initially to -1 for all HV channels. Then it sets the Shower block number (0-188) for each HV channel that is used by the Shower.
+		\item Sets the HV output file to hv\_set/run\_{it nr}\_hv\_newset.set
+		\item Loops through two crates and sixteen slots. If slot is not present in the read-in map , then sets all HV for that slot to zero. If the channel is not a shower block, then it writes the read-in HV. If the channel is a shower block, then it writes the read-in HV -{\it HV\_shift} , since the read-in HV is a negative number.
+	\end{enumerate}
+		\item The new HV set file can be loaded to the HV crates through the HV GUI and a new run started. 
+\end{enumerate}
+\subsection{PreShower}
+\begin{enumerate}
+	\item The code PreShower\_macros/PreShower\_HV\_Peak.C is library of modules. In root load library : .L PreShower\_macros/PreShower\_HV\_Peak.C+
+	\item In root: UpdateHV({\it nrun},{\it HV\_shift}) where nrun is the run number and HV\_shift is the desired shift in HV. To set the abs(HV) to larger (smaller) value then set positive (negative) HV\_shift.
+	\begin{enumerate}
+		\item Calls module SetHVMap() which creates a mapping between the HV slot and channel and the block row and column. This is based on the current documented HV mapping, so if that changes this module needs to be updated. The code assumes that there are two crates and 16 slots. For each crate, slot and channel it sets the block number initially to -1 for all HV channels. Then it sets the PreShower block number (0-53) for each HV channel that is used by the PreShower.
+		\item Sets the HV output file to hv\_set/run\_{it nr}\_hv\_newset.set
+		\item Loops through two crates and sixteen slots. If slot is not present in the read-in map, then sets all HV for that slot to zero. If the channel is not a preshower block, then it writes the read-in HV. If the channel is a preshower block, then it writes the read-in HV -{\it HV\_shift} , since the read-in HV is a negative number.
+	\end{enumerate}
+	\item The new HV set file can be loaded to the HV crates through the HV GUI and a new run started. 
+\end{enumerate}
+\section{Comparing ADC spectra for multiple runs}
+\subsection{Shower}
+\begin{enumerate}
+	\item For each run, create histograms and execute Shower\_macros/plot\_pedsub\_select\_event.C
+	\item In root ,load library : .L Shower\_macros/HV\_Peak.C+
+	\item For each run : AddRun({\it nrun}) 
+	\item CompHistRuns() will plot the ADC pedestal subtracted for the selected events for each run overlayed. \item Each row has a separate canvas and hit any key to advance to the next canvas.
+	\item all plots are saved in plots/hv\_peaks\_{\it nrf}\_{\it nrl}.pdf where {\it nrf} is the first run used in AddRun and {\it nrl} is the last.
+\end{enumerate}
+\subsection{PreShower}
+\begin{enumerate}
+	\item For each run, create histograms and execute PreShower\_macros/plot\_pedsub\_select\_event.C
+	\item In root ,load library : .L PreShower\_macros/PreShower\_HV\_Peak.C+
+	\item For each run : AddRun({\it nrun}) 
+	\item CompHistRuns() will plot the ADC pedestal subtracted for the selected events for each run overlayed. \item Each row has a separate canvas and hit any key to advance to the next canvas.
+	\item all plots are saved in plots/hv\_peaks\_ps\_{\it nrf}\_{\it nrl}.pdf where {\it nrf} is the first run used in AddRun and {\it nrl} is the last.
+\end{enumerate}
+\section{Determining alpha from multiple runs}
+\subsection{Shower}
+\begin{enumerate}
+	\item For each run, create histograms and execute Shower\_macros/plot\_pedsub\_select\_event.C
+	\item In root ,load library : .L Shower\_macros/HV\_Peak.C+
+	\item For each run : AddRun({\it nrun}) 
+	\item FitRuns({\it Set\_Peak}) where Set\_peak is the desired peak position. Default is 200 channel.
+	\begin{enumerate}
+		\item Plots the fitted peak mean with error versus HV for each column overlayed on one plot for a row. 
+		\item Each row has a separate canvas and  hit any key to advance to the next canvas.
+		\item all plots are saved in plots/hv\_fit\_{\it nrf}\_{\it nrl}.pdf. \item For each column is fitted with $\log(HV) = a + \alpha*\log(peak)$.
+		\item Determines new HV to set the peak at the desired Set\_Peak location.
+		\item  At the end, a 2d histogram of row versus column weighted by alpha is plotted and saved as plots/alpha\_2d\_{\it nrf}\_{\it nrl}.pdf . Hit any key to advance to the next canvas.
+	\end{enumerate}
+    \item WriteHV() will write the updated shower HVs to  file hv\_set/hv\_update\_sh\_{\it nrf}\_{\it nrl}.set . HV channels which are not for the shower will have their original HV values written to the file. The file can be uploaded to the HV crates through the HV GUI.
+    \end{enumerate}
+\subsection{PreShower}
+\begin{enumerate}
+	\item For each run, create histograms and execute PreShower\_macros/plot\_pedsub\_select\_event.C
+	\item In root ,load library : .L PreShower\_macros/PreShower\_HV\_Peak.C+
+	\item For each run : AddRun({\it nrun}) 
+	\item FitRuns({\it Set\_Peak}) where Set\_peak is the desired peak position. Default is 200 channel.
+	\begin{enumerate}
+		\item Plots the fitted peak mean with error versus HV for each column overlayed on one plot for a row. 
+		\item Each row has a separate canvas and  hit any key to advance to the next canvas.
+		\item all plots are saved in plots/hv\_fit\_ps\_{\it nrf}\_{\it nrl}.pdf. \item For each column is fitted with $\log(HV) = a + \alpha*\log(peak)$.
+		\item Determines new HV to set the peak at the desired Set\_Peak location.
+		\item  At the end, two 2d histogram of row versus column weighted by alpha and HV needed to reached the Set\_Peak is plotted and saved as plots/hv\_alpha\_ps\_{\it nrf}\_{\it nrl}.pdf . Hit any key to advance to the next canvas.
+	\end{enumerate}
+	\item WriteHV() will write the updated preshower HVs to  file hv\_set/hv\_update\_ps\_{\it nrf}\_{\it nrl}.set . HV channels which are not for the preshower will have their original HV values written to the file. The file can be uploaded to the HV crates through the HV GUI.
+\end{enumerate}
+
+
+	
+	
+
+
+
+\end{document}
