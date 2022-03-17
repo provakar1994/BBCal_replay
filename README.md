@@ -12,7 +12,7 @@ BigBite calorimeter is made of two parts, Shower (SH) and PreShower (PS). SH det
 ## 2. List of directories: 
 The names of the directories are self-explanatory. Still, below is a brief description of their contents to help understand the user how the entire eco-system is working.
 
-- `golden` - Contains values of alpha parameters for all SH and PS PMTs. 
+- `golden` - Contains values of alpha parameters for all SH and PS PMTs. _preshower/golden_ps_alpha_11845_11888_10_30mV.txt_ and _shower/golden_sh_alpha_11845_11888_10_30mV.txt_ contain the most up-to-date and robust alpha values for PS and SH PMTs, respectively.  
 - `replay` - Contains machiary for BBCal standalone replay for SBS GMn data. The most up-to-date replay machinary for SBS GMn can be found in [SBS-replay](https://github.com/JeffersonLab/SBS-replay). Although, [SBS-offline](https://github.com/JeffersonLab/SBS-offline) contains all the event reconstruction codes. NOTE: It is necessary to modify the replay/.rootrc and the environment setup files depending on the user's working directory and software environmets for the replay to work properly. 
 - `macros` - All the calibration scripts and ROOT utility macros can be found here. Most of the scripts have some interdependencies in terms of input or output directory structure and for that to work properly, user should execute all the macros from this directory. Here is a brief description of the contents of several subdirectories _BBCal_replay/macros_ has:
   -  `How-to` - Documentaion on how to execute all the different macros, how to carry out cosmic calibration procedure and then generate gain coefficients, et cetera can be found here.
