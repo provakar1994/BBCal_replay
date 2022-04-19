@@ -74,6 +74,10 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   Double_t h2_pang_bin=200, h2_pang_min=0., h2_pang_max=5.;
   Double_t h2_p_coarse_bin=25, h2_p_coarse_min=0., h2_p_coarse_max=5.;
   Double_t h2_EovP_bin=200, h2_EovP_min=0., h2_EovP_max=5.;
+  //parameters to calculate calibrated momentum
+  bool mom_calib=0;
+  Double_t A_fit=0., B_fit=0., C_fit=0.;
+  Double_t bb_magdist=1., GEMpitch=10.;
 
   TMatrixD M(ncell,ncell), M_inv(ncell,ncell);
   TVectorD B(ncell), CoeffR(ncell);
@@ -248,6 +252,20 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	cF = sval.Atof();
       }
+      if( skey == "mom_calib" ){
+      	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+      	mom_calib = sval.Atoi();
+      	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+      	A_fit = sval1.Atof();
+      	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+      	B_fit = sval2.Atof();
+      	TString sval3 = ( (TObjString*)(*tokens)[4] )->GetString();
+      	C_fit = sval3.Atof();
+      	TString sval4 = ( (TObjString*)(*tokens)[5] )->GetString();
+      	GEMpitch = sval4.Atof();
+      	TString sval5 = ( (TObjString*)(*tokens)[6] )->GetString();
+        bb_magdist = sval5.Atof();
+      }
       if( skey == "*****" ){
 	break;
       }
@@ -365,8 +383,14 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   TH2D *h2_EovP_vs_PSblk_trPOS = new TH2D("h2_EovP_vs_PSblk_trPOS","Average E_clus*%2.2f/p_rec per PS "
 					"block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
+  TH1D *h_thetabend = new TH1D("h_thetabend","",100,0.,0.25);
+
   Long64_t Nevents = C->GetEntries();  
   cout << endl << "Processing " << Nevents << " events.." << endl;
+  if(Nevents==0){
+    cerr << endl << " --- No ROOT file found!! --- " << endl << endl;
+    throw;
+  }
 
   // Looping over events ========================================================================//
   Double_t progress = 0.;
@@ -414,6 +438,24 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
       p_rec = (T->bb_tr_p[tr_min])*p_rec_Offset; 
       E_e = p_rec; // Neglecting e- mass. 
 
+      // *---- calculating calibrated momentum
+      if(mom_calib){
+	TVector3 enhat_tgt( T->bb_tr_tg_th[0], T->bb_tr_tg_ph[0], 1.0 );
+	enhat_tgt = enhat_tgt.Unit();	
+	TVector3 enhat_fp( T->bb_tr_r_th[0], T->bb_tr_r_ph[0], 1.0 );
+	enhat_fp = enhat_fp.Unit();
+	TVector3 GEMzaxis(-sin(GEMpitch*TMath::DegToRad()),0,cos(GEMpitch*TMath::DegToRad()));
+	TVector3 GEMyaxis(0,1,0);
+	TVector3 GEMxaxis = (GEMyaxis.Cross(GEMzaxis)).Unit();	
+	TVector3 enhat_fp_rot = enhat_fp.X() * GEMxaxis + enhat_fp.Y() * GEMyaxis + enhat_fp.Z() * GEMzaxis;
+	double thetabend = acos( enhat_fp_rot.Dot( enhat_tgt ) );
+	h_thetabend->Fill(thetabend);
+
+	p_rec = (A_fit*( 1. + (B_fit + C_fit*bb_magdist)*T->bb_tr_tg_th[0] )/thetabend)*p_rec_Offset;
+	E_e = p_rec;
+      }
+      // *----
+
       if(T->bb_tr_p[tr_min]==0 || E_e==0 || tr_min<0) continue;
 
       Double_t P_ang = 57.3*TMath::ACos(T->bb_tr_pz[tr_min]/T->bb_tr_p[tr_min]);
@@ -456,12 +498,13 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 	//   }
 	// }
 	
-	cl_max=0;
+	cl_max=0; //the clusters are already sorted 
 
 	// Reject events with max on the edge
 	// if(T->bb_sh_clus_row[cl_max]==0 || T->bb_sh_clus_row[cl_max]==26 ||
 	//    T->bb_sh_clus_col[cl_max]==0 || T->bb_sh_clus_col[cl_max]==6) continue; 
 
+	// Don't include the blocks at the edge in the fit
 	if(T->bb_sh_rowblk==0 || T->bb_sh_rowblk==26 ||
 	   T->bb_sh_colblk==0 || T->bb_sh_colblk==6) continue; 
 
