@@ -60,9 +60,9 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   Int_t Nmin=10;
   Double_t minMBratio=0.1;
   Double_t E_beam=0.;
-  Double_t p_rec_Offset=1., p_min_cut=0.;
+  Double_t p_rec_Offset=1., p_min_cut=0., p_max_cut=0.;
   Double_t W_mean=0., W_sigma=0., EovP_cut_limit=0.3;
-  bool cut_on_W=0, cut_on_EovP=0, cut_on_p=0, farm_submit=0;
+  bool cut_on_W=0, cut_on_EovP=0, cut_on_pmin=0, cut_on_pmax=0, farm_submit=0;
   Double_t Corr_Factor_Enrg_Calib_w_Cosmic=1., cF=1.;
   Double_t h_W_bin=200, h_W_min=0., h_W_max=5.;
   Double_t h_Q2_bin=200, h_Q2_min=0., h_Q2_max=5.;
@@ -152,11 +152,17 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
 	W_sigma = sval2.Atof();
       }
-      if( skey == "p_cut" ){
+      if( skey == "pmin_cut" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_p = sval.Atoi();
+	cut_on_pmin = sval.Atoi();
 	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
 	p_min_cut = sval1.Atof();
+      }
+      if( skey == "pmax_cut" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	cut_on_pmax = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	p_max_cut = sval1.Atof();
       }
       if( skey == "EovP_cut" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
@@ -342,6 +348,7 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   C->Draw(">>elist",globalcut);  
   gmn_tree *T = new gmn_tree(C);
 
+  // Creating output ROOT file to contain histograms
   if(farm_submit)
     outFile = Form("eng_cal_BBCal_%d_%d.root",Set,iter);
   else
@@ -417,7 +424,7 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
     // Calculating remaining time 
     sw2->Stop();
     timekeeper += sw2->RealTime();
-    if( nevent%1000 == 0 && nevent!=0 ) 
+    if( nevent%25000 == 0 && nevent!=0 ) 
       timeremains = timekeeper*( double(Nevents)/double(nevent) - 1. ); 
     sw2->Reset();
     sw2->Continue();
@@ -471,7 +478,8 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
     if( cut_on_EovP ) if( fabs( (T->bb_sh_e+T->bb_ps_e)/p_rec - 1. )>EovP_cut_limit ) continue;
 
     // cut on p
-    if( cut_on_p ) if( p_rec<p_min_cut ) continue;
+    if( cut_on_pmin ) if( p_rec<p_min_cut ) continue;
+    if( cut_on_pmax ) if( p_rec>p_max_cut ) continue;
 
     if(T->bb_tr_p[tr_min]==0 || E_e==0 || tr_min<0) continue;
 
@@ -852,7 +860,8 @@ void ReadGain( TString adcGain, bool SHorPS, bool GainOrRatio ){
 /*
   List of input and output files:
   *Input files: 
-  1. Gain/eng_cal_gainCoeff_sh(ps)_+(iter-1)+.txt # Contains old gain coeff. for SH(PS)  
+  1. Gain/eng_cal_gainCoeff_sh(ps)_+(iter-1)+.txt # Contains old gain coeff. for SH(PS) 
+  2. Gain/eng_cal_gainRatio_sh(ps)_+(iter-1)+.txt # Contains gain ratio (new/old) for SH(PS)   
   *Output files:
   1. hist/eng_cal_BBCal_+iter+.root # Contains all the interesting histograms
   2. Gain/eng_cal_gainRatio_sh(ps)_+iter+.txt # Contains gain ratios (new/old) for SH(PS)
