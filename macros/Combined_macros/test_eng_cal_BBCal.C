@@ -523,13 +523,13 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 
     // Loop over all the blocks in main cluster and fill in A's
     Double_t ClusEngSH_mod=0.;
-    Int_t shrow=0;
-    Int_t shcol=0;
+    Int_t shrow= T->bb_sh_rowblk; //0;
+    Int_t shcol= T->bb_sh_colblk; //0;
     nblk = T->bb_sh_nblk;
     for(Int_t blk=0; blk<nblk; blk++){
       Int_t blkID = int(T->bb_sh_clus_blk_id[blk]);
-      shrow = int(T->bb_sh_clus_blk_row[blk]);
-      shcol = int(T->bb_sh_clus_blk_col[blk]);
+      // shrow = int(T->bb_sh_clus_blk_row[blk]);
+      // shcol = int(T->bb_sh_clus_blk_col[blk]);
       A[blkID] += (T->bb_sh_clus_blk_e[blk])*oldADCratioSH[blkID];
       ClusEngSH_mod += (T->bb_sh_clus_blk_e[blk])*oldADCratioSH[blkID];
       nevents_per_cell[ blkID ]++; 
@@ -537,13 +537,13 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
     
     // ****** PreShower ******
     Double_t ClusEngPS_mod=0.;
-    Int_t psrow=0;
-    Int_t pscol=0;
+    Int_t psrow= T->bb_ps_rowblk; //0;
+    Int_t pscol= T->bb_ps_colblk; //0;
     nblk = T->bb_ps_nblk;
     for(Int_t blk=0; blk<nblk; blk++){
       Int_t blkID = int(T->bb_ps_clus_blk_id[blk]);
-      psrow = int(T->bb_ps_clus_blk_row[blk]);
-      pscol = int(T->bb_ps_clus_blk_col[blk]);
+      // psrow = int(T->bb_ps_clus_blk_row[blk]);
+      // pscol = int(T->bb_ps_clus_blk_col[blk]);
       A[189+blkID]+=(T->bb_ps_clus_blk_e[blk])*oldADCratioPS[blkID];
       ClusEngPS_mod += (T->bb_ps_clus_blk_e[blk])*oldADCratioPS[blkID];
       nevents_per_cell[189+blkID]++;
