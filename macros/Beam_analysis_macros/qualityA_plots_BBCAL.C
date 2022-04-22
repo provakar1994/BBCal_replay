@@ -28,8 +28,7 @@ const Int_t kNrowsPS = 26; // PS rows
 const Double_t zposSH = 1.901952; //m
 const Double_t zposPS = 1.695704; //m
 
-void qualityA_plots_BBCAL(const char *configFile="setup_qualityA_plots_BBCAL.cfg",
-			  const char *outFile="qualityA_plots_BBCAL.root")
+void qualityA_plots_BBCAL(const char *configFile="setup_qualityA_plots_BBCAL.cfg")
 {
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
   
@@ -40,6 +39,7 @@ void qualityA_plots_BBCAL(const char *configFile="setup_qualityA_plots_BBCAL.cfg
   Int_t SBSconfig=4;
   Double_t h_EovP_bin=200, h_EovP_min=0., h_EovP_max=5.;
   Double_t h2_p_coarse_bin=25, h2_p_coarse_min=0., h2_p_coarse_max=5.;
+  const char *outFile="qualityA_plots_BBCAL.root";
 
   // Define a stopwatch to measure macro processing time
   TStopwatch *sw = new TStopwatch();
