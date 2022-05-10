@@ -661,14 +661,13 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 
   // SH : Filling diagnostic histograms
   Int_t cell = 0;
-  if(farm_submit)
+  if(farm_submit){
     adcGain_SH = Form("eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter);
-  else
-    adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter);
-  if(farm_submit)
     gainRatio_SH = Form("eng_cal_gainRatio_sh_%d_%d.txt",Set,iter);
-  else
+  }else{
+    adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d_%d.txt",Set,iter);
     gainRatio_SH = Form("Gain/eng_cal_gainRatio_sh_%d_%d.txt",Set,iter);
+  }
   ofstream adcGainSH_outData, gainRatioSH_outData;
   adcGainSH_outData.open(adcGain_SH);
   gainRatioSH_outData.open(gainRatio_SH);
@@ -715,14 +714,13 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   cout << endl;
 
   // PS : Filling diagnostic histograms
-  if(farm_submit)
+  if(farm_submit){
     adcGain_PS = Form("eng_cal_gainCoeff_ps_%d_%d.txt",Set,iter);
-  else
-    adcGain_PS = Form("Gain/eng_cal_gainCoeff_ps_%d_%d.txt",Set,iter);
-  if(farm_submit)
     gainRatio_PS = Form("eng_cal_gainRatio_ps_%d_%d.txt",Set,iter);
-  else
+  }else{
+    adcGain_PS = Form("Gain/eng_cal_gainCoeff_ps_%d_%d.txt",Set,iter);
     gainRatio_PS = Form("Gain/eng_cal_gainRatio_ps_%d_%d.txt",Set,iter);
+  }
   ofstream adcGainPS_outData, gainRatioPS_outData;
   adcGainPS_outData.open(adcGain_PS);
   gainRatioPS_outData.open(gainRatio_PS);
