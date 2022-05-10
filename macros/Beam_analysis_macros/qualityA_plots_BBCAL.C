@@ -28,7 +28,8 @@ const Int_t kNrowsPS = 26; // PS rows
 const Double_t zposSH = 1.901952; //m
 const Double_t zposPS = 1.695704; //m
 
-void qualityA_plots_BBCAL(const char *configFile="setup_qualityA_plots_BBCAL.cfg")
+void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
+			  const char *configFile="setup_qualityA_plots_BBCAL.cfg")
 {
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
   
@@ -39,7 +40,6 @@ void qualityA_plots_BBCAL(const char *configFile="setup_qualityA_plots_BBCAL.cfg
   Int_t SBSconfig=4;
   Double_t h_EovP_bin=200, h_EovP_min=0., h_EovP_max=5.;
   Double_t h2_p_coarse_bin=25, h2_p_coarse_min=0., h2_p_coarse_max=5.;
-  const char *outFile="qualityA_plots_BBCAL.root";
 
   // Define a stopwatch to measure macro processing time
   TStopwatch *sw = new TStopwatch();
@@ -66,10 +66,6 @@ void qualityA_plots_BBCAL(const char *configFile="setup_qualityA_plots_BBCAL.cfg
     Int_t ntokens = tokens->GetEntries();
     if( ntokens>1 ){
       TString skey = ( (TObjString*)(*tokens)[0] )->GetString();
-      if( skey == "OutFileName" ){
-      	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-      	outFile = sval.Data();
-      }
       if( skey == "h_EovP" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	h_EovP_bin = sval.Atoi();
@@ -223,6 +219,7 @@ void qualityA_plots_BBCAL(const char *configFile="setup_qualityA_plots_BBCAL.cfg
   } //event loop
   cout << endl << endl;
 
+  // creating a canvas to show all the interesting plots
   TCanvas *c1 = new TCanvas("c1","BBCAL QA plots",1500,1200);
   c1->Divide(3,2);
 
@@ -262,15 +259,21 @@ void qualityA_plots_BBCAL(const char *configFile="setup_qualityA_plots_BBCAL.cfg
   c1->cd(6);
   h2_EovP_vs_SHblk_trPOS->SetStats(0);
   h2_EovP_vs_SHblk_trPOS->Draw("colz");
+
+  // printing out the canvas
+  TString plotsFile = outFile;
+  plotsFile.ReplaceAll(".root",".pdf");
+  c1->Print(plotsFile.Data(),"pdf");
   
   cout << "Finishing analysis..." << endl;
   cout << " --------- " << endl;
-  cout << " Resulting histograms  written to : " << outFile << endl;
+  cout << " Resulting histograms written to : " << outFile << endl;
+  cout << " Generated plots saved to : " << plotsFile.Data() << endl;
   cout << " --------- " << endl;
 
   sw->Stop();
-  cout << "CPU time elapsed = " << sw->CpuTime() << " s. Real time = " 
-       << sw->RealTime() << " s. " << endl << endl;
+  cout << "CPU time elapsed = " << sw->CpuTime() << "s. Real time = " 
+       << sw->RealTime() << "s. " << endl << endl;
 
   fout->Write(); //fout->Close();
   sw->Delete(); C->Delete();
