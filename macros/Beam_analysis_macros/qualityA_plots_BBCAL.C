@@ -13,9 +13,10 @@
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TMath.h"
+#include "TString.h"
 #include "TMatrixD.h"
 #include "TVectorD.h"
-#include "TString.h"
+#include "TProfile.h"
 #include "TObjArray.h"
 #include "TObjString.h"
 #include "TStopwatch.h"
@@ -40,6 +41,8 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
   Int_t SBSconfig=4;
   Double_t h_EovP_bin=200, h_EovP_min=0., h_EovP_max=5.;
   Double_t h2_p_coarse_bin=25, h2_p_coarse_min=0., h2_p_coarse_max=5.;
+  Double_t h2_SHeng_vs_blk_low=0., h2_SHeng_vs_blk_up=4.;
+  Double_t h2_PSeng_vs_blk_low=0., h2_PSeng_vs_blk_up=4.;
 
   // Define a stopwatch to measure macro processing time
   TStopwatch *sw = new TStopwatch();
@@ -82,6 +85,18 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
 	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
 	h2_p_coarse_max = sval2.Atof();
       }
+      if( skey == "h2_SHeng_vs_blk" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h2_SHeng_vs_blk_low = sval.Atof();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h2_SHeng_vs_blk_up = sval1.Atof();
+      }
+      if( skey == "h2_PSeng_vs_blk" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h2_PSeng_vs_blk_low = sval.Atof();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h2_PSeng_vs_blk_up = sval1.Atof();
+      }
       if( skey == "*****" ){
 	break;
       }
@@ -104,8 +119,9 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
   Double_t prec[MAXNTRACKS];
   Double_t xTr[MAXNTRACKS], yTr[MAXNTRACKS];
   Double_t thTr[MAXNTRACKS], phTr[MAXNTRACKS];
+  Double_t tmeanHodo[MAXNTRACKS];
   Double_t rowblkPS, colblkPS, xPS, yPS, EPS;
-  Double_t rowblkSH, colblkSH, xSH, ySH, ESH;
+  Double_t atimeblkSH, rowblkSH, colblkSH, xSH, ySH, ESH;
   C->SetBranchStatus("*",0);
   // BigBite track variable
   C->SetBranchStatus("bb.tr.p",1);
@@ -130,6 +146,8 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
   C->SetBranchStatus("bb.ps.y",1);
   C->SetBranchAddress("bb.ps.y",&yPS);
   // Shower variable
+  C->SetBranchStatus("bb.sh.atimeblk",1);
+  C->SetBranchAddress("bb.sh.atimeblk",&atimeblkSH);
   C->SetBranchStatus("bb.sh.rowblk",1);
   C->SetBranchAddress("bb.sh.rowblk",&rowblkSH);
   C->SetBranchStatus("bb.sh.colblk",1);
@@ -140,6 +158,9 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
   C->SetBranchAddress("bb.sh.x",&xSH);
   C->SetBranchStatus("bb.sh.y",1);
   C->SetBranchAddress("bb.sh.y",&ySH);
+  // BBhodo variable
+  C->SetBranchStatus("bb.hodotdc.clus.tmean",1);
+  C->SetBranchAddress("bb.hodotdc.clus.tmean",&tmeanHodo);
 
   // Defining temporary histograms (don't wanna write them to files)
   TH2D *h2_SHeng_vs_SHblk_raw = new TH2D("h2_SHeng_vs_SHblk_raw","Raw E_clus(SH) per SH block",
@@ -153,11 +174,14 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
 					      kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
   TH2D *h2_count_trP = new TH2D("h2_count_trP","Count for E_clus/p_rec per per SH block(TrPos)",
 				kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
+  TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus(PS) per per PS block(TrPOS)",
+				   kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
   TH2D *h2_count_PS = new TH2D("h2_count_PS","Count for E_clus/p_rec per per PS block",
 			       kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_PSeng_vs_PSblk_raw = new TH2D("h2_PSeng_vs_PSblk_raw","Raw E_clus(PS) per PS block",
 					kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_PSeng_vs_PSblk_trPOS_raw = new TH2D("h2_PSeng_vs_PSblk_trPOS_raw","Raw E_clus(PS) per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
   
   // Creating output ROOT file to contain histograms
   TFile *fout = new TFile(outFile,"RECREATE");
@@ -168,6 +192,9 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
   TH2D *h2_EovP_vs_P = new TH2D("h2_EovP_vs_P","E/p vs p; p (GeV); E/p",
 				h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,
 				h_EovP_bin,h_EovP_min,h_EovP_max);
+  TProfile *h2_EovP_vs_P_prof = new TProfile("h2_EovP_vs_P_prof","E/p vs P (Profile)",
+					     h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,
+					     h_EovP_min,h_EovP_max);
 
   TH2D *h2_EovP_vs_SHblk = new TH2D("h2_EovP_vs_SHblk","E/p per SH block",
 				  kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
@@ -178,6 +205,19 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
 
   TH2D *h2_PSeng_vs_PSblk = new TH2D("h2_PSeng_vs_PSblk","PS energy per PS block",
 				    kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_PSeng_vs_PSblk_trPOS = new TH2D("h2_PSeng_vs_PSblk_trPOS","PS energy per PS block u Track Pos.",
+					   kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
+
+  TH2D *h2_ADCtime_diff_wrt_Hodo = new TH2D("h2_ADCtime_diff_wrt_Hodo","ADCTime diff. w.r.t. Hodo tmean (ns) vs. SH block",189,0,189,200,-50,50);
+  TProfile *h2_ADCtime_diff_wrt_Hodo_prof = new TProfile("h2_ADCtime_diff_wrt_Hodo_prof","ADCTime diff. w.r.t. Hodo tmean (ns) vs. SH block (Profile)",189,0,189,-50,50);
+
+  //histograms to check bias in tracking
+  TH2D *h2_EovP_vs_trX = new TH2D("h2_EovP_vs_trX","E/p vs Track x",200,-0.8,0.8,200,0,2);
+  TH2D *h2_EovP_vs_trY = new TH2D("h2_EovP_vs_trY","E/p vs Track y",200,-0.16,0.16,200,0,2);
+  TH2D *h2_EovP_vs_trTh = new TH2D("h2_EovP_vs_trTh","E/p vs Track theta",200,-0.2,0.2,200,0,2);
+  TH2D *h2_EovP_vs_trPh = new TH2D("h2_EovP_vs_trPh","E/p vs Track phi",200,-0.08,0.08,200,0,2);
+  TH2D *h2_PSeng_vs_trX = new TH2D("h2_PSeng_vs_trX","PS energy vs Track x",200,-0.8,0.8,200,0,4);
+  TH2D *h2_PSeng_vs_trY = new TH2D("h2_PSeng_vs_trY","PS energy vs Track y",200,-0.16,0.16,200,0,4);
 
   // Looping over good events ================================================================= //
   Long64_t Nevents = elist->GetN(), nevent=0;  
@@ -195,12 +235,14 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
 
     // E/p vs. p
     h2_EovP_vs_P->Fill( prec[0], clusEngBBCal/prec[0] );
+    h2_EovP_vs_P_prof->Fill( prec[0], clusEngBBCal/prec[0], 1. );
 
     // Shower block related histos
     h2_SHeng_vs_SHblk_raw->Fill( colblkSH, rowblkSH, ESH );
     h2_EovP_vs_SHblk_raw->Fill( colblkSH, rowblkSH, (clusEngBBCal/prec[0]) );
     h2_count->Fill( colblkSH, rowblkSH, 1.);
     h2_SHeng_vs_SHblk->Divide( h2_SHeng_vs_SHblk_raw, h2_count );
+    h2_SHeng_vs_SHblk->GetZaxis()->SetRangeUser( h2_SHeng_vs_blk_low, h2_SHeng_vs_blk_up );
     h2_EovP_vs_SHblk->Divide( h2_EovP_vs_SHblk_raw, h2_count );
 
     Double_t xtrATsh = xTr[0] + zposSH*thTr[0];
@@ -212,15 +254,35 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
     h2_EovP_vs_SHblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
 
     // PreShower block related histos
+    Double_t xtrATps = xTr[0] + zposPS*thTr[0];
+    Double_t ytrATps = yTr[0] + zposPS*phTr[0];
     h2_PSeng_vs_PSblk_raw->Fill( colblkPS, rowblkPS, EPS );
     h2_count_PS->Fill( colblkPS, rowblkPS, 1.);
     h2_PSeng_vs_PSblk->Divide( h2_PSeng_vs_PSblk_raw, h2_count_PS );
+    h2_PSeng_vs_PSblk->GetZaxis()->SetRangeUser( h2_PSeng_vs_blk_low, h2_PSeng_vs_blk_up );
+    h2_PSeng_vs_PSblk_trPOS_raw->Fill( ytrATps, xtrATps, EPS );
+    h2_count_trP_PS->Fill( ytrATps, xtrATps, 1. );
+    h2_PSeng_vs_PSblk_trPOS->Divide( h2_PSeng_vs_PSblk_trPOS_raw, h2_count_trP_PS );
+    h2_PSeng_vs_PSblk_trPOS->GetZaxis()->SetRangeUser( h2_PSeng_vs_blk_low, h2_PSeng_vs_blk_up );
+
+    // ADCTime difference w.r.t. hodo tmean
+    Double_t elemSH = rowblkSH*kNcolsSH + colblkSH;
+    h2_ADCtime_diff_wrt_Hodo->Fill( elemSH, (tmeanHodo[0]-atimeblkSH) );
+    h2_ADCtime_diff_wrt_Hodo_prof->Fill( elemSH, (tmeanHodo[0]-atimeblkSH), 1. );
+
+    // Track related histos
+    h2_EovP_vs_trX->Fill( xTr[0], (clusEngBBCal/prec[0]) );
+    h2_EovP_vs_trY->Fill( yTr[0], (clusEngBBCal/prec[0]) );
+    h2_EovP_vs_trTh->Fill( thTr[0], (clusEngBBCal/prec[0]) );
+    h2_EovP_vs_trPh->Fill( phTr[0], (clusEngBBCal/prec[0]) );
+    h2_PSeng_vs_trX->Fill( xTr[0], EPS );
+    h2_PSeng_vs_trY->Fill( yTr[0], EPS );
 
   } //event loop
   cout << endl << endl;
 
   // creating a canvas to show all the interesting plots
-  TCanvas *c1 = new TCanvas("c1","BBCAL QA plots",1500,1200);
+  TCanvas *c1 = new TCanvas("c1","BBCAL QA plots: c1",1500,1200);
   c1->Divide(3,2);
 
   c1->cd(1);
@@ -241,29 +303,81 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
 
   c1->cd(2);
   gPad->SetGridy();
+  gStyle->SetErrorX(0.0001);
   h2_EovP_vs_P->SetStats(0);
   h2_EovP_vs_P->Draw("colz");
+  h2_EovP_vs_P_prof->SetStats(0);
+  h2_EovP_vs_P_prof->SetMarkerStyle(20);
+  h2_EovP_vs_P_prof->SetMarkerColor(1);
+  h2_EovP_vs_P_prof->Draw("same");
 
   c1->cd(3);
-  h2_PSeng_vs_PSblk->SetStats(0);
-  h2_PSeng_vs_PSblk->Draw("colz");
+  gPad->SetGridy();
+  gStyle->SetErrorX(0.0001);
+  // h2_PSeng_vs_PSblk->SetStats(0);
+  // h2_PSeng_vs_PSblk->Draw("colz");
+  h2_ADCtime_diff_wrt_Hodo->SetStats(0);
+  h2_ADCtime_diff_wrt_Hodo->Draw("colz");
+  h2_ADCtime_diff_wrt_Hodo_prof->SetMarkerStyle(7);
+  h2_ADCtime_diff_wrt_Hodo_prof->SetMarkerColor(2);
+  h2_ADCtime_diff_wrt_Hodo_prof->SetStats(0);
+  h2_ADCtime_diff_wrt_Hodo_prof->Draw("same");
 
   c1->cd(4);
   h2_SHeng_vs_SHblk->SetStats(0);
   h2_SHeng_vs_SHblk->Draw("colz");
 
   c1->cd(5);
-  h2_EovP_vs_SHblk->SetStats(0);
-  h2_EovP_vs_SHblk->Draw("colz");
+  // h2_EovP_vs_SHblk->SetStats(0);
+  // h2_EovP_vs_SHblk->Draw("colz");
+  h2_PSeng_vs_PSblk_trPOS->SetStats(0);
+  h2_PSeng_vs_PSblk_trPOS->Draw("colz");
 
   c1->cd(6);
   h2_EovP_vs_SHblk_trPOS->SetStats(0);
   h2_EovP_vs_SHblk_trPOS->Draw("colz");
 
+  // creating another canvas to show all the interesting plots
+  TCanvas *c2 = new TCanvas("c2","BBCAL QA plots: c2",1500,1200);
+  c2->Divide(3,2);
+
+  c2->cd(1);
+  gPad->SetGridy();
+  h2_EovP_vs_trX->SetStats(0);
+  h2_EovP_vs_trX->Draw("colz");
+
+  c2->cd(2);
+  gPad->SetGridy();
+  h2_EovP_vs_trY->SetStats(0);
+  h2_EovP_vs_trY->Draw("colz");
+
+  c2->cd(3);
+  gPad->SetGridy();
+  h2_EovP_vs_trTh->SetStats(0);
+  h2_EovP_vs_trTh->Draw("colz");
+
+  c2->cd(4);
+  gPad->SetGridy();
+  h2_EovP_vs_trPh->SetStats(0);
+  h2_EovP_vs_trPh->Draw("colz");
+
+  c2->cd(5);
+  gPad->SetGridy();
+  h2_PSeng_vs_trX->SetStats(0);
+  h2_PSeng_vs_trX->Draw("colz");
+
+  c2->cd(6);
+  gPad->SetGridy();
+  h2_PSeng_vs_trY->SetStats(0);
+  h2_PSeng_vs_trY->Draw("colz");
+
   // printing out the canvas
   TString plotsFile = outFile;
   plotsFile.ReplaceAll(".root",".pdf");
-  c1->Print(plotsFile.Data(),"pdf");
+  c1->Print(Form("%s[",plotsFile.Data()),"pdf");
+  c1->Print(Form("%s",plotsFile.Data()),"pdf");
+  c2->Print(Form("%s",plotsFile.Data()),"pdf");
+  c2->Print(Form("%s]",plotsFile.Data()),"pdf");
   
   cout << "Finishing analysis..." << endl;
   cout << " --------- " << endl;
