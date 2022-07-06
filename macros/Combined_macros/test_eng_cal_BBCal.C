@@ -596,10 +596,10 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
     h2_EovP_vs_P_mod->Fill( p_rec, clusEngBBCal_mod/p_rec );
 
     // Let's customize the histograms
-    //h2_SHeng_vs_SHblk->GetZaxis()->SetRangeUser(0.6,1.0); //(1.0,2.0);
+    h2_SHeng_vs_SHblk->GetZaxis()->SetRangeUser(0.9,2.0);
     h2_EovP_vs_SHblk->GetZaxis()->SetRangeUser(0.8,1.2);
     h2_EovP_vs_SHblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
-    //h2_PSeng_vs_PSblk->GetZaxis()->SetRangeUser(0.,0.5); //(0.3,1.0);
+    h2_PSeng_vs_PSblk->GetZaxis()->SetRangeUser(0.36,1.28);
     h2_EovP_vs_PSblk->GetZaxis()->SetRangeUser(0.8,1.2);
     h2_EovP_vs_PSblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
 
