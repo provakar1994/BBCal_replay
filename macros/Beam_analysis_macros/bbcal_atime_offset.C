@@ -175,8 +175,9 @@ void bbcal_atime_offset( const char *rootfilename ){
   C->SetBranchAddress("bb.hodotdc.clus.trackindex",&hodo_trIndex);
 
   //defining atime histograms
-  Int_t nBins=120;
-  Double_t h_min=-70., h_max=-10.;
+  Int_t nBins=240;
+  Double_t h_min=-60., h_max=60.;
+  // Double_t h_min=-70., h_max=-10.;
   for(int r = 0; r < kNrowsSH; r++) {
     for(int c = 0; c < kNcolsSH; c++) {
       h_atime_sh[r][c] = MakeHisto(r, c, nBins, "_i", h_min, h_max);
@@ -189,10 +190,10 @@ void bbcal_atime_offset( const char *rootfilename ){
   }
 
   TString outFile, outPeaks, toffset_ps, toffset_sh;
-  outPeaks = Form("plots/bbcal_atime_offset_SBS8.pdf");
-  outFile = Form("hist/bbcal_atime_offset_SBS8.root");
-  toffset_ps = Form("Output/adctime_offset_ps_SBS8.txt");
-  toffset_sh = Form("Output/adctime_offset_sh_SBS8.txt");
+  outPeaks = Form("plots/bbcal_atime_offset.pdf");
+  outFile = Form("hist/bbcal_atime_offset.root");
+  toffset_ps = Form("Output/adctime_offset_ps.txt");
+  toffset_sh = Form("Output/adctime_offset_sh.txt");
   ofstream toffset_psdata, toffset_shdata;
   toffset_psdata.open(toffset_ps);
   toffset_shdata.open(toffset_sh);
@@ -203,14 +204,14 @@ void bbcal_atime_offset( const char *rootfilename ){
   TH1F *h_Q2 = new TH1F("h_Q2","Q2 distribution",200,0.,10.);
   TH1F *h_atime_offset_sh = new TH1F("h_atime_offset_sh","SH ADCtime offset"
 				     " w.r.t. BBHodo time",189,0.,189.);
-  h_atime_offset_sh->GetYaxis()->SetRangeUser(-100.,0.);
+  //h_atime_offset_sh->GetYaxis()->SetRangeUser(-100.,0.);
   h_atime_offset_sh->GetYaxis()->SetLabelSize(0.045);
   h_atime_offset_sh->GetXaxis()->SetLabelSize(0.045);
   h_atime_offset_sh->SetLineWidth(0);
   h_atime_offset_sh->SetMarkerStyle(kFullCircle);
   TH1F *h_atime_offset_ps = new TH1F("h_atime_offset_ps","PS ADCtime offset"
 				     " w.r.t. BBHodo time",52,0.,52.);
-  h_atime_offset_ps->GetYaxis()->SetRangeUser(-100.,0.);
+  //h_atime_offset_ps->GetYaxis()->SetRangeUser(-100.,0.);
   h_atime_offset_ps->GetYaxis()->SetLabelSize(0.045);
   h_atime_offset_ps->GetXaxis()->SetLabelSize(0.045);
   h_atime_offset_ps->SetLineWidth(0);
