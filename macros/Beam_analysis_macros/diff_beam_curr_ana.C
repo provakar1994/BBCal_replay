@@ -17,7 +17,7 @@
 const int kNrows = 27; 
 const int kNcols = 7;
 
-void diff_beam_curr_ana(int nrun=100, int nevent=-1, 
+void diff_beam_curr_ana(int nrun=13486, int nevent=-1, 
 			int fseg=0, int mseg=4, bool SHorHCAL=1 ){ // 0=BBSH, 1=HCAL
 
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
@@ -26,10 +26,11 @@ void diff_beam_curr_ana(int nrun=100, int nevent=-1,
   gmn_tree *T = new gmn_tree(C);
 
   // TString filename = Form("/volatile/halla/sbs/datta/GMN_REPLAYS/rootfiles"
-  //			  "/bbshower_gmn_%d_%d_seg%d_%d.root"
-  //			  ,nrun,nevent,fseg,mseg);
-  TString filename = Form("../../Rootfiles/bbshower_gmn_%d_%d"
-  			  "_stream0_seg%d_%d.root",nrun,nevent,fseg,mseg);
+  // 			  "/bbshower_gmn_%d_%d_seg%d_%d.root"
+  // 			  ,nrun,nevent,fseg,mseg);
+
+  // TString filename = Form("../../Rootfiles/bbshower_gmn_%d_%d"
+  // 			  "_stream0_seg%d_%d.root",nrun,nevent,fseg,mseg);
   C->Add(filename);
 
   TString outFile;
