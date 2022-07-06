@@ -15,7 +15,7 @@ const Double_t Ebeam = 5.965; // GeV
 const Int_t kNcolsSH = 7;  // SH columns
 const Int_t kNrowsSH = 27; // SH rows
 
-void bbcal_time_res( const char *rootfilename, Double_t percentdiff=20. ){
+void bbcal_atime_ana( const char *rootfilename, Double_t percentdiff=20. ){
 
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
 
@@ -84,8 +84,10 @@ void bbcal_time_res( const char *rootfilename, Double_t percentdiff=20. ){
   TH1D *h_Q2 = new TH1D("h_Q2","Q2 distribution",200,0.,10.);
   TH1D *h_blk_count = new TH1D("h_blk_count","",100,0.,10.);
   TH1D *h_blk_count_cut = new TH1D("h_blk_count_cut","",100,0.,10.);
-  TH2D *h2_clustime_diff = new TH2D("h2_cltime_diff","",189,0,189,1000,-10.,10.);
-  TH2D *h2_clustime_diff_cut = new TH2D("h2_cltime_diff_cut","",189,0,189,1000,-10.,10.);
+  TH2D *h2_clustime_diff = new TH2D("h2_cltime_diff","",
+				    189,0,189,1000,-10.,10.);
+  TH2D *h2_clustime_diff_cut = new TH2D("h2_cltime_diff_cut","",
+					189,0,189,1000,-10.,10.);
   
   Long64_t nevent=0, nevents=0;
   nevents = C->GetEntries();
@@ -125,17 +127,35 @@ void bbcal_time_res( const char *rootfilename, Double_t percentdiff=20. ){
       Int_t elemID = sh_rowblk*kNcolsSH + sh_colblk;
       Int_t count=0, count_cut=0;
 
-      for(Int_t blk=1; blk<nblk; blk++){
-	Double_t eng_blk = sh_clblk_e[blk];
-	Double_t atime_blk = sh_clblk_atime[blk];
+      // //determine cluster time difference w.r.t. the
+      // //ADCtime of HE block:
+      // for(Int_t blk=1; blk<nblk; blk++){
+      // 	Double_t eng_blk = sh_clblk_e[blk];
+      // 	Double_t atime_blk = sh_clblk_atime[blk];
 
-	if( (fabs( eng_HEblk-eng_blk )/eng_HEblk)*100. < percentdiff ){
-	  // && fabs(W-0.9515)<0.3 ){
-	  h2_clustime_diff_cut->Fill( elemID, atime_HEblk-atime_blk );
-	  count_cut += 1;
-	}
-	h2_clustime_diff->Fill( elemID, atime_HEblk-atime_blk );
-	count += 1;
+      // 	if( (fabs( eng_HEblk-eng_blk )/eng_HEblk)*100. < percentdiff ){
+      // 	  // && fabs(W-0.9515)<0.3 ){
+      // 	  h2_clustime_diff_cut->Fill( elemID, atime_HEblk-atime_blk );
+      // 	  count_cut += 1;
+      // 	}
+      // 	h2_clustime_diff->Fill( elemID, atime_HEblk-atime_blk );
+      // 	count += 1;
+      // }
+
+      //determine cluster time difference w.r.t. the
+      //hodoscope mean time:
+      for(Int_t blk=0; blk<nblk; blk++){
+      	Double_t eng_blk = sh_clblk_e[blk];
+      	Double_t atime_blk = sh_clblk_atime[blk];
+      	Double_t tmean_hodo = hodo_tmean[0];
+
+      	if( (fabs( eng_HEblk-eng_blk )/eng_HEblk)*100. < percentdiff ){
+      	  // && fabs(W-0.9515)<0.3 ){
+      	  h2_clustime_diff_cut->Fill( elemID, tmean_hodo-atime_blk );
+      	  count_cut += 1;
+      	}
+      	h2_clustime_diff->Fill( elemID, tmean_hodo-atime_blk );
+      	count += 1;
       }
       
       h_blk_count->Fill( count );
