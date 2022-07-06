@@ -1,0 +1,1 @@
+All the scripts should be executed from this directory (i.e. `BBCal_replay/macros`) for the interdependencies to work properly.
