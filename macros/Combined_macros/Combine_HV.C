@@ -149,7 +149,7 @@ void Combine_HV( int userInput=1,
 
   string date = getDate();
   OutFile = Form("hv_set/%s_%s.set",output_hv.Data(),date.c_str());
-  OutPlots = Form("plots/%s.pdf",output_hv.Data());
+  OutPlots = Form("plots/%s_%s.pdf",output_hv.Data(),date.c_str());
 
   ofstream outfile_hv;
   outfile_hv.open(OutFile);
@@ -216,6 +216,12 @@ string getDate(){
   string mm = to_string(1 + ltm.tm_mon);
   string dd = to_string(ltm.tm_mday);
   string date = mm + '_' + dd + '_' + yyyy;
+  if(mm.length()==1 && dd.length()==1)
+    date = '0' + mm + '_' + '0' + dd + '_' + yyyy;
+  else if(mm.length()==1 && dd.length()!=1)
+    date = '0' + mm + '_' + dd + '_' + yyyy;
+  else if(mm.length()!=1 && dd.length()==1)
+    date = mm + '_' + '0' + dd + '_' + yyyy;
 
   return date;
 } 
