@@ -114,6 +114,11 @@ void calculate_adcGain_cos(int nrun=100){
     h_adcGain_PS->Draw("text colz");
     can2d->SaveAs(Form("plots/adcGain_%d_PS_%0.1fmV_cF%0.2f.pdf",nrun,trigAmp,cF));
   }
+  
+  cout << " --------- " << endl;
+  cout << " ADC Gains have been  written to : " << OutFile << endl;
+  cout << " --------- " << endl;
+
 }
 
 void ReadAmpToInt( TString adcGain, bool SHorPS ){
