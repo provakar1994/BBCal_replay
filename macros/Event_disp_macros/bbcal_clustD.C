@@ -290,7 +290,8 @@ void displayEvent(Int_t entry = -1, Int_t run = 7 )
   // Tracking stuff (Drawing circle)
   double xTrATsh = T->bb_tr_x[0] + zposSH*T->bb_tr_th[0];
   double yTrATsh = T->bb_tr_y[0] + zposSH*T->bb_tr_ph[0];
-  TEllipse *trackPOSatSH = new TEllipse(yTrATsh,xTrATsh,.05,.05);
+  //TEllipse *trackPOSatSH = new TEllipse(yTrATsh,xTrATsh,.05,.05);
+  TEllipse *trackPOSatSH = new TEllipse(yClposSH,xClposSH,.05,.05);
   trackPOSatSH->SetFillStyle(0);
   trackPOSatSH->SetLineWidth(2);
   trackPOSatSH->SetLineColor(kRed);
