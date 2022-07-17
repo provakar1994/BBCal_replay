@@ -434,16 +434,14 @@ void clicked_displayEntryButton()
 }
 
 
-Int_t display(Int_t run = 290, Int_t event = 50000)
+Int_t bbcal_clustD(const char* rfile="", Int_t run=290, Int_t event=5)
 {
   shgui::SetupGUI();
   gStyle->SetLabelSize(0.05,"XY");
   gStyle->SetTitleFontSize(0.08);
 
-  TString filename = "../../Rootfiles/e1209019_fullreplay_13486_stream0_seg53_53.root";
-  //TString filename = Form("$OUT_DIR/mkj_bbshower_%d_%d.root",run,event);
-  TFile *f = TFile::Open(filename); 
-  TChain *C = (TChain*)f->Get("T");
+  TChain *C = new TChain("T");
+  C->Add(rfile);
   cout << "Opened up tree with nentries=" << C->GetEntries() << endl;
 
   T = new gmn_tree(C);
