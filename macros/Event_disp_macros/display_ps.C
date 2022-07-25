@@ -266,11 +266,12 @@ void clicked_displayEntryButton()
 }
 
 
-Int_t display_ps(const char* rfile="", Int_t run = 290, Int_t event = -1)
+Int_t display_ps(const char* rfile="", TCut cut="", Int_t run=290)
 {
   psgui::SetupGUI();
   gStyle->SetLabelSize(0.05,"XY");
   gStyle->SetTitleFontSize(0.08);
+  Int_t event = -1;
 
   if(!T) { 
     T = new TChain("T");
@@ -293,7 +294,8 @@ Int_t display_ps(const char* rfile="", Int_t run = 290, Int_t event = -1)
     T->SetBranchAddress("Ndata.bb.ps.adcrow",&fadc_datat::ndata);
 
     elist = new TEventList("elist","ABC");
-    T->Draw(">>elist","bb.tr.n==1&&abs(bb.tr.vz[0])<0.08&&abs(bb.tr.tg_th[0])<0.15&&abs(bb.tr.tg_ph[0])<0.3&&bb.gem.track.nhits>3&&bb.tr.p[0]>1.8&&bb.tr.p[0]<2.6&&sbs.hcal.e>0.025&&bb.ps.e>0.22");
+    //T->Draw(">>elist","bb.tr.n==1&&abs(bb.tr.vz[0])<0.08&&abs(bb.tr.tg_th[0])<0.15&&abs(bb.tr.tg_ph[0])<0.3&&bb.gem.track.nhits>3&&bb.tr.p[0]>1.8&&bb.tr.p[0]<2.6&&sbs.hcal.e>0.025&&bb.ps.e>0.22");
+    T->Draw(">>elist",cut);
     cout << " No of events passed global cut = " << elist->GetN() << endl;
 
     for(Int_t r = 0; r < kNrows; r++) {
