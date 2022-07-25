@@ -14,7 +14,7 @@ const Int_t DISP_MIN_SAMPLE = 0;
 const Int_t DISP_MAX_SAMPLE = 25;
 //const Int_t DISP_FADC_SAMPLES = 200;
 const Int_t DISP_FADC_SAMPLES = (DISP_MAX_SAMPLE-DISP_MIN_SAMPLE);
-const Int_t numSamples = 50;
+const Int_t numSamples = 25;
 
 const Int_t minADC = 0;
 const Int_t maxADC = 4000;
@@ -26,6 +26,7 @@ std::string user_input;
 Int_t gCurrentEntry = -1;
 
 TChain *T = 0;
+TEventList *elist;
 Int_t foundModules = 0;
 TCanvas *canvas = 0;
 
@@ -151,7 +152,8 @@ void displayEvent(Int_t entry = -1)
     gCurrentEntry = 0;
   }
 
-  T->GetEntry(gCurrentEntry);
+  T->GetEntry(elist->GetEntry(gCurrentEntry));
+  //T->GetEntry(gCurrentEntry);
   std::cout << "Displaying event " << gCurrentEntry << std::endl;
   shgui::ledLabel->SetText(TString::Format("LED Bit: %02d, Count: %5d",Int_t(fadc_datat::ledbit),Int_t(fadc_datat::ledcount)));
 
@@ -176,65 +178,73 @@ void displayEvent(Int_t entry = -1)
       tdc[r][c] = 0.0;
     }
   }
-  for(Int_t m = 0; m < fadc_datat::ndata; m++) {
-    r = fadc_datat::row[m];//-1;
-    c = fadc_datat::col[m];//-1;
+  Int_t rmax=0, cmax=0;
+  Double_t ampmax=0.;
+  for(Int_t ihits = 0; ihits < fadc_datat::ndata; ihits++) {
+    r = fadc_datat::row[ihits];//-1;
+    c = fadc_datat::col[ihits];//-1;
     if(r < 0 || c < 0) {
       std::cerr << "Why is row negative? Or col?" << std::endl;
       continue;
     }
     if(r>= kNrows || c >= kNcols)
       continue;
-    idx = fadc_datat::samps_idx[m];
-    n = fadc_datat::nsamps[m];
-    adc[r][c] = fadc_datat::a[m];
-    tdc[r][c] = fadc_datat::tdc[m];
-    amp[r][c] = fadc_datat::amp[m];
-    //std::cout << "n=" << fadc_datat::nsamps[m] << std::endl;
+    Int_t ihit_samps = r*kNcols+c;
+    idx = fadc_datat::samps_idx[ihit_samps];
+    n = fadc_datat::nsamps[ihit_samps];
+    adc[r][c] = fadc_datat::a[ihits];
+    tdc[r][c] = fadc_datat::tdc[ihits];
+    amp[r][c] = fadc_datat::amp[ihits];
+    //std::cout << "n=" << fadc_datat::nsamps[ihits] << std::endl;
     bool displayed = false;
     for(Int_t s = DISP_MIN_SAMPLE; s < DISP_MAX_SAMPLE && s < n; s++) {
       displayed = true;
       histos[r][c]->SetBinContent(s+1-DISP_MIN_SAMPLE,fadc_datat::samps[idx+s]);
-      histos_amp[r][c]->SetBinContent(int(tdc[r][c]/4.0)+1,fadc_datat::amp[m]);
-      if(peak[r][c]<fadc_datat::samps[idx+s])
+      //histos_amp[r][c]->SetBinContent(int(tdc[r][c]/4.0)+1,fadc_datat::amp[ihits]);
+      if(peak[r][c]<fadc_datat::samps[idx+s]){
         peak[r][c]=fadc_datat::samps[idx+s];
+	rmax=r; cmax=c; ampmax=amp[r][c];
+      }
       if(peak[r][c]>4095) {
         gSaturated[r][c] = true;
       }
       //std::cout << "setting bin content: [" << r+1 << ", " << c+1 << ", " << s << "] = " << fadc_datat::samps[idx+s] << std::endl;
     }
     if(!displayed) {
-      std::cerr << "Skipping empty module: " << m << std::endl;
+      std::cerr << "Skipping empty module: " << r*kNcols+c << std::endl;
       for(Int_t s = 0;  s < DISP_FADC_SAMPLES; s++) {
         histos[r][c]->SetBinContent(s+1,-404);
       }
     }
   }
 
+  cout << " Row= " << rmax+1 << " Col= " << cmax+1 << " MaxAmp= " << peak[r][c] <<  " Amp(mV)= " << ampmax << endl;
+
   for(r = 0; r < kNrows; r++) {
     for(c = 0; c < kNcols; c++) {
       sub = r/7;
       //subCanv[sub]->cd(c*kNrows + r + 1);
       subCanv[sub]->cd((r%7)*kNcols + c + 1);
-      histos[r][c]->SetTitle(TString::Format("%d-%d (ADC=%g,TDC=%g)",r+1,c+1,adc[r][c],tdc[r][c]));
+      //histos[r][c]->SetTitle(TString::Format("%d-%d (ADC=%g,TDC=%g)",r+1,c+1,adc[r][c],tdc[r][c]));
+      histos[r][c]->SetTitle(TString::Format("%d-%d (ADC=%g)",r+1,c+1,amp[r][c]));
       if(gSaturated[r][c])
         histos[r][c]->SetLineColor(kRed+1);
       else
         histos[r][c]->SetLineColor(kBlue+1);
       if(tdc[r][c]!=0)
         histos[r][c]->SetLineColor(kGreen+1);
-      TLine* L = new TLine(tdc[r][c]/4.0, 0, tdc[r][c]/4.0, peak[r][c]);
-      L->SetLineColor(kMagenta+1);
-      L->SetLineWidth(2);
+      // TLine* L = new TLine(tdc[r][c]/4.0, 0, tdc[r][c]/4.0, peak[r][c]);
+      // L->SetLineColor(kMagenta+1);
+      // L->SetLineWidth(2);
       histos_amp[r][c]->SetLineColor(kBlack);
       
       // if(histos_amp[r][c]->GetMaximum()>histos[r][c]->GetMaximum())
       // 	histos[r][c]->SetMaximum(histos_amp[r][c]->GetMaximum()*1.1);
       histos[r][c]->Draw();
       //histos_amp[r][c]->Draw("same");
-      if(tdc[r][c]!=0)L->Draw("same");
+      // if(tdc[r][c]!=0)L->Draw("same");
       gPad->Update();
-      std::cout << " [" << r << ", " << c << "]=" << peak[r][c];
+      //std::cout << " [" << r << ", " << c << "]=" << peak[r][c];
     }
   }
   std::cout << std::endl;
@@ -259,7 +269,8 @@ void clicked_displayEntryButton()
 }
 
 
-Int_t display(Int_t run = 290, Int_t event = -1)
+//Int_t display(Int_t run = 290, Int_t event = -1)
+Int_t display_sh(const char* rfile="", Int_t run = 290, Int_t event = -1)
 {
   shgui::SetupGUI();
   gStyle->SetLabelSize(0.05,"XY");
@@ -267,11 +278,13 @@ Int_t display(Int_t run = 290, Int_t event = -1)
 
   if(!T) { 
     T = new TChain("T");
-    T->Add(TString::Format("~/sbs/Rootfiles/bbshower_%d_%d.root",run, event));
-    T->SetBranchStatus("*",0);
+    //T->Add(TString::Format("~/sbs/Rootfiles/bbshower_%d_%d.root",run, event));
+    T->Add(rfile);
+    cout << " Opened up tree with nentries = " << T->GetEntries() << endl;
+    //T->SetBranchStatus("*",0);
     T->SetBranchStatus("bb.sh.*",1);
     T->SetBranchAddress("bb.sh.nsamps",fadc_datat::nsamps);
-    T->SetBranchAddress("bb.sh.a",fadc_datat::a);
+    T->SetBranchAddress("bb.sh.a_c",fadc_datat::a);
     T->SetBranchAddress("bb.sh.a_time",fadc_datat::tdc);
     T->SetBranchAddress("bb.sh.a_amp_p",fadc_datat::amp);
     //T->SetBranchAddress("bb.sh.ledbit",&fadc_datat::ledbit);
@@ -282,7 +295,14 @@ Int_t display(Int_t run = 290, Int_t event = -1)
     T->SetBranchAddress("bb.sh.adccol",fadc_datat::col);
     T->SetBranchStatus("Ndata.bb.sh.adcrow",1);
     T->SetBranchAddress("Ndata.bb.sh.adcrow",&fadc_datat::ndata);
-    std::cerr << "Opened up tree with nentries=" << T->GetEntries() << std::endl;
+    T->SetBranchAddress("bb.sh.nclus",&fadc_datat::cl_nclus_SH);
+    T->SetBranchAddress("bb.ps.nclus",&fadc_datat::cl_nclus_PS);
+    //T->SetBranchAddress("bb.sh.clus_blk.e",&fadc_datat::cl_eblk_SH);
+
+    elist = new TEventList("elist","ABC");
+    T->Draw(">>elist","bb.tr.n==1&&abs(bb.tr.vz[0])<0.08&&abs(bb.tr.tg_th[0])<0.15&&abs(bb.tr.tg_ph[0])<0.3&&bb.gem.track.nhits>3&&bb.tr.p[0]>1.8&&bb.tr.p[0]<2.6&&sbs.hcal.e>0.025&&bb.ps.e>0.22");
+    cout << " No of events passed global cut = " << elist->GetN() << endl;
+
     for(Int_t r = 0; r < kNrows; r++) {
       for(Int_t c = 0; c < kNcols; c++) {
         histos[r][c] = MakeHisto(r,c,DISP_FADC_SAMPLES);
