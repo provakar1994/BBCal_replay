@@ -162,36 +162,21 @@ void displayEvent(Int_t entry = -1, Int_t run = 7 )
   /* ..==<< In Case ADC Info Available for Every Block  >>==..  */
   // Shower
   if(ADCpBlock){
-    for(Int_t m = 0; m < T->Ndata_bb_sh_adcrow; m++) {
-      int r = T->bb_sh_adcrow[m];
-      int c = T->bb_sh_adccol[m];
-      if(r < 0 || c < 0) {
-	std::cerr << "Why is row negative? Or col?" << std::endl;
-	continue;
-      }
-      if(r>= kNrows || c >= kNcols)
-	continue;
-      if( T->bb_sh_a_time[m]>0 ){
-	hSH_int->Fill( double(c+1), double(r+1), T->bb_sh_a_p[m] );
-	cout << "r " << r << " c= " << c <<  "a_c= " << T->bb_sh_a_c[m] << endl;								     
-	hSH_intEng->Fill( double(c+1), double(r+1), T->bb_sh_a_c[m] );     
-      }
-    }
-
     for(int ihit=0;ihit<T->Ndata_bb_sh_a_p;ihit++){
       int r = T->bb_sh_adcrow[ihit];
-      int c = T->bb_sh_adcrow[ihit];
+      int c = T->bb_sh_adccol[ihit];
       if(r < 0 || c < 0) {
-	std::cerr << "Why is row negative? Or col?" << std::endl;
-	continue;
+    	std::cerr << "Why is row negative? Or col?" << std::endl;
+    	continue;
       }
-      if(r>= kNrows || c >= kNcols)
-	continue;
+      if(r>= kNrows || c >= kNcols) continue;
       hSH_int->Fill( double(c+1),double(r+1), T->bb_sh_a_p[ihit] );
       hSH_intEng->Fill( double(c+1),double(r+1), T->bb_sh_a_c[ihit] ); 
-
-      cout << " ***Ndata= " << T->Ndata_bb_sh_a_p << " a_c= " << T->bb_sh_a_c[ihit] << " a_p= " <<  T->bb_sh_a_p[ihit] << endl;
+      cout << " **SH " << r+1 << "-" << c+1
+	   << ": a_c= " << T->bb_sh_a_c[ihit] << " a_p= " <<  T->bb_sh_a_p[ihit]
+	   << " a_amp_p= " <<  T->bb_sh_a_amp_p[ihit] << endl;
     }
+
   }//
   
   /* ..==<< In Case Multiple Cluster Info Available  >>==..  */
@@ -240,6 +225,7 @@ void displayEvent(Int_t entry = -1, Int_t run = 7 )
       int cblkCl = (int)T->bb_sh_clus_blk_col[b];
       double xblkCl = T->bb_sh_clus_blk_x[b];
       double yblkCl = T->bb_sh_clus_blk_y[b];
+      hSH_clus_e->Fill( double(cblkCl+1), double(rblkCl+1), T->bb_sh_clus_blk_e[b] );
       hSH_xypos->Fill( yblkCl, xblkCl, T->bb_sh_clus_blk_e[b] );
     }
   }//
@@ -250,32 +236,20 @@ void displayEvent(Int_t entry = -1, Int_t run = 7 )
   /* ..==<< In Case ADC Info Available for Every Block  >>==..  */
   // Pre-Shower
   if(ADCpBlock){
-    for(Int_t m = 0; m < T->Ndata_bb_ps_adcrow; m++) {
-      int r = T->bb_ps_adcrow[m];
-      int c = T->bb_ps_adccol[m];
-      if(r < 0 || c < 0) {
-	std::cerr << "Why is row negative? Or col?" << std::endl;
-	continue;
-      }
-      if(r>= kNrows || c >= kNcols)
-	continue;
-      if( T->bb_ps_a_time[m]>0 ){
-	hPS_int->Fill( double(c+1),double(r+1), T->bb_ps_a_p[m] ); 
-	hPS_intEng->Fill( double(c+1),double(r+1), T->bb_ps_a_c[m] );     
-      }
-    }
-
     for(int ihit=0;ihit<T->Ndata_bb_ps_a_p;ihit++){
       int r = T->bb_ps_adcrow[ihit];
-      int c = T->bb_ps_adcrow[ihit];
+      int c = T->bb_ps_adccol[ihit];
       if(r < 0 || c < 0) {
-	std::cerr << "Why is row negative? Or col?" << std::endl;
-	continue;
+    	std::cerr << "Why is row negative? Or col?" << std::endl;
+    	continue;
       }
       if(r>= kNrows || c >= kNcols)
-	continue;
+    	continue;
       hPS_int->Fill( double(c+1),double(r+1), T->bb_ps_a_p[ihit] );
-      hPS_intEng->Fill( double(c+1),double(r+1), T->bb_ps_a_c[ihit] );     
+      hPS_intEng->Fill( double(c+1),double(r+1), T->bb_ps_a_c[ihit] );
+      cout << " **PS " << r+1 << "-" << c+1 
+	   << ": a_c= " << T->bb_sh_a_c[ihit] << " a_p= " <<  T->bb_sh_a_p[ihit]
+	   << " a_amp_p= " <<  T->bb_sh_a_amp_p[ihit] << endl;     
     }
   }
   
@@ -326,6 +300,7 @@ void displayEvent(Int_t entry = -1, Int_t run = 7 )
       int cblkCl = (int)T->bb_ps_clus_blk_col[b];
       double xblkCl = T->bb_ps_clus_blk_x[b];
       double yblkCl = T->bb_ps_clus_blk_y[b];
+      hPS_clus_e->Fill( double(cblkCl+1), double(rblkCl+1), T->bb_ps_clus_blk_e[b] );
       hPS_xypos->Fill( yblkCl, xblkCl, T->bb_ps_clus_blk_e[b] );
     }
   }//
@@ -456,22 +431,22 @@ void displayEvent(Int_t entry = -1, Int_t run = 7 )
   subCanv[4]->cd(1);
   gPad->SetGridx();
   gPad->SetGridy();
-  hSH_intEng->SetStats(0);
-  hSH_intEng->SetMaximum(0.5);
-  hSH_intEng->SetMinimum(0); 
-  hSH_intEng->GetYaxis()->SetNdivisions(kNrows);
-  hSH_intEng->GetXaxis()->SetNdivisions(kNcols);
-  hSH_intEng->Draw("text colz");
+  hSH_int->SetStats(0);
+  hSH_int->SetMaximum(0.5);
+  hSH_int->SetMinimum(0); 
+  hSH_int->GetYaxis()->SetNdivisions(kNrows);
+  hSH_int->GetXaxis()->SetNdivisions(kNcols);
+  hSH_int->Draw("text colz");
   gPad->Update();
   subCanv[4]->cd(2);
   gPad->SetGridx();
   gPad->SetGridy();
-  hPS_intEng->SetStats(0);
-  hPS_intEng->SetMaximum(0.5);
-  hPS_intEng->SetMinimum(0); 
-  hPS_intEng->GetYaxis()->SetNdivisions(kNrowsPS);
-  hPS_intEng->GetXaxis()->SetNdivisions(kNcolsPS);
-  hPS_intEng->Draw("text colz");
+  hPS_int->SetStats(0);
+  hPS_int->SetMaximum(0.5);
+  hPS_int->SetMinimum(0); 
+  hPS_int->GetYaxis()->SetNdivisions(kNrowsPS);
+  hPS_int->GetXaxis()->SetNdivisions(kNcolsPS);
+  hPS_int->Draw("text colz");
   gPad->Update();
 }
 
@@ -511,7 +486,7 @@ void clicked_displayEntryButton()
   C->Add(rfile);
   cout << " Opened up tree with nentries = " << C->GetEntries() << endl;
   elist = new TEventList("elist","ABC");
-  C->Draw(">>elist","bb.ps.nclus>0&&bb.sh.nclus>0");
+  C->Draw(">>elist","bb.tr.n==1&&abs(bb.tr.vz[0])<0.08&&abs(bb.tr.tg_th[0])<0.15&&abs(bb.tr.tg_ph[0])<0.3&&bb.gem.track.nhits>3&&bb.tr.p[0]>1.8&&bb.tr.p[0]<2.6&&sbs.hcal.e>0.025&&bb.ps.e>0.22");
   cout << " No of events passed global cut = " << elist->GetN() << endl;
 
   T = new gmn_tree(C);
