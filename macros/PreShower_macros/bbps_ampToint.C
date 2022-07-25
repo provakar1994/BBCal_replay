@@ -146,10 +146,10 @@ void bbps_ampToint ( int run = 366, int event = -1 ){
   string date = getDate();
 
   // Take user inputs
-  cout << " Run number? " << endl;
-  cin >> run;
-  cout << " No. of events replayed? [-1 => All] " << endl;
-  cin >> event;
+  // cout << " Run number? " << endl;
+  // cin >> run;
+  // cout << " No. of events replayed? [-1 => All] " << endl;
+  // cin >> event;
 
   // Out files
   string OutFile = Form("Output/fit_results/run_%d_ps_ampToint.txt",run);

@@ -1,6 +1,7 @@
 #include <TH2.h>
 #include <TH2F.h>
 #include <TChain.h>
+#include <TEventList.h>
 #include <TCanvas.h>
 #include <vector>
 #include <iostream>
@@ -18,9 +19,12 @@ const Double_t zposPS = 1.695704; //m
 
 const Int_t kCanvSize = 100;
 std::string user_input;
-Int_t gCurrentEntry = -1;
+bool gt1ClusInfo = 0; // Info for secodary clusters available?
+bool ADCpBlock = 0; // ADC info for all blocks available
+Int_t gCurrentEntry=-1, run=-1;
 
 gmn_tree *T;
+TEventList *elist;
 Int_t foundModules = 0;
 TCanvas *canvas = 0;
 TCanvas *subCanv[4];
@@ -138,7 +142,8 @@ void displayEvent(Int_t entry = -1, Int_t run = 7 )
     gCurrentEntry = 0;
   }
 
-  T->GetEntry(gCurrentEntry);
+  T->GetEntry(elist->GetEntry(gCurrentEntry));
+  //T->GetEntry(gCurrentEntry);
   cout << endl;
   std::cout << "Displaying event " << gCurrentEntry << std::endl;
   shgui::ledLabel->SetText(TString::Format("Run #: %d",run));
@@ -154,127 +159,152 @@ void displayEvent(Int_t entry = -1, Int_t run = 7 )
   hPS_clus_e->Reset("ICES M");
   hPS_xypos->Reset("ICES M");
 
+  /* ..==<< In Case ADC Info Available for Every Block  >>==..  */
   // Shower
-  for(Int_t m = 0; m < T->Ndata_bb_sh_adcrow; m++) {
-    int r = T->bb_sh_adcrow[m];
-    int c = T->bb_sh_adccol[m];
-    if(r < 0 || c < 0) {
-      std::cerr << "Why is row negative? Or col?" << std::endl;
-      continue;
+  if(ADCpBlock){
+    for(int ihit=0;ihit<T->Ndata_bb_sh_a_p;ihit++){
+      int r = T->bb_sh_adcrow[ihit];
+      int c = T->bb_sh_adccol[ihit];
+      if(r < 0 || c < 0) {
+    	std::cerr << "Why is row negative? Or col?" << std::endl;
+    	continue;
+      }
+      if(r>= kNrows || c >= kNcols) continue;
+      hSH_int->Fill( double(c+1),double(r+1), T->bb_sh_a_p[ihit] );
+      hSH_intEng->Fill( double(c+1),double(r+1), T->bb_sh_a_c[ihit] ); 
+      cout << " **SH " << r+1 << "-" << c+1
+	   << ": a_c= " << T->bb_sh_a_c[ihit] << " a_p= " <<  T->bb_sh_a_p[ihit]
+	   << " a_amp_p= " <<  T->bb_sh_a_amp_p[ihit] << endl;
     }
-    if(r>= kNrows || c >= kNcols)
-      continue;
-    if( T->bb_sh_a_time[m]>0 ){
-     hSH_int->Fill( double(c+1), double(r+1), T->bb_sh_a_p[m] );
-     cout << "r " << r << " c= " << c <<  "a_c= " << T->bb_sh_a_c[m] << endl;								     
-     hSH_intEng->Fill( double(c+1), double(r+1), T->bb_sh_a_c[m] );     
-    }
-  }
 
-  // for(int ihit=0;ihit<T->Ndata_bb_sh_a_p;ihit++){
-  //   int r = T->bb_sh_adcrow[ihit];
-  //   int c = T->bb_sh_adcrow[ihit];
-  //   if(r < 0 || c < 0) {
-  //     std::cerr << "Why is row negative? Or col?" << std::endl;
-  //     continue;
-  //   }
-  //   if(r>= kNrows || c >= kNcols)
-  //     continue;
-  //   hSH_int->Fill( double(c+1),double(r+1), T->bb_sh_a_p[ihit] );
-  //   hSH_intEng->Fill( double(c+1),double(r+1), T->bb_sh_a_c[ihit] ); 
-
-  //   cout << " ***Ndata= " << T->Ndata_bb_sh_a_p << " a_c= " << T->bb_sh_a_c[ihit] << " a_p= " <<  T->bb_sh_a_p[ihit] << endl;
-  // }
+  }//
   
+  /* ..==<< In Case Multiple Cluster Info Available  >>==..  */
   // SH Clustering
-  cout << "Number of SH clusters in this event= " << T->bb_sh_nclus << endl;
-  //cout << "Clus xpos= " << T->bb_sh_x << " ypos= " << T->bb_sh_y << endl;
-  cout << "HE blkID (idblk) = " << T->bb_sh_idblk << "  " << "HE blk Row,Col (rowblk+1,colblk+1)= " << T->bb_sh_rowblk+1 << "," << T->bb_sh_colblk+1 << endl;
-  //cout << "HE Blk e_c= " << T->bb_sh_eblk_c << "  " << "HE Blk xpos,ypos= " << T->bb_sh_x << "," << T->bb_sh_y << endl;
-  for( int cl=0; cl<(int)T->bb_sh_nclus; cl++ ){
-    cout << "Clus ID " << T->bb_sh_clus_id[cl] << "\t" << "Clus e= " << T->bb_sh_clus_e[cl];
-    cout << "\tNo. of blocks involved= " << T->bb_sh_clus_nblk[cl] << endl;
-    int cID = (int)T->bb_sh_clus_id[cl];
-    if( cID!=-1 ){
-      int rCl = (int)T->bb_sh_clus_row[cl];
-      int cCl = (int)T->bb_sh_clus_col[cl];
-      hSH_clus_e->Fill( double(cCl+1), double(rCl+1), T->bb_sh_clus_e[cl] );
-      if( cl==0 ){
-	for( int b = 0; b < (int)T->bb_sh_clus_nblk[cl]; b++ ){
-	  int cblkID = (int)T->bb_sh_clus_blk_id[b];
-	  int rblkCl = (int)T->bb_sh_clus_blk_row[b];
-	  int cblkCl = (int)T->bb_sh_clus_blk_col[b];
-	  double xblkCl = T->bb_sh_clus_blk_x[b];
-	  double yblkCl = T->bb_sh_clus_blk_y[b];
-	  if(cblkID!=cID){
-	    hSH_clus_e->Fill( double(cblkCl+1), double(rblkCl+1), T->bb_sh_clus_blk_e[b] );
+  if(gt1ClusInfo){ 
+    cout << "Number of SH clusters in this event= " << T->bb_sh_nclus << endl;
+    //cout << "Clus xpos= " << T->bb_sh_x << " ypos= " << T->bb_sh_y << endl;
+    cout << "HE blkID (idblk) = " << T->bb_sh_idblk << "  " << "HE blk Row,Col (rowblk+1,colblk+1)= " << T->bb_sh_rowblk+1 << "," << T->bb_sh_colblk+1 << endl;
+    //cout << "HE Blk e_c= " << T->bb_sh_eblk_c << "  " << "HE Blk xpos,ypos= " << T->bb_sh_x << "," << T->bb_sh_y << endl;
+    for( int cl=0; cl<(int)T->bb_sh_nclus; cl++ ){
+      cout << "Clus ID " << T->bb_sh_clus_id[cl] << "\t" << "Clus e= " << T->bb_sh_clus_e[cl];
+      cout << "\tNo. of blocks involved= " << T->bb_sh_clus_nblk[cl] << endl;
+      int cID = (int)T->bb_sh_clus_id[cl];
+      if( cID!=-1 ){
+	int rCl = (int)T->bb_sh_clus_row[cl];
+	int cCl = (int)T->bb_sh_clus_col[cl];
+	hSH_clus_e->Fill( double(cCl+1), double(rCl+1), T->bb_sh_clus_e[cl] );
+	if( cl==0 ){
+	  for( int b = 0; b < (int)T->bb_sh_clus_nblk[cl]; b++ ){
+	    int cblkID = (int)T->bb_sh_clus_blk_id[b];
+	    int rblkCl = (int)T->bb_sh_clus_blk_row[b];
+	    int cblkCl = (int)T->bb_sh_clus_blk_col[b];
+	    double xblkCl = T->bb_sh_clus_blk_x[b];
+	    double yblkCl = T->bb_sh_clus_blk_y[b];
+	    if(cblkID!=cID){
+	      hSH_clus_e->Fill( double(cblkCl+1), double(rblkCl+1), T->bb_sh_clus_blk_e[b] );
+	    }
+	    hSH_xypos->Fill( yblkCl, xblkCl, T->bb_sh_clus_blk_e[b] );
 	  }
-	  hSH_xypos->Fill( yblkCl, xblkCl, T->bb_sh_clus_blk_e[b] );
 	}
       }
     }
   }//
+  else{
+  // SH Clustering ( **<< Single cluster information available >>**)
+    cout << "Number of SH clusters in this event= " << T->bb_sh_nclus << endl;
+    cout << "Clus xpos= " << T->bb_sh_x << " ypos= " << T->bb_sh_y << endl;
+    cout << "HE blkID (idblk) = " << T->bb_sh_idblk 
+	 << "  " << "HE blk Row,Col (rowblk+1,colblk+1)= " << T->bb_sh_rowblk+1 << "," 
+	 << T->bb_sh_colblk+1 << endl;
+    //cout << "HE Blk e_c= " << T->bb_sh_eblk_c << "  " << "HE Blk xpos,ypos= " << T->bb_sh_x << "," << T->bb_sh_y << endl;
+
+    for( int b = 0; b < (int)T->bb_sh_nblk; b++ ){
+      int cblkID = (int)T->bb_sh_clus_blk_id[b];
+      int rblkCl = (int)T->bb_sh_clus_blk_row[b];
+      int cblkCl = (int)T->bb_sh_clus_blk_col[b];
+      double xblkCl = T->bb_sh_clus_blk_x[b];
+      double yblkCl = T->bb_sh_clus_blk_y[b];
+      hSH_clus_e->Fill( double(cblkCl+1), double(rblkCl+1), T->bb_sh_clus_blk_e[b] );
+      hSH_xypos->Fill( yblkCl, xblkCl, T->bb_sh_clus_blk_e[b] );
+    }
+  }//
+
 
   cout << endl;
   
+  /* ..==<< In Case ADC Info Available for Every Block  >>==..  */
   // Pre-Shower
-  for(Int_t m = 0; m < T->Ndata_bb_ps_adcrow; m++) {
-    int r = T->bb_ps_adcrow[m];
-    int c = T->bb_ps_adccol[m];
-    if(r < 0 || c < 0) {
-      std::cerr << "Why is row negative? Or col?" << std::endl;
-      continue;
-    }
-    if(r>= kNrows || c >= kNcols)
-      continue;
-    if( T->bb_ps_a_time[m]>0 ){
-      hPS_int->Fill( double(c+1),double(r+1), T->bb_ps_a_p[m] ); 
-      hPS_intEng->Fill( double(c+1),double(r+1), T->bb_ps_a_c[m] );     
+  if(ADCpBlock){
+    for(int ihit=0;ihit<T->Ndata_bb_ps_a_p;ihit++){
+      int r = T->bb_ps_adcrow[ihit];
+      int c = T->bb_ps_adccol[ihit];
+      if(r < 0 || c < 0) {
+    	std::cerr << "Why is row negative? Or col?" << std::endl;
+    	continue;
+      }
+      if(r>= kNrows || c >= kNcols)
+    	continue;
+      hPS_int->Fill( double(c+1),double(r+1), T->bb_ps_a_p[ihit] );
+      hPS_intEng->Fill( double(c+1),double(r+1), T->bb_ps_a_c[ihit] );
+      cout << " **PS " << r+1 << "-" << c+1 
+	   << ": a_c= " << T->bb_sh_a_c[ihit] << " a_p= " <<  T->bb_sh_a_p[ihit]
+	   << " a_amp_p= " <<  T->bb_sh_a_amp_p[ihit] << endl;     
     }
   }
-
-  // for(int ihit=0;ihit<T->Ndata_bb_ps_a_p;ihit++){
-  //   int r = T->bb_ps_adcrow[ihit];
-  //   int c = T->bb_ps_adcrow[ihit];
-  //   if(r < 0 || c < 0) {
-  //     std::cerr << "Why is row negative? Or col?" << std::endl;
-  //     continue;
-  //   }
-  //   if(r>= kNrows || c >= kNcols)
-  //     continue;
-  //   hPS_int->Fill( double(c+1),double(r+1), T->bb_ps_a_p[ihit] );
-  //   hPS_intEng->Fill( double(c+1),double(r+1), T->bb_ps_a_c[ihit] );     
-  // }
   
+  /* ..==<< In Case Multiple Cluster Info Available  >>==..  */
   // PS Clustering
-  cout << "Number of PS clusters in this event= " << T->bb_ps_nclus << endl;
-  //cout << "Clus xpos= " << T->bb_ps_x << " ypos= " << T->bb_ps_y << endl;
-  cout << "HE blkID (idblk) = " << T->bb_ps_idblk << "  " << "HE blk Row,Col (rowblk+1,colblk)= " << T->bb_ps_rowblk+1 << "," << T->bb_ps_colblk << endl;
-  //cout << "HE Blk e_c= " << T->bb_ps_eblk_c << "  " << "HE Blk xpos,ypos= " << T->bb_ps_x << "," << T->bb_ps_y << endl;  
-  for( int cl=0; cl<(int)T->bb_ps_nclus; cl++ ){
-    //cout << "Clus ID " << T->bb_ps_clus_id[cl] << "\t" << "Clus e_c= " << T->bb_ps_clus_e_c[cl];
-    //cout << "\tNo. of blocks involved= " << T->bb_ps_clus_nblk[cl] << endl;
+  if(gt1ClusInfo){
+    cout << "Number of PS clusters in this event= " << T->bb_ps_nclus << endl;
     //cout << "Clus xpos= " << T->bb_ps_x << " ypos= " << T->bb_ps_y << endl;
-    int cID = (int)T->bb_ps_clus_id[cl];
-    if( cID!=-1 ){
-      int rCl = (int)T->bb_ps_clus_row[cl];
-      int cCl = (int)T->bb_ps_clus_col[cl];
-      hPS_clus_e->Fill( double(cCl+1), double(rCl+1), T->bb_ps_clus_e[cl] );
-      if( cl==0 ){
-	for( int b = 0; b < (int)T->bb_ps_clus_nblk[cl]; b++ ){
-	  int cblkID = (int)T->bb_ps_clus_blk_id[b];
-	  int rblkCl = (int)T->bb_ps_clus_blk_row[b];
-	  int cblkCl = (int)T->bb_ps_clus_blk_col[b];
-	  double xblkCl = T->bb_ps_clus_blk_x[b];
-	  double yblkCl = T->bb_ps_clus_blk_y[b];
-	  if(cblkID!=cID){
-	    hPS_clus_e->Fill( double(cblkCl+1), double(rblkCl+1), T->bb_ps_clus_blk_e[b] );
+    cout << "HE blkID (idblk) = " << T->bb_ps_idblk << "  " << "HE blk Row,Col (rowblk+1,colblk)= " << T->bb_ps_rowblk+1 << "," << T->bb_ps_colblk << endl;
+    //cout << "HE Blk e_c= " << T->bb_ps_eblk_c << "  " << "HE Blk xpos,ypos= " << T->bb_ps_x << "," << T->bb_ps_y << endl;  
+    for( int cl=0; cl<(int)T->bb_ps_nclus; cl++ ){
+      //cout << "Clus ID " << T->bb_ps_clus_id[cl] << "\t" << "Clus e_c= " << T->bb_ps_clus_e_c[cl];
+      //cout << "\tNo. of blocks involved= " << T->bb_ps_clus_nblk[cl] << endl;
+      //cout << "Clus xpos= " << T->bb_ps_x << " ypos= " << T->bb_ps_y << endl;
+      int cID = (int)T->bb_ps_clus_id[cl];
+      if( cID!=-1 ){
+	int rCl = (int)T->bb_ps_clus_row[cl];
+	int cCl = (int)T->bb_ps_clus_col[cl];
+	hPS_clus_e->Fill( double(cCl+1), double(rCl+1), T->bb_ps_clus_e[cl] );
+	if( cl==0 ){
+	  for( int b = 0; b < (int)T->bb_ps_clus_nblk[cl]; b++ ){
+	    int cblkID = (int)T->bb_ps_clus_blk_id[b];
+	    int rblkCl = (int)T->bb_ps_clus_blk_row[b];
+	    int cblkCl = (int)T->bb_ps_clus_blk_col[b];
+	    double xblkCl = T->bb_ps_clus_blk_x[b];
+	    double yblkCl = T->bb_ps_clus_blk_y[b];
+	    if(cblkID!=cID){
+	      hPS_clus_e->Fill( double(cblkCl+1), double(rblkCl+1), T->bb_ps_clus_blk_e[b] );
+	    }
+	    hPS_xypos->Fill( yblkCl, xblkCl, T->bb_ps_clus_blk_e[b] );
 	  }
-	  hPS_xypos->Fill( yblkCl, xblkCl, T->bb_ps_clus_blk_e[b] );
 	}
       }
     }
-  }
+  }//
+  else{
+    // PS Clustering ( **<< Single cluster info available >>**)
+    cout << "Number of PS clusters in this event= " << T->bb_ps_nclus << endl;
+    cout << "Clus xpos= " << T->bb_ps_x << " ypos= " << T->bb_ps_y << endl;
+    cout << "HE blkID (idblk) = " << T->bb_ps_idblk << "  " 
+	 << "HE blk Row,Col (rowblk+1,colblk)= " << T->bb_ps_rowblk+1 << "," 
+	 << T->bb_ps_colblk << endl;
+    //cout << "HE Blk e_c= " << T->bb_ps_eblk_c << "  " << "HE Blk xpos,ypos= " << T->bb_ps_x << "," << T->bb_ps_y << endl;  
+
+    for( int b = 0; b < (int)T->bb_ps_nblk; b++ ){
+      int cblkID = (int)T->bb_ps_clus_blk_id[b];
+      int rblkCl = (int)T->bb_ps_clus_blk_row[b];
+      int cblkCl = (int)T->bb_ps_clus_blk_col[b];
+      double xblkCl = T->bb_ps_clus_blk_x[b];
+      double yblkCl = T->bb_ps_clus_blk_y[b];
+      hPS_clus_e->Fill( double(cblkCl+1), double(rblkCl+1), T->bb_ps_clus_blk_e[b] );
+      hPS_xypos->Fill( yblkCl, xblkCl, T->bb_ps_clus_blk_e[b] );
+    }
+  }//
+
   
   // Cluster position with search radius (Drawing circle)
   double xClposSH = T->bb_sh_x;
@@ -401,22 +431,22 @@ void displayEvent(Int_t entry = -1, Int_t run = 7 )
   subCanv[4]->cd(1);
   gPad->SetGridx();
   gPad->SetGridy();
-  hSH_intEng->SetStats(0);
-  hSH_intEng->SetMaximum(0.5);
-  hSH_intEng->SetMinimum(0); 
-  hSH_intEng->GetYaxis()->SetNdivisions(kNrows);
-  hSH_intEng->GetXaxis()->SetNdivisions(kNcols);
-  hSH_intEng->Draw("text colz");
+  hSH_int->SetStats(0);
+  hSH_int->SetMaximum(0.5);
+  hSH_int->SetMinimum(0); 
+  hSH_int->GetYaxis()->SetNdivisions(kNrows);
+  hSH_int->GetXaxis()->SetNdivisions(kNcols);
+  hSH_int->Draw("text colz");
   gPad->Update();
   subCanv[4]->cd(2);
   gPad->SetGridx();
   gPad->SetGridy();
-  hPS_intEng->SetStats(0);
-  hPS_intEng->SetMaximum(0.5);
-  hPS_intEng->SetMinimum(0); 
-  hPS_intEng->GetYaxis()->SetNdivisions(kNrowsPS);
-  hPS_intEng->GetXaxis()->SetNdivisions(kNcolsPS);
-  hPS_intEng->Draw("text colz");
+  hPS_int->SetStats(0);
+  hPS_int->SetMaximum(0.5);
+  hPS_int->SetMinimum(0); 
+  hPS_int->GetYaxis()->SetNdivisions(kNrowsPS);
+  hPS_int->GetXaxis()->SetNdivisions(kNcolsPS);
+  hPS_int->Draw("text colz");
   gPad->Update();
 }
 
@@ -424,30 +454,43 @@ void clicked_displayNextButton()
 {
   //if(gCurrentEntry>gMaxEntries);
   shgui::entryInput->SetIntNumber(++gCurrentEntry);
-  displayEvent(gCurrentEntry);
+  displayEvent(gCurrentEntry,run);
 }
 
 void clicked_displayEntryButton()
 {
   gCurrentEntry = shgui::entryInput->GetIntNumber();
-  displayEvent(gCurrentEntry);
+  displayEvent(gCurrentEntry,run);
 }
 
 
-Int_t display(Int_t run = 290, Int_t event = 50000)
+ Int_t bbcal_clustD(const char* rfile="", 
+		    Int_t nrun=-1, 
+		    bool gt1ClInfo=0, 
+		    bool ADCpBlk=0)
 {
   shgui::SetupGUI();
   gStyle->SetLabelSize(0.05,"XY");
   gStyle->SetTitleFontSize(0.08);
 
-  TString filename = "../../Rootfiles/e1209019_fullreplay_13486_stream0_seg53_53.root";
-  //TString filename = Form("$OUT_DIR/mkj_bbshower_%d_%d.root",run,event);
-  TFile *f = TFile::Open(filename); 
-  TChain *C = (TChain*)f->Get("T");
-  cout << "Opened up tree with nentries=" << C->GetEntries() << endl;
+  gt1ClusInfo=gt1ClInfo; ADCpBlock=ADCpBlk;
+  if(nrun<0){ 
+    cout << endl << " **<< Enter proper runnumber (2nd argument)!! " << endl << endl; 
+    throw;  
+  }else
+    run = nrun;
+
+  // TCut globalcut_pi="bb.ps.e>0.08&&bb.ps.e<0.09";
+  // TCut globalcut_e="bb.tr.n==1&&abs(bb.tr.vz[0])<0.08&&abs(bb.tr.tg_th[0])<0.15&&abs(bb.tr.tg_ph[0])<0.3&&bb.gem.track.nhits>3&&bb.tr.p[0]>1.8&&bb.tr.p[0]<2.6&&sbs.hcal.e>0.025&&bb.ps.e>0.4";
+  TChain *C = new TChain("T");
+  C->Add(rfile);
+  cout << " Opened up tree with nentries = " << C->GetEntries() << endl;
+  elist = new TEventList("elist","ABC");
+  C->Draw(">>elist","bb.tr.n==1&&abs(bb.tr.vz[0])<0.08&&abs(bb.tr.tg_th[0])<0.15&&abs(bb.tr.tg_ph[0])<0.3&&bb.gem.track.nhits>3&&bb.tr.p[0]>1.8&&bb.tr.p[0]<2.6&&sbs.hcal.e>0.025&&bb.ps.e>0.22");
+  cout << " No of events passed global cut = " << elist->GetN() << endl;
 
   T = new gmn_tree(C);
-  event = -1;
+  Int_t event = -1;
 
   gCurrentEntry = event;
   while( user_input != "q" ) {

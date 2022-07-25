@@ -1,4 +1,4 @@
-**BBCal_replay** repository contains calibration and analysis scripts for BigBite Calorimeter (BBCal) which are being used for the data analysis of JLab Hall A SBS collaboration experiments.
+**BBCal_replay** repository contains calibration and analysis scripts for the BigBite Calorimeter (BBCal) which are being used for the data analysis of JLab Hall A SBS collaboration experiments.
 
 ## Contents
 1. Brief description of BBCal
@@ -39,5 +39,5 @@ During GMn run, BBCal cosmic calibration at the start of every SBS configuration
 
 ## 4. Contact:
 In case of any questions or concerns please contact the authors,
->Authors: Provakar Datta (UConn), Mark K. Jones (JLab), Arun Tadepalli (JLab) <br> 
->Contact: <provakar.datta@uconn.edu>
+>Authors: Provakar Datta (UConn), Mark K. Jones (JLab) <br> 
+>Contact: <pdbforce@jlab.org> (Provakar)

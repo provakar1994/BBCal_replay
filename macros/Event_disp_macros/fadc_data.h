@@ -5,6 +5,7 @@
 const Int_t MAX_FADC_SAMPLES = 250;
 const Int_t MAX_FADC_DATA_MODULES = 288;
 const Int_t MAX_FADC_DATA_TDC_MODULES = 288;
+const Int_t MAXNTRACKS = 1000;
 namespace fadc_datat {
   Double_t samps[MAX_FADC_DATA_MODULES*MAX_FADC_SAMPLES+1000];
   Double_t nsamps[MAX_FADC_DATA_MODULES+1000] = {0};
@@ -27,28 +28,30 @@ namespace fadc_datat {
 
   // Clustering
   Int_t cl_ndata_SH = 0;
-  Double_t cl_e_SH[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_e_c_SH[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_x_SH[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_y_SH[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_row_SH[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_col_SH[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_id_SH[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_nblk_SH[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_eblk_SH[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_eblk_c_SH[MAX_FADC_DATA_MODULES+1000] = {0};
+  Double_t cl_e_SH[MAXNTRACKS] = {0};
+  Double_t cl_e_c_SH[MAXNTRACKS] = {0};
+  Double_t cl_x_SH[MAXNTRACKS] = {0};
+  Double_t cl_y_SH[MAXNTRACKS] = {0};
+  Double_t cl_row_SH[MAXNTRACKS] = {0};
+  Double_t cl_col_SH[MAXNTRACKS] = {0};
+  Double_t cl_id_SH[MAXNTRACKS] = {0};
+  Double_t cl_nclus_SH[MAXNTRACKS] = {0};  
+  Double_t cl_nblk_SH[MAXNTRACKS] = {0};
+  Double_t cl_eblk_SH[MAXNTRACKS] = {0};
+  Double_t cl_eblk_c_SH[MAXNTRACKS] = {0};
 
   Int_t cl_ndata_PS = 0;
-  Double_t cl_e_PS[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_e_c_PS[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_x_PS[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_y_PS[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_row_PS[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_col_PS[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_id_PS[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_nblk_PS[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_eblk_PS[MAX_FADC_DATA_MODULES+1000] = {0};
-  Double_t cl_eblk_c_PS[MAX_FADC_DATA_MODULES+1000] = {0};
+  Double_t cl_e_PS[MAXNTRACKS] = {0};
+  Double_t cl_e_c_PS[MAXNTRACKS] = {0};
+  Double_t cl_x_PS[MAXNTRACKS] = {0};
+  Double_t cl_y_PS[MAXNTRACKS] = {0};
+  Double_t cl_row_PS[MAXNTRACKS] = {0};
+  Double_t cl_col_PS[MAXNTRACKS] = {0};
+  Double_t cl_id_PS[MAXNTRACKS] = {0};
+  Double_t cl_nclus_PS[MAXNTRACKS] = {0};
+  Double_t cl_nblk_PS[MAXNTRACKS] = {0};
+  Double_t cl_eblk_PS[MAXNTRACKS] = {0};
+  Double_t cl_eblk_c_PS[MAXNTRACKS] = {0};
 };
 
 void fixStats()
