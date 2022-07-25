@@ -1,3 +1,10 @@
+/*
+  This script generates enent display for both SH and PS along with 
+  BigBite tracking info.
+  -----
+  P. Datta <pdbforce@jlab.org> Created Oct, 2021
+*/
+
 #include <TH2.h>
 #include <TH2F.h>
 #include <TChain.h>
@@ -464,7 +471,8 @@ void clicked_displayEntryButton()
 }
 
 
- Int_t bbcal_clustD(const char* rfile="", 
+ Int_t bbcal_clustD(const char* rfile="",
+		    TCut cut="",
 		    Int_t nrun=-1, 
 		    bool gt1ClInfo=0, 
 		    bool ADCpBlk=0)
@@ -480,18 +488,17 @@ void clicked_displayEntryButton()
   }else
     run = nrun;
 
-  // TCut globalcut_pi="bb.ps.e>0.08&&bb.ps.e<0.09";
-  // TCut globalcut_e="bb.tr.n==1&&abs(bb.tr.vz[0])<0.08&&abs(bb.tr.tg_th[0])<0.15&&abs(bb.tr.tg_ph[0])<0.3&&bb.gem.track.nhits>3&&bb.tr.p[0]>1.8&&bb.tr.p[0]<2.6&&sbs.hcal.e>0.025&&bb.ps.e>0.4";
   TChain *C = new TChain("T");
   C->Add(rfile);
   cout << " Opened up tree with nentries = " << C->GetEntries() << endl;
   elist = new TEventList("elist","ABC");
-  C->Draw(">>elist","bb.tr.n==1&&abs(bb.tr.vz[0])<0.08&&abs(bb.tr.tg_th[0])<0.15&&abs(bb.tr.tg_ph[0])<0.3&&bb.gem.track.nhits>3&&bb.tr.p[0]>1.8&&bb.tr.p[0]<2.6&&sbs.hcal.e>0.025&&bb.ps.e>0.22");
+  C->Draw(">>elist",cut);
   cout << " No of events passed global cut = " << elist->GetN() << endl;
 
   T = new gmn_tree(C);
   Int_t event = -1;
 
+  return 0;
   gCurrentEntry = event;
   while( user_input != "q" ) {
     if(is_number(user_input)) {
