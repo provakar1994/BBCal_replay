@@ -1,3 +1,7 @@
+/* 
+   This script generates event display with the FADC waveforms for BBSH.
+*/
+
 #include <TH2F.h>
 #include <TChain.h>
 #include <TCanvas.h>
@@ -189,13 +193,13 @@ void displayEvent(Int_t entry = -1)
     }
     if(r>= kNrows || c >= kNcols)
       continue;
-    Int_t ihit_samps = r*kNcols+c;
-    idx = fadc_datat::samps_idx[ihit_samps];
-    n = fadc_datat::nsamps[ihit_samps];
+    Int_t m = r*kNcols+c;
+    idx = fadc_datat::samps_idx[m];
+    n = fadc_datat::nsamps[m];
     adc[r][c] = fadc_datat::a[ihits];
     tdc[r][c] = fadc_datat::tdc[ihits];
     amp[r][c] = fadc_datat::amp[ihits];
-    //std::cout << "n=" << fadc_datat::nsamps[ihits] << std::endl;
+    //std::cout << "n=" << fadc_datat::nsamps[m] << std::endl;
     bool displayed = false;
     for(Int_t s = DISP_MIN_SAMPLE; s < DISP_MAX_SAMPLE && s < n; s++) {
       displayed = true;

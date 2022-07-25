@@ -1,3 +1,7 @@
+/* 
+   This script generates event display with the FADC waveforms for BBSH.
+*/
+
 #include <TH2F.h>
 #include <TChain.h>
 #include <TCanvas.h>
@@ -155,7 +159,7 @@ void displayEvent(Int_t entry = -1)
 
   T->GetEntry(elist->GetEntry(gCurrentEntry));
   //T->GetEntry(gCurrentEntry);
-  std::cout << "Displaying event " << gCurrentEntry << std::endl;
+  //std::cout << "Displaying event " << gCurrentEntry << std::endl;
   psgui::ledLabel->SetText(TString::Format("LED Bit: %02d, Count: %5d",Int_t(fadc_datat::ledbit),Int_t(fadc_datat::ledcount)));
 
   Int_t r,c,idx,n,sub;
@@ -218,25 +222,26 @@ void displayEvent(Int_t entry = -1)
       sub = r/7;
       //subCanv[sub]->cd(c*kNrows + r + 1);
       subCanv[sub]->cd((r%7)*kNcols + c + 1);
-      histos[r][c]->SetTitle(TString::Format("%d-%d (ADC=%g,TDC=%g)",r+1,c+1,adc[r][c],tdc[r][c]));
+      //histos[r][c]->SetTitle(TString::Format("%d-%d (ADC=%g,TDC=%g)",r+1,c+1,adc[r][c],tdc[r][c]));
+      histos[r][c]->SetTitle(TString::Format("%d-%d (ADC=%g)",r+1,c+1,adc[r][c]));
       if(gSaturated[r][c])
         histos[r][c]->SetLineColor(kRed+1);
       else
         histos[r][c]->SetLineColor(kBlue+1);
       if(tdc[r][c]!=0)
         histos[r][c]->SetLineColor(kGreen+1);
-      TLine* L = new TLine(tdc[r][c]/4.0, 0, tdc[r][c]/4.0, peak[r][c]);
-      L->SetLineColor(kMagenta+1);
-      L->SetLineWidth(2);
+      // TLine* L = new TLine(tdc[r][c]/4.0, 0, tdc[r][c]/4.0, peak[r][c]);
+      // L->SetLineColor(kMagenta+1);
+      // L->SetLineWidth(2);
       histos_amp[r][c]->SetLineColor(kBlack);
       
-      if(histos_amp[r][c]->GetMaximum()>histos[r][c]->GetMaximum())
-	histos[r][c]->SetMaximum(histos_amp[r][c]->GetMaximum()*1.1);
+      // if(histos_amp[r][c]->GetMaximum()>histos[r][c]->GetMaximum())
+      // 	histos[r][c]->SetMaximum(histos_amp[r][c]->GetMaximum()*1.1);
       histos[r][c]->Draw();
-      histos_amp[r][c]->Draw("same");
-      if(tdc[r][c]!=0)L->Draw("same");
+      // histos_amp[r][c]->Draw("same");
+      // if(tdc[r][c]!=0)L->Draw("same");
       gPad->Update();
-      std::cout << " [" << r << ", " << c << "]=" << peak[r][c];
+      //std::cout << " [" << r << ", " << c << "]=" << peak[r][c];
     }
   }
   std::cout << std::endl;
@@ -261,7 +266,7 @@ void clicked_displayEntryButton()
 }
 
 
-Int_t display(const char* rfile="", Int_t run = 290, Int_t event = -1)
+Int_t display_ps(const char* rfile="", Int_t run = 290, Int_t event = -1)
 {
   psgui::SetupGUI();
   gStyle->SetLabelSize(0.05,"XY");
@@ -272,7 +277,7 @@ Int_t display(const char* rfile="", Int_t run = 290, Int_t event = -1)
     //T->Add(TString::Format("~/sbs/Rootfiles/bbshower_%d_%d.root",run,event));
     T->Add(rfile);
     cout << " Opened up tree with nentries = " << T->GetEntries() << endl;
-    T->SetBranchStatus("*",0);
+    //T->SetBranchStatus("*",0);
     T->SetBranchStatus("bb.ps.*",1);
     T->SetBranchAddress("bb.ps.nsamps",fadc_datat::nsamps);
     T->SetBranchAddress("bb.ps.a",fadc_datat::a);
