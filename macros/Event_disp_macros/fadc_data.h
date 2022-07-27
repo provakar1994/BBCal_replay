@@ -27,27 +27,27 @@ namespace fadc_datat {
   Double_t ledcount = 0;
 
   // Clustering
-  Int_t cl_ndata_SH = 0;
+  Int_t cl_ndata = 0;
   Double_t cl_e_SH[MAXNTRACKS] = {0};
   Double_t cl_e_c_SH[MAXNTRACKS] = {0};
   Double_t cl_x_SH[MAXNTRACKS] = {0};
   Double_t cl_y_SH[MAXNTRACKS] = {0};
   Double_t cl_row_SH[MAXNTRACKS] = {0};
   Double_t cl_col_SH[MAXNTRACKS] = {0};
-  Double_t cl_id_SH[MAXNTRACKS] = {0};
+  Double_t cl_idblk_SH[MAXNTRACKS] = {0};
   Double_t cl_nclus_SH[MAXNTRACKS] = {0};  
   Double_t cl_nblk_SH[MAXNTRACKS] = {0};
   Double_t cl_eblk_SH[MAXNTRACKS] = {0};
   Double_t cl_eblk_c_SH[MAXNTRACKS] = {0};
 
-  Int_t cl_ndata_PS = 0;
+
   Double_t cl_e_PS[MAXNTRACKS] = {0};
   Double_t cl_e_c_PS[MAXNTRACKS] = {0};
   Double_t cl_x_PS[MAXNTRACKS] = {0};
   Double_t cl_y_PS[MAXNTRACKS] = {0};
   Double_t cl_row_PS[MAXNTRACKS] = {0};
   Double_t cl_col_PS[MAXNTRACKS] = {0};
-  Double_t cl_id_PS[MAXNTRACKS] = {0};
+  Double_t cl_idblk_PS[MAXNTRACKS] = {0};
   Double_t cl_nclus_PS[MAXNTRACKS] = {0};
   Double_t cl_nblk_PS[MAXNTRACKS] = {0};
   Double_t cl_eblk_PS[MAXNTRACKS] = {0};

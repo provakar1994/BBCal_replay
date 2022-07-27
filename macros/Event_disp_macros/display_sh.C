@@ -175,11 +175,13 @@ void displayEvent(Int_t entry = -1)
   Float_t peak[kNrows][kNcols];
   Double_t adc[kNrows][kNcols];
   Double_t tdc[kNrows][kNcols];
+  bool inclus[kNrows][kNcols];
   for(r  = 0; r < kNrows; r++) {
     for(c  = 0; c < kNcols; c++) {
       peak[r][c] = 0.0;
       adc[r][c] = 0.0;
       tdc[r][c] = 0.0;
+      inclus[r][c] = 0;
     }
   }
   Int_t rmax=0, cmax=0;
@@ -187,13 +189,19 @@ void displayEvent(Int_t entry = -1)
   for(Int_t ihits = 0; ihits < fadc_datat::ndata; ihits++) {
     r = fadc_datat::row[ihits];//-1;
     c = fadc_datat::col[ihits];//-1;
+    Int_t m = r*kNcols+c;
     if(r < 0 || c < 0) {
       std::cerr << "Why is row negative? Or col?" << std::endl;
       continue;
     }
     if(r>= kNrows || c >= kNcols)
       continue;
-    Int_t m = r*kNcols+c;
+
+    for(Int_t ihit=0;ihit<fadc_datat::cl_ndata;ihit++){
+      Int_t nblk = fadc_datat::cl_idblk_SH[ihit];
+      if(nblk==m) inclus[r][c]=1;
+    }
+
     idx = fadc_datat::samps_idx[m];
     n = fadc_datat::nsamps[m];
     adc[r][c] = fadc_datat::a[ihits];
@@ -235,7 +243,7 @@ void displayEvent(Int_t entry = -1)
         histos[r][c]->SetLineColor(kRed+1);
       else
         histos[r][c]->SetLineColor(kBlue+1);
-      if(tdc[r][c]!=0)
+      if(inclus[r][c])
         histos[r][c]->SetLineColor(kGreen+1);
       // TLine* L = new TLine(tdc[r][c]/4.0, 0, tdc[r][c]/4.0, peak[r][c]);
       // L->SetLineColor(kMagenta+1);
@@ -300,9 +308,8 @@ Int_t display_sh(const char* rfile="", TCut cut="", Int_t run=290)
     T->SetBranchAddress("bb.sh.adccol",fadc_datat::col);
     T->SetBranchStatus("Ndata.bb.sh.adcrow",1);
     T->SetBranchAddress("Ndata.bb.sh.adcrow",&fadc_datat::ndata);
-    T->SetBranchAddress("bb.sh.nclus",&fadc_datat::cl_nclus_SH);
-    T->SetBranchAddress("bb.ps.nclus",&fadc_datat::cl_nclus_PS);
-    //T->SetBranchAddress("bb.sh.clus_blk.e",&fadc_datat::cl_eblk_SH);
+    T->SetBranchAddress("Ndata.bb.sh.clus_blk.id",&fadc_datat::cl_ndata);
+    T->SetBranchAddress("bb.sh.clus_blk.id",&fadc_datat::cl_idblk_SH);
 
     elist = new TEventList("elist","ABC");
     //T->Draw(">>elist","bb.tr.n==1&&abs(bb.tr.vz[0])<0.08&&abs(bb.tr.tg_th[0])<0.15&&abs(bb.tr.tg_ph[0])<0.3&&bb.gem.track.nhits>3&&bb.tr.p[0]>1.8&&bb.tr.p[0]<2.6&&sbs.hcal.e>0.025&&bb.ps.e>0.22");
