@@ -258,7 +258,7 @@ void bbsh_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
     //TString dataDIR = gSystem->Getenv("OUT_DIR");
     for(int rn=0; rn<nRuns; rn++){
       TString filename = Form("../../Rootfiles/bbshower_%d_%d.root",runList[rn],eventsReplayed[rn]);
-      TString filename_seg = Form("../../Rootfiles/bbshower_%d_%d_seg_*.root", 
+      TString filename_seg = Form("../../Rootfiles/bbshower_%d_%d_*.root", 
 				  runList[rn],eventsReplayed[rn]);
       T->Add(filename);
       T->Add(filename_seg);
