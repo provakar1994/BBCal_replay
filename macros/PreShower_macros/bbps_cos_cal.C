@@ -650,7 +650,7 @@ void processEvent( int entry, bool trigAmp ){
 	  }
 	}      
       }else{ // col 1 : PS L 
-	if( r==0 ){      
+	if( r==0 ){ // Bottom row     
 	  if( (gPulse[r+2][c+1]==true&&gPulse[r+3][c+1]==true) ){ //&&(gPulse[r+1][c]==false) ){
 	    if(trigAmp) {
 	      hADCamp[r][c]->Fill( trigTofadc_ratiosPS[m]*adc_amp[r][c] ); 
@@ -659,7 +659,7 @@ void processEvent( int entry, bool trigAmp ){
 	    }
 	    hamptointratio[r][c]->Fill( adc[r][c]/adc[r][c] ); 	
 	  }	
-	}else if( r==(kNrows-1) ){
+	}else if( r==(kNrows-1) ){  // Top row
 	  if( (gPulse[r-1][c+1]==true&&gPulse[r][c+1]==true) ){ //&&(gPulse[r+1][c]==false) ){
 	    if(trigAmp) {
 	      hADCamp[r][c]->Fill( trigTofadc_ratiosPS[m]*adc_amp[r][c] ); 
@@ -668,8 +668,8 @@ void processEvent( int entry, bool trigAmp ){
 	    }
 	    hamptointratio[r][c]->Fill( adc[r][c]/adc[r][c] ); 	      	
 	  }
-	}else{
-	  if( (gPulse[r-1][c+1]==true&&gPulse[r+2][c+1]==true) ){ //&&(gPulse[r][c+1]==true&&gPulse[r+3][c+1]==true)&&(gPulse[r+1][c]==false) ){
+	}else{ // All other blocks
+	  if( (gPulse[r][c+1]==true&&gPulse[r+2][c+1]==true) ){ //&&(gPulse[r][c+1]==true&&gPulse[r+3][c+1]==true)&&(gPulse[r+1][c]==false) ){
 	    if(trigAmp) {
 	      hADCamp[r][c]->Fill( trigTofadc_ratiosPS[m]*adc_amp[r][c] ); 
 	    }else{
