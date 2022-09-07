@@ -645,7 +645,7 @@ void processEvent( int entry = -1, bool trigAmp = 0 ){
       }
 
       // *** Special case : We need this when a block doesn't have signal -----
-      // else if(m==99){
+      // else if (m == 27) { // m = block with no signal - 7
       // 	if( (gPulse[r][c+1]&&gPulse[r+3][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2]) ){
       // 	  if(trigAmp) {
       // 	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
@@ -654,7 +654,7 @@ void processEvent( int entry = -1, bool trigAmp = 0 ){
       // 	  }
       // 	  hamptointratio[r][c]->Fill( adc_amp[r][c]/adc[r][c] );  
       // 	}
-      // }else if(m==85){
+      // } else if (m == 41) { // m = block with no signal + 7
       // 	if( (gPulse[r-1][c+1]&&gPulse[r+2][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2]) ){
       // 	  if(trigAmp) {
       // 	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
