@@ -4,10 +4,12 @@
    using a polynomial to extract alpha values for individual PreShower 
    PMTs. NOTE: This script reads peak positions and HV settings for
    each cosmic run during execution. One can get the peak positions 
-   by executing bbps_cos_cal.C script. Be careful while while choosing
-   signal peaks at trigger or FADC, the choice needs to be consistent 
-   between these two scripts. Using trigger amplitude everywhere is 
-   recommended. Example execution:
+   by executing bbps_cos_cal.C script.  PreShower_HV_Peak_v2.C can take either 
+   trigger amplitudes or FADC amplitudes as input. But be very careful 
+   while while choosing one input or another, the choice needs to be 
+   consistent between both the scripts. Giving trigger amplitudes as
+   input to this script is recommended. 
+   Example execution:
    ----
    [a-onl@aonl2 macros]$ pwd
    /adaqfs/home/a-onl/sbs/BBCal_replay/macros
@@ -17,9 +19,8 @@
    root [2] AddRun(<runnumber2>)
    root [3] [.. add as many runs as you want]
    root [4] FitRuns(<peak_pos>)  
-            #peak_pos = -1 => desired signal peak postion at trigger. 
-	    #peak_pos != -1 => desired signal peak postion at FADC (mV). 
-   root [1] WriteHV()  #writes calibrated HV setting for peak_pos
+            #peak_pos = -1 => Use in case one wants to give FADC peak positions as input. 
+   root [1] WriteHV()  #writes calibrated HV setting for desired peak position.
    ----
    M. K. Jones  Created
    P. Datta     Edited
@@ -59,7 +60,7 @@ using namespace std;
 static const Int_t psNCol=2;
 static const Int_t psNRow=26;
 
-Double_t Peak_Desired = 300.; // 
+Double_t Peak_Desired = 10.; // 
 Double_t desTrigamp = 0.;
 bool trigtoFADC_ratio = false;
 
@@ -389,7 +390,12 @@ void ReadHist(Int_t nrun) {
 }
 
 void ReadPeak(Int_t nrun) {
-  string InFile = Form("Output/run_%d_ps_peak_FADC.txt",nrun);
+  // string InFile = Form("Output/run_%d_ps_peak_FADC.txt",nrun);
+  string InFile;
+  if (!trigtoFADC_ratio)
+    InFile = Form("Output/run_%d_ps_peak_Trigger.txt",nrun);
+  else
+    InFile = Form("Output/run_%d_ps_peak_FADC.txt",nrun);
   ifstream infile_data;
   infile_data.open(InFile);
   string readline;
