@@ -11,7 +11,7 @@
 # Validating the number of arguments provided
 if [[ "$#" -ne 2 ]]; then
     echo -e "\n--!--\n Illegal number of arguments!!"
-    echo -e " This script expects two arguments: <nrun> <desired_trigger_amplitude> \n"
+    echo -e " This script expects two arguments: <nrun> <desired_trigger_amplitude(mV)> \n"
     exit;
 fi
 
@@ -24,23 +24,23 @@ slowc_dir=/adaqfs/home/aslow/JAVA/slowc_bbcal/BBCAL/hv_set
 # Let's check whether the input HV file for the recent run exists or not. 
 HV_FILE1=${PWD}/hv_set/$inputHV
 HV_FILE2=$slowc_dir/$inputHV
-if [[ -f  "$HV_FILE2" && ! -f "HV_FILE1" ]]; then
+if [[ -f  $HV_FILE2 && ! -f $HV_FILE1 ]]; then
     while true; do
 	echo -e " \n ----<< Found '$inputHV' in adaqsc but not in aonlX! >>---- \n "
-	read -p " Want to copy the file to aonlX? " yn
+	read -p " Want to copy the file to aonlX? [Y/N] " yn
 	case $yn in
 	    [Yy]*)
 		scp aslow@adaqsc:$HV_FILE2 ${PWD}/hv_set/;
 		break; ;;
 	    [Nn]*)
 		echo -e "\n--!--\n HV file for run "$1" doesn't exist!!"
-		echo " Please create the proper hv_set/'$inputHV' file and try again."
+		echo " Please create the proper hv_set/$inputHV file and try again."
 		echo -e "--!--\n" ;
 		exit;
 	esac
     done
 fi
-if [[ ! -f  "$HV_FILE1" && "$HV_FILE2" ]]; then
+if [[ ! -f  $HV_FILE1 && $HV_FILE2 ]]; then
     while true; do
 	echo "-----"
 	echo " Was the defalut 25 mV HV setting used for this run? [Y/N] "
