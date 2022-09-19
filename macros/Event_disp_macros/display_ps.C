@@ -232,7 +232,7 @@ void displayEvent(Int_t entry = -1)
       //subCanv[sub]->cd(c*kNrows + r + 1);
       subCanv[sub]->cd((r%7)*kNcols + c + 1);
       //histos[r][c]->SetTitle(TString::Format("%d-%d (ADC=%g,TDC=%g)",r+1,c+1,adc[r][c],tdc[r][c]));
-      histos[r][c]->SetTitle(TString::Format("%d-%d (ADC=%g)",r+1,c+1,adc[r][c]));
+      histos[r][c]->SetTitle(TString::Format("%d-%d (ADCamp=%gmV)",r+1,c+1,adc[r][c]));
       if(gSaturated[r][c])
         histos[r][c]->SetLineColor(kRed+1);
       else
