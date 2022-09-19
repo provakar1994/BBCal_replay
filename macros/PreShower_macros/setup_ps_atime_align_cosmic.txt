@@ -1,0 +1,9 @@
+../../Rootfiles/bbshower_1462_500000*
+endlist
+Multiple_runs 0
+fst_run 1462
+lst_run 1462
+target_atime 40
+nBins 80
+h_min 20.
+h_max 60.
