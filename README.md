@@ -1,4 +1,4 @@
-**BBCal_replay** repository contains calibration and analysis scripts for the BigBite Calorimeter (BBCal) which are being used for the data analysis of JLab Hall A SBS collaboration experiments.
+**BBCal_replay** repository contains calibration and analysis scripts for the BigBite Calorimeter (BBCal), which is an integral part of the BigBite Spectrometer that is being used in the Jefferson Lab's Hall A SBS collaboration experiments to detect scattered electrons.
 
 ## Contents
 1. Brief description of BBCal
