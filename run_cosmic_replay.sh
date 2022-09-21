@@ -8,9 +8,13 @@
 # BB Shower and PreShower. Example execution: 
 #./run_cosmic_replay.sh <nrun> <nevent>
 
+## Choice of experiment
+GMn="e1209019"
+GEn="e1209016"
+
 module purge
 module load analyzer
 
 cd replay
-analyzer -b -q 'replay_BBCal.C+('$1','$2')'
+analyzer -b -q 'replay_BBCal.C+('$1','$2',"'$GEn'")'
 
