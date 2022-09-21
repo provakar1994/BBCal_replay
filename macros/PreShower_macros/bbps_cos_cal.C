@@ -246,6 +246,8 @@ void bbps_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
       TString filename = Form("../../Rootfiles/bbshower_%d_%d.root",runList[rn],eventsReplayed[rn]);
       TString filename_seg = Form("../../Rootfiles/bbshower_%d_%d_*.root", 
 				  runList[rn],eventsReplayed[rn]);
+      // TString filename_seg = Form("../../Rootfiles/bbshower_%d_%d_seg_*.root", 
+      // 				  runList[rn],eventsReplayed[rn]); // use this for runs replayed during GMn time
       T->Add(filename);
       T->Add(filename_seg);
     }    

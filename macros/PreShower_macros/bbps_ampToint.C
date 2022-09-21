@@ -165,7 +165,8 @@ void bbps_ampToint ( int run = 366, int event = -1 ){
     T = new TChain("T");
     //TString dataDIR = gSystem->Getenv("OUT_DIR");
     TString filename = Form("../../Rootfiles/bbshower_%d_%d.root", run, event);
-    TString filename_seg = Form("../../Rootfiles/bbshower_%d_%d_seg_*.root", run, event);
+    TString filename_seg = Form("../../Rootfiles/bbshower_%d_%d_*.root", run, event);
+    // TString filename_seg = Form("../../Rootfiles/bbshower_%d_%d_seg_*.root", run, event); // use this for runs replayed during GMn time
 
 
     T->Add(filename);
