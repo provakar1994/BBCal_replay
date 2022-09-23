@@ -44,17 +44,19 @@ if [[ ! -f  $HV_FILE1 && $HV_FILE2 ]]; then
     while true; do
 	echo "-----"
 	echo " Was the defalut 25 mV HV setting used for this run? [Y/N] "
-	echo " [i.e. hv_set/hv_updated_sh_ps_25mV_11_6_21.set] " 
+	# defaultHV="hv_updated_sh_ps_25mV_11_6_21.set"          #GMn
+	defaultHV="hv_calibrated_run_1462_25mV_09_18_2022.set"   #GEn
+	echo " [i.e. hv_set/$defaultHV] "
 	read -p "" yn
 	case $yn in
 	    [Yy]*) # If yes, make a copy of the default settings
-		cp hv_set/hv_updated_sh_ps_25mV_11_6_21.set hv_set/run_$1_hv.set; 
-		echo -e "-----\n hv_set/'$inputHV' created.\n-----\n"; 
+		cp hv_set/$defaultHV hv_set/$inputHV
+		echo -e "-----\n hv_set/$inputHV created.\n-----\n" 
 		break; ;;
 	    [Nn]*) 
 		echo -e "\n--!--\n HV file for run "$1" doesn't exist!!"
-		echo " Please create the proper hv_set/'$inputHV' file and try again."
-		echo -e "--!--\n" ;
+		echo " Please create the proper hv_set/$inputHV file and try again."
+		echo -e "--!--\n" 
 		exit;
 	esac
     done
