@@ -62,6 +62,22 @@ if [[ ! -f  $HV_FILE1 && $HV_FILE2 ]]; then
     done
 fi
 
+# Check for the existance of files with trigger peak positions
+pstrigpeak="Output/run_"$1"_ps_peak_Trigger.txt"
+shtrigpeak="Output/run_"$1"_sh_peak_Trigger.txt"
+if [[ ! -f $pstrigpeak ]]; then
+    echo -e "\n--!--\n "$pstrigpeak" doesn't exist!! <---- Attention!"
+    echo " Please analyze PS data and try again."
+    echo -e "--!--\n"  
+    exit;
+fi
+if [[ ! -f $shtrigpeak ]]; then
+    echo -e "\n--!--\n "$shtrigpeak" doesn't exist!! <---- Attention!"
+    echo " Please analyze SH data and try again."
+    echo -e "--!--\n" 
+    exit;   
+fi
+
 # Calculating preshower HVs
 echo -e "\n ----=====<< Getting PreShower HVs >>=====---- \n"
 sleep 2
