@@ -252,6 +252,14 @@ void bbps_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
       T->Add(filename_seg);
     }    
 
+    // check for the existance of the rootfile
+    if (T->GetEntries() == 0) {
+      cerr << endl << " !!!!!!!!!!!!!!! ERROR !!!!!!!!!!!!!!! " << endl
+	   << " 0 events found! Most Probably Rootfile Doesn't exit " << endl
+	   << " ------------------------------------- " << endl << endl;
+      throw;
+    }
+
     T->SetBranchStatus("*",0);
     T->SetBranchStatus("bb.ps.*",1);
     T->SetBranchAddress("bb.ps.a_p",fadc_datat::a);

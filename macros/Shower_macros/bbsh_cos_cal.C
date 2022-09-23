@@ -264,6 +264,14 @@ void bbsh_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
       T->Add(filename_seg);
     }    
 
+    // check for the existance of the rotfile
+    if (T->GetEntries() == 0) {
+      cerr << endl << " !!!!!!!!!!!!!!! ERROR !!!!!!!!!!!!!!! " << endl
+	   << " 0 events found! Most Probably Rootfile Doesn't exit " << endl
+	   << " ------------------------------------- " << endl << endl;
+      throw;
+    }
+
     T->SetBranchStatus("*",0);
     T->SetBranchStatus("bb.sh.*",1);
     T->SetBranchAddress("bb.sh.a_p",fadc_datat::a);
