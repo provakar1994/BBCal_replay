@@ -24,13 +24,33 @@ def read_sh_hv(lines):
 
     return shhv
 
-with open('hv_set/hv_calibrated_run_11845_15mV_11_18_2021.set', 'r') as f:
-    lines = f.readlines()
+with open('hv_set/hv_updated_sh_ps_20mV_10_11_2021.set', 'r') as f:
+    lines0 = f.readlines()
 
-shhv = read_sh_hv(lines)
-shhv = [eval(i) for i in shhv]
+with open('hv_set/hv_calibrated_run_13137_20mV_1_10_2022.set', 'r') as f:
+    lines1 = f.readlines()
+
+with open('hv_set/hv_calibrated_run_1462_20mV_09_18_2022.set', 'r') as f:
+    lines2 = f.readlines()
+
+shhv0 = read_sh_hv(lines0)
+shhv0 = [eval(i) for i in shhv0]
+
+shhv1 = read_sh_hv(lines1)
+shhv1 = [eval(i) for i in shhv1]
+
+shhv2 = read_sh_hv(lines2)
+shhv2 = [eval(i) for i in shhv2]
 
 #print(shhv)
 
-plt.plot(shhv, 'o')
+plt.plot(shhv0, 'o', color='green', label='Oct 11, 2021')
+plt.plot(shhv1, 'o', color='blue', label='Jan 10, 2022')
+plt.plot(shhv2, 'o', color='red', label='Sep 18, 2022')
+
+plt.title('Shower HV Overlay [20mV Trigger Amplitude]')
+plt.xlabel('Shower Block')
+plt.ylabel('HV (V)')
+plt.legend()
+plt.grid()
 plt.show()
