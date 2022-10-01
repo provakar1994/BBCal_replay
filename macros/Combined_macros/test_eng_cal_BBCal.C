@@ -99,19 +99,25 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
   // Reading config file
   ifstream configfile(configfilename);
   char runlistfile[1000]; 
-  TString currentline, readline;
+  // TString currentline, readline;
+  // while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endRunlist") ){
+  //   if( !currentline.BeginsWith("#") ){
+  //     sprintf(runlistfile,"%s",currentline.Data());
+  //     ifstream run_list(runlistfile);
+  //     while( readline.ReadLine( run_list ) && !readline.BeginsWith("endlist") ){
+  // 	if( !readline.BeginsWith("#") ){
+  // 	  cout << readline << endl;
+  // 	  C->Add(readline);
+  // 	}
+  //     }   
+  //   } 
+  // }
+  TString currentline;
   while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endRunlist") ){
     if( !currentline.BeginsWith("#") ){
-      sprintf(runlistfile,"%s",currentline.Data());
-      ifstream run_list(runlistfile);
-      while( readline.ReadLine( run_list ) && !readline.BeginsWith("endlist") ){
-	if( !readline.BeginsWith("#") ){
-	  cout << readline << endl;
-	  C->Add(readline);
-	}
-      }   
-    } 
-  }
+      C->Add(currentline);
+    }   
+  } 
   TCut globalcut = "";
   while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endcut") ){
     if( !currentline.BeginsWith("#") ){
