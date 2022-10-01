@@ -49,6 +49,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
 
   TChain *C = new TChain("T");
+  TEntryList *elist = (TEntryList*)gDirectory->Get("elist");
 
   Int_t Set=0;
   Int_t Nmin=10;
@@ -459,6 +460,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
       // storing good event numbers for 2nd loop
       goodevents.push_back(nevent);
+      elist->Enter(nevent, C);
 
       // Loop over all the blocks in main cluster and fill in A's
       for(Int_t blk=0; blk<shNblk; blk++){
@@ -659,15 +661,14 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   }
   cout << endl;
 
-  Int_t Ngevents = goodevents.size(); nevent = 0;
-  cout << "Looping over good events to get diagnostic plots.." << endl; 
-  for (auto it : goodevents) {
-    C->GetEntry(it);
+  nevent = 0;
+  cout << "Looping over events again to check calibration.." << endl; 
+  while(C->GetEntry( elist->GetEntry(nevent++) )) {
 
-    if( nevent % 100 == 0 ) cout << nevent << "/" << Ngevents  << "\r";;
+    if( nevent % 100 == 0 ) cout << nevent << "/" << Nevents  << "\r";;
     cout.flush();    
 
-    p_rec = (trP[0])*p_rec_Offset; 
+    p_rec = trP[0] * p_rec_Offset; 
 
     // ****** Shower ******
     Double_t shClusE = 0.;
@@ -690,16 +691,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     h_SHclusE_calib->Fill( shClusE );
     h_PSclusE_calib->Fill( psClusE );
     h2_EovP_vs_P_calib->Fill( p_rec, clusEngBBCal/p_rec );
-    nevent++;
   }
   cout << endl << endl;
-
-  // for(Int_t shrow = 0; shrow<kNrowsSH; shrow++){
-  //   for(Int_t shcol = 0; shcol<kNcolsSH; shcol++){
-  //     cout << newADCgratioSH[shrow*kNcolsSH+shcol] << " ";
-  //   }
-  //   cout << endl;
-  // }
 
   fout->Write();
   fout->Close();
