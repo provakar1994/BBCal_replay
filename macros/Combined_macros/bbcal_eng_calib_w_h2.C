@@ -331,30 +331,17 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   gStyle->SetOptStat(0);
   gStyle->SetPalette(60);
-  TH2D *h2_SHeng_vs_SHblk_raw = new TH2D("h2_SHeng_vs_SHblk_raw","Raw E_clus(SH) per SH block",
-					kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_EovP_vs_SHblk_raw = new TH2D("h2_EovP_vs_SHblk_raw","Raw E_clus/p_rec per SH block",
-				      kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_count = new TH2D("h2_count","Count for E_clus/p_rec per per SH block",
-			    kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_EovP_vs_SHblk_trPOS_raw = new TH2D("h2_EovP_vs_SHblk_trPOS_raw",
-					      "Raw E_clus/p_rec per SH block(TrPos)",
-					      kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
-  TH2D *h2_count_trP = new TH2D("h2_count_trP","Count for E_clus/p_rec per per SH block(TrPos)",
-				kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
+  TH2D *h2_SHeng_vs_SHblk_raw = new TH2D("h2_SHeng_vs_SHblk_raw","Raw E_clus(SH) per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_EovP_vs_SHblk_raw = new TH2D("h2_EovP_vs_SHblk_raw","Raw E_clus/p_rec per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_count = new TH2D("h2_count","Count for E_clus/p_rec per per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_EovP_vs_SHblk_trPOS_raw = new TH2D("h2_EovP_vs_SHblk_trPOS_raw","Raw E_clus/p_rec per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
+  TH2D *h2_count_trP = new TH2D("h2_count_trP","Count for E_clus/p_rec per per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
 
-  TH2D *h2_PSeng_vs_PSblk_raw = new TH2D("h2_PSeng_vs_PSblk_raw","Raw E_clus(PS) per PS block",
-					kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_EovP_vs_PSblk_raw = new TH2D("h2_EovP_vs_PSblk_raw","Raw E_clus/p_rec per PS block",
-				      kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_count_PS = new TH2D("h2_count_PS","Count for E_clus/p_rec per per PS block",
-			       kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_EovP_vs_PSblk_trPOS_raw = new TH2D("h2_EovP_vs_PSblk_trPOS_raw",
-					      "Raw E_clus/p_rec per PS block(TrPos)",
-					    kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
-  TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec"
-				   " per per PS block(TrPos)",
-				   kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
+  TH2D *h2_PSeng_vs_PSblk_raw = new TH2D("h2_PSeng_vs_PSblk_raw","Raw E_clus(PS) per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_EovP_vs_PSblk_raw = new TH2D("h2_EovP_vs_PSblk_raw","Raw E_clus/p_rec per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_count_PS = new TH2D("h2_count_PS","Count for E_clus/p_rec per per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_EovP_vs_PSblk_trPOS_raw = new TH2D("h2_EovP_vs_PSblk_trPOS_raw","Raw E_clus/p_rec per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
+  TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec per per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
   // Creating output ROOT file to contain histograms
   outFile = Form("hist/eng_cal_BBCal_%d.root", Set);
@@ -455,9 +442,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
       if(trP[0]==0 || E_e==0 ) continue;
 
-      Double_t P_ang = 57.3*TMath::ACos(trPz[0]/trP[0]);
-      Double_t Q2 = 4.*E_beam*p_rec*pow( TMath::Sin(P_ang/57.3/2.),2. );
-      Double_t W2 = Mp*Mp + 2.*Mp*(E_beam-p_rec) - Q2;
+      Double_t P_ang = TMath::ACos(trPz[0]/trP[0]);
+      Double_t Q2 = 4. * E_beam * p_rec * pow(TMath::Sin((P_ang/2.)), 2.);
+      P_ang *= TMath::RadToDeg();
+      Double_t W2 = Mp*Mp + 2.*Mp*(E_beam - p_rec) - Q2;
       Double_t W = sqrt(max(0., W2));
       h_Q2->Fill(Q2);
       h_W->Fill(W);
