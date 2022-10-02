@@ -678,8 +678,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   	psClusE += psClBlkE[blk] * newADCgratioPS[blkID];
       }
 
-      // Let's fill
-      diagnostic histograms
+      // Let's fill diagnostic histograms
       Double_t clusEngBBCal = shClusE + psClusE;
       h_EovP_calib->Fill(clusEngBBCal / p_rec);
       h_clusE_calib->Fill(clusEngBBCal);
