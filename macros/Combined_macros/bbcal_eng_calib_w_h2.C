@@ -49,7 +49,6 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
 
   TChain *C = new TChain("T");
-  TEntryList *elist = (TEntryList*)gDirectory->Get("elist");
 
   Int_t Set=0;
   Int_t Nmin=10;
@@ -460,8 +459,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
       // storing good event numbers for 2nd loop
       goodevents.push_back(nevent);
-      elist->Enter(nevent, C);
-
+      
       // Loop over all the blocks in main cluster and fill in A's
       for(Int_t blk=0; blk<shNblk; blk++){
 	Int_t blkID = int(shClBlkId[blk]);
@@ -661,36 +659,40 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   }
   cout << endl;
 
-  nevent = 0;
+  Long64_t itr = 0; nevent = 0;
   cout << "Looping over events again to check calibration.." << endl; 
-  while(C->GetEntry( elist->GetEntry(nevent++) )) {
+  while(C->GetEntry(nevent++)) {
 
-    if( nevent % 100 == 0 ) cout << nevent << "/" << Nevents  << "\r";;
+    if (nevent % 100 == 0) cout << nevent << "/" << Nevents  << "\r";;
     cout.flush();    
 
-    p_rec = trP[0] * p_rec_Offset; 
-
-    // ****** Shower ******
-    Double_t shClusE = 0.;
-    for(Int_t blk=0; blk<shNblk; blk++){
-      Int_t blkID = int(shClBlkId[blk]);
-      shClusE += shClBlkE[blk] * newADCgratioSH[blkID];
-    }
+    if (nevent == goodevents[itr]) {
     
-    // ****** PreShower ******
-    Double_t psClusE = 0.;
-    for(Int_t blk=0; blk<psNblk; blk++){
-      Int_t blkID = int(psClBlkId[blk]);
-      psClusE += psClBlkE[blk] * newADCgratioPS[blkID];
-    }
+      p_rec = trP[0] * p_rec_Offset; 
 
-    // Let's fill diagnostic histograms
-    Double_t clusEngBBCal = shClusE + psClusE;
-    h_EovP_calib->Fill( (clusEngBBCal / p_rec) );
-    h_clusE_calib->Fill( clusEngBBCal );
-    h_SHclusE_calib->Fill( shClusE );
-    h_PSclusE_calib->Fill( psClusE );
-    h2_EovP_vs_P_calib->Fill( p_rec, clusEngBBCal/p_rec );
+      // ****** Shower ******
+      Double_t shClusE = 0.;
+      for(Int_t blk=0; blk<shNblk; blk++){
+	Int_t blkID = int(shClBlkId[blk]);
+	shClusE += shClBlkE[blk] * newADCgratioSH[blkID];
+      }
+    
+      // ****** PreShower ******
+      Double_t psClusE = 0.;
+      for(Int_t blk=0; blk<psNblk; blk++){
+	Int_t blkID = int(psClBlkId[blk]);
+	psClusE += psClBlkE[blk] * newADCgratioPS[blkID];
+      }
+
+      // Let's fill diagnostic histograms
+      Double_t clusEngBBCal = shClusE + psClusE;
+      h_EovP_calib->Fill( (clusEngBBCal / p_rec) );
+      h_clusE_calib->Fill( clusEngBBCal );
+      h_SHclusE_calib->Fill( shClusE );
+      h_PSclusE_calib->Fill( psClusE );
+      h2_EovP_vs_P_calib->Fill( p_rec, clusEngBBCal/p_rec );
+      itr++;
+    }
   }
   cout << endl << endl;
 
