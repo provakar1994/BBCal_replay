@@ -3,7 +3,7 @@
   + BigBite Preshower) detector. It does so by minimizing the chi2 of the difference between calorimeter
   cluster energy and the reconstructed electron energy. It gets the old adc gain coefficients (GeV/pC) 
   from tree and writes the new adc gain coeffs. and ratios (New/Old) in file. One needs a configfile 
-  to execute this script. Example content of such a file is attached at the end. To execute, do:
+  to execute this script [see cfg/example.cfg]. To execute, do:
   ----
   [a-onl@aonl2 macros]$ pwd
   /adaqfs/home/a-onl/sbs/BBCal_replay/macros
@@ -39,20 +39,23 @@ const Double_t zposSH = 1.901952; // m
 const Double_t zposPS = 1.695704; // m
 
 void ReadGain(TString, Double_t*);
+TString GetOutFileBase(TString);
 
 void bbcal_eng_calib_w_h2(const char *configfilename)
 {
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
 
   TChain *C = new TChain("T");
+  //creating base for outfile names
+  TString cfgfilebase = GetOutFileBase(configfilename);
 
-  Int_t Set = 0;
+  TString macros_dir;
   Int_t Nmin = 10;
   Double_t minMBratio = 0.1;
   Double_t E_beam = 0.;
   Double_t p_rec_Offset = 1., p_min_cut = 0., p_max_cut = 0.;
   Double_t W_mean = 0., W_sigma = 0., EovP_cut_limit = 0.3;
-  bool cut_on_W = 0, cut_on_EovP = 0, cut_on_pmin = 0, cut_on_pmax = 0, farm_submit = 0;
+  bool cut_on_W = 0, cut_on_EovP = 0, cut_on_pmin = 0, cut_on_pmax = 0, read_gain = 0;
   Double_t Corr_Factor_Enrg_Calib_w_Cosmic = 1., cF = 1.;
   Double_t h_W_bin = 200, h_W_min = 0., h_W_max = 5.;
   Double_t h_Q2_bin = 200, h_Q2_min = 0., h_Q2_max = 5.;
@@ -76,8 +79,6 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t p_rec = 0.;
   Double_t A[ncell];
   bool badCells[ncell]; // Cells that have events less than Nmin
-  TString adcGain_SH, gainRatio_SH, outFile;
-  TString adcGain_PS, gainRatio_PS;
   Int_t nevents_per_cell[ncell];
 
   // Define a clock to check macro processing time
@@ -107,17 +108,16 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     Int_t ntokens = tokens->GetEntries();
     if( ntokens>1 ){
       TString skey = ( (TObjString*)(*tokens)[0] )->GetString();
-      if( skey == "Set" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	Set = sval.Atoi();
+      if( skey == "macros_dir" ){
+	macros_dir = ( (TObjString*)(*tokens)[1] )->GetString();
       }
       if( skey == "E_beam" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	E_beam = sval.Atof();
       }
-      if( skey == "farm_submit" ){
+      if( skey == "read_gain" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	farm_submit = sval.Atof();
+	read_gain = sval.Atof();
       }
       if( skey == "Min_Event_Per_Channel" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
@@ -276,22 +276,22 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t psRowblk;           C->SetBranchAddress("bb.ps.rowblk", &psRowblk);
   Double_t psColblk;           C->SetBranchAddress("bb.ps.colblk", &psColblk);
   Double_t psNblk;             C->SetBranchAddress("bb.ps.nblk", &psNblk);
-  //Double_t psAgainblk;         C->SetBranchAddress("bb.ps.againblk", &psAgainblk);
   Double_t psNclus;            C->SetBranchAddress("bb.ps.nclus", &psNclus);
   Double_t psE;                C->SetBranchAddress("bb.ps.e", &psE);
   Double_t psClBlkId[maxNtr];  C->SetBranchAddress("bb.ps.clus_blk.id", &psClBlkId);
   Double_t psClBlkE[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.e", &psClBlkE);
+  Double_t psAgainblk;         if (!read_gain) C->SetBranchAddress("bb.ps.againblk", &psAgainblk);
   // bb.sh branches
   C->SetBranchStatus("bb.sh.*", 1);
   Double_t shIdblk;            C->SetBranchAddress("bb.sh.idblk", &shIdblk);
   Double_t shRowblk;           C->SetBranchAddress("bb.sh.rowblk", &shRowblk);
   Double_t shColblk;           C->SetBranchAddress("bb.sh.colblk", &shColblk);
   Double_t shNblk;             C->SetBranchAddress("bb.sh.nblk", &shNblk);
-  //Double_t shAgainblk;         C->SetBranchAddress("bb.sh.againblk", &shAgainblk);
   Double_t shNclus;            C->SetBranchAddress("bb.sh.nclus", &shNclus);
   Double_t shE;                C->SetBranchAddress("bb.sh.e", &shE);
   Double_t shClBlkId[maxNtr];  C->SetBranchAddress("bb.sh.clus_blk.id", &shClBlkId);
   Double_t shClBlkE[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.e", &shClBlkE);
+  Double_t shAgainblk;         if (!read_gain) C->SetBranchAddress("bb.sh.againblk", &shAgainblk);
   // bb.tr branches
   C->SetBranchStatus("bb.tr.*", 1);
   Double_t trP[maxNtr];        C->SetBranchAddress("bb.tr.p", &trP);
@@ -320,11 +320,13 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t oldADCgainPS[kNcolsPS*kNrowsPS];
   for (int i=0; i<189; i++) { oldADCgainSH[i] = -1000; }  
   for (int i=0; i<52; i++) { oldADCgainPS[i] = -1000; }  
-  adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d.txt", Set);
-  ReadGain(adcGain_SH, oldADCgainSH);
-  adcGain_PS = Form("Gain/eng_cal_gainCoeff_ps_%d.txt", Set);
-  ReadGain(adcGain_PS, oldADCgainPS);
-
+  TString adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh.txt", macros_dir.Data(), cfgfilebase.Data());
+  TString adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps.txt", macros_dir.Data(), cfgfilebase.Data());
+  if (read_gain) {
+    ReadGain(adcGain_SH, oldADCgainSH);
+    ReadGain(adcGain_PS, oldADCgainPS);
+  }
+  
   gStyle->SetOptStat(0);
   TH2D *h2_SHeng_vs_SHblk_raw = new TH2D("h2_SHeng_vs_SHblk_raw","Raw E_clus(SH) per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_EovP_vs_SHblk_raw = new TH2D("h2_EovP_vs_SHblk_raw","Raw E_clus/p_rec per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
@@ -339,7 +341,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec per per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
   // Creating output ROOT file to contain histograms
-  outFile = Form("hist/eng_cal_BBCal_%d.root", Set);
+  TString outFile = Form("%s/hist/%s_bbcal_eng_calib.root", macros_dir.Data(), cfgfilebase.Data());
   TFile *fout = new TFile(outFile, "RECREATE");
   fout->cd();
 
@@ -369,14 +371,18 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   TH1D *h_thetabend = new TH1D("h_thetabend", "", 100, 0., 0.25);
 
+  TTree *Tout = new TTree("Tout", "");
+  Double_t T_W2;           Tout->Branch("W2", &T_W2, "W2/D");
+  Double_t T_p_rec;        Tout->Branch("p_rec", &T_p_rec, "p_rec/D");
+  Double_t T_clusE;        Tout->Branch("clusE", &T_clusE, "clusE/D");
+
   // Looping over all events ====================================================================//
   cout << endl;
   Long64_t Nevents = C->GetEntries(), nevent=0;  
   Double_t timekeeper = 0., timeremains = 0.;
   int treenum = 0, currenttreenum = 0;
-  vector<Long64_t> goodevents; // list of good events passed all the cuts
+  vector<Long64_t> goodevents; // list of good events passed all the cuts (excluding W cut)
   while(C->GetEntry(nevent++)) {
-
     // Calculating remaining time 
     sw2->Stop();
     timekeeper += sw2->RealTime();
@@ -390,8 +396,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     // ------
 
     // get old gain coefficients
-    // oldADCgainSH[int(shIdblk)] = shAgainblk;
-    // oldADCgainPS[int(psIdblk)] = psAgainblk;
+    if (!read_gain) {
+      oldADCgainSH[int(shIdblk)] = shAgainblk;
+      oldADCgainPS[int(psIdblk)] = psAgainblk;
+    }
 
     // apply global cuts efficiently (AJRP method)
     currenttreenum = C->GetTreeNumber();
@@ -440,11 +448,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       P_ang *= TMath::RadToDeg();
       Double_t W2 = Mp*Mp + 2.*Mp*(E_beam - p_rec) - Q2;
       Double_t W = sqrt(max(0., W2));
-      h_Q2->Fill(Q2);
       h_W->Fill(W);
-
-      // cut on W
-      if (cut_on_W) if(fabs(W - W_mean) > W_sigma) continue;
+      h_Q2->Fill(Q2);
 
       // Reject events with max edep on the edge
       if (shRowblk == 0 || shRowblk == 26 ||
@@ -452,6 +457,9 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
       // storing good event numbers for 2nd loop
       goodevents.push_back(nevent);
+
+      // cut on W
+      if (cut_on_W) if(fabs(W - W_mean) > W_sigma) continue;
       
       // Loop over all the blocks in main cluster and fill in A's
       for(Int_t blk=0; blk<shNblk; blk++){
@@ -467,7 +475,6 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	nevents_per_cell[189+blkID]++;
       }
     
-
       // Let's fill some interesting histograms
       Double_t clusEngBBCal = (shE + psE) * Corr_Factor_Enrg_Calib_w_Cosmic;
       Double_t ClusEngSH = shE * Corr_Factor_Enrg_Calib_w_Cosmic;
@@ -477,6 +484,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       h_SHclusE->Fill(ClusEngSH);
       h_PSclusE->Fill(ClusEngPS);
       h2_P_rec_vs_P_ang->Fill(P_ang, p_rec);
+
+      // fill out tree branches
+      T_W2 = W2;
+      T_p_rec = p_rec;
+      T_clusE = clusEngBBCal;
+      Tout->Fill();
 
       // Checking to see if there is any bias in track recostruction ----
       //SH
@@ -549,7 +562,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   // Leave the bad channels out of the calculation
   for(Int_t j = 0; j<ncell; j++){
     badCells[j]=false;
-    if( nevents_per_cell[j]<Nmin || M(j,j)< minMBratio*B(j) ){
+    if (nevents_per_cell[j] < Nmin || M(j,j) < minMBratio*B(j)) {
       B(j) = 1.;
       M(j, j) = 1.;
       for(Int_t k = 0; k<ncell; k++){
@@ -568,8 +581,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   // SH : Filling diagnostic histograms
   Int_t cell = 0;
-  adcGain_SH = Form("Gain/eng_cal_gainCoeff_sh_%d_1.txt", Set);
-  gainRatio_SH = Form("Gain/eng_cal_gainRatio_sh_%d_1.txt", Set);
+  adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh_calib.txt", macros_dir.Data(), cfgfilebase.Data());
+  TString gainRatio_SH = Form("%s/Gain/%s_gainRatio_sh_calib.txt", macros_dir.Data(), cfgfilebase.Data());
   Double_t newADCgratioSH[kNcolsSH*kNrowsSH];
   for (int i=0; i<189; i++) { newADCgratioSH[i] = -1000; }  
   ofstream adcGainSH_outData, gainRatioSH_outData;
@@ -610,8 +623,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   cout << endl;
 
   // PS : Filling diagnostic histograms
-  adcGain_PS = Form("Gain/eng_cal_gainCoeff_ps_%d_1.txt", Set);
-  gainRatio_PS = Form("Gain/eng_cal_gainRatio_ps_%d_1.txt", Set);
+  adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib.txt", macros_dir.Data(), cfgfilebase.Data());
+  TString gainRatio_PS = Form("%s/Gain/%s_gainRatio_ps_calib.txt", macros_dir.Data(), cfgfilebase.Data());
   Double_t newADCgratioPS[kNcolsPS*kNrowsPS];
   for (int i=0; i<52; i++) { newADCgratioPS[i] = -1000; }  
   ofstream adcGainPS_outData, gainRatioPS_outData;
@@ -652,6 +665,9 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   }
   cout << endl;
 
+  // add branches to Tout
+  Double_t T_clusE_calib;  TBranch *Tcalib = Tout->Branch("clusE_calib", &T_clusE_calib, "clusE_calib/D");
+
   Long64_t itr = 0; nevent = 0;
   cout << "Looping over events again to check calibration.." << endl; 
   while(C->GetEntry(nevent++)) {
@@ -685,6 +701,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       h_SHclusE_calib->Fill(shClusE);
       h_PSclusE_calib->Fill(psClusE);
       h2_EovP_vs_P_calib->Fill(p_rec, clusEngBBCal/p_rec);
+      T_clusE_calib = clusEngBBCal;
+      Tcalib->Fill();
     }
   }
   cout << endl << endl;
@@ -702,13 +720,13 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   gainRatioSH_outData.close();
   gainRatioPS_outData.close();
 
-  cout << "Finishing analysis.." << endl;
+  cout << "List of output files:" << endl;
   cout << " --------- " << endl;
-  cout << " Resulting histograms  written to : " << outFile << endl;
-  cout << " Gain ratios (new/old) for SH written to : " << gainRatio_SH << endl;
-  cout << " Gain ratios (new/old) for PS written to : " << gainRatio_PS << endl;
-  cout << " New adc gain coefficients (GeV/pC) for SH written to : " << adcGain_SH << endl;
-  cout << " New adc gain coefficients (GeV/pC) for PS written to : " << adcGain_PS << endl;
+  cout << " 1. Resulting histograms : " << outFile << endl;
+  cout << " 2. Gain ratios (new/old) for SH : " << gainRatio_SH << endl;
+  cout << " 3. Gain ratios (new/old) for PS : " << gainRatio_PS << endl;
+  cout << " 4. New ADC gain coeffs. (GeV/pC) for SH : " << adcGain_SH << endl;
+  cout << " 5. New ADC gain coeffs. (GeV/pC) for PS : " << adcGain_PS << endl;
   cout << " --------- " << endl;
 
   sw->Stop();
@@ -744,33 +762,25 @@ void ReadGain(TString adcGain_rfile, Double_t* adcGain){
   adcGain_data.close();
 }
 
-
-/*
-  Example configfile required to run this script:
-  ----
-  [a-onl@aonl2 Combined_macros]$ cat setup_example.txt 
-  example_run_list.txt
-  endRunlist
-  root.example1.tree>0&&root.example2.tree
-  endcut
-  E_beam 1.92
-  Min_Event_Per_Channel 1000
-  Min_MB_Ratio 0.1
-  p_rec_Offset 1.0
-  W_mean 0.9379
-  W_sigma 0.02
-  cut_on_W 1
-  Corr_Factor_Enrg_Calib_w_Cosmic 1.0 
-  ----
-*/
+TString GetOutFileBase(TString configfilename) {
+  //Returns output file base from configfilename
+  std::stringstream ss(configfilename.Data());
+  std::vector<std::string> result;
+  while( ss.good() ){
+    std::string substr;
+    std::getline(ss, substr, '/');
+    result.push_back(substr);
+  }
+  TString temp = result[result.size() - 1];
+  return temp.ReplaceAll(".cfg", "");
+}
 
 /*
   List of input and output files:
   *Input files: 
-  1. Gain/eng_cal_gainCoeff_sh(ps)_+(iter-1)+.txt # Contains old gain coeff. for SH(PS) 
-  2. Gain/eng_cal_gainRatio_sh(ps)_+(iter-1)+.txt # Contains gain ratio (new/old) for SH(PS)   
+  1. Gain/<configFileBase>_gainCoeff_sh(ps).txt # Old gain coeff. for SH(PS) [Needed if, "read_gain" = 1]
   *Output files:
-  1. hist/eng_cal_BBCal_+iter+.root # Contains all the interesting histograms
-  2. Gain/eng_cal_gainRatio_sh(ps)_+iter+.txt # Contains gain ratios (new/old) for SH(PS)
-  3. Gain/eng_cal_gainCoeff_sh(ps)_+iter+.txt # Contains new gain coeff. for SH(PS)
+  1. hist/<configFileBase>_bbcal_eng_calib.root # Contains all the interesting histograms
+  2. Gain/<configFileBase>_gainRatio_sh(ps)_calib.txt # Contains gain ratios (new/old) for SH(PS)
+  3. Gain/<configFileBase>_gainCoeff_sh(ps)_calib.txt # Contains new gain coeff. for SH(PS)
 */
