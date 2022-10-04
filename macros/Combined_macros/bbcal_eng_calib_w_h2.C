@@ -386,7 +386,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Long64_t Nevents = C->GetEntries(), nevent=0;  
   Double_t timekeeper = 0., timeremains = 0.;
   int treenum = 0, currenttreenum = 0;
-  vector<Long64_t> goodevents; // list of good events passed all the cuts (excluding W cut)
+  vector<Long64_t> goodevents; // list of good events passed all the cuts
   while(C->GetEntry(nevent++)) {
     // Calculating remaining time 
     sw2->Stop();
@@ -460,11 +460,11 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       if (shRowblk == 0 || shRowblk == 26 ||
 	  shColblk == 0 || shColblk == 6) continue; 
 
+      // cut on W
+      if (cut_on_W) if (fabs(W - W_mean) > W_sigma) continue;
+
       // storing good event numbers for 2nd loop
       goodevents.push_back(nevent);
-
-      // cut on W
-      if (cut_on_W) if(fabs(W - W_mean) > W_sigma) continue;
       
       // Loop over all the blocks in main cluster and fill in A's
       for(Int_t blk=0; blk<shNblk; blk++){
