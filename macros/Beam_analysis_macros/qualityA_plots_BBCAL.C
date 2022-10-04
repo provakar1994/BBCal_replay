@@ -29,8 +29,8 @@ const Int_t kNrowsPS = 26; // PS rows
 const Double_t zposSH = 1.901952; //m
 const Double_t zposPS = 1.695704; //m
 
-void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
-			  const char *configFile="setup_qualityA_plots_BBCAL.cfg")
+void qualityA_plots_BBCAL(TString outFileBase = "qulaityA_plots_BBCAL.root",
+			  const char *configFile="Beam_analysis_macros/setup_qualityA_plots_BBCAL.cfg")
 {
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
   
@@ -184,7 +184,8 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
   TH2D *h2_PSeng_vs_PSblk_trPOS_raw = new TH2D("h2_PSeng_vs_PSblk_trPOS_raw","Raw E_clus(PS) per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
   
   // Creating output ROOT file to contain histograms
-  TFile *fout = new TFile(outFile,"RECREATE");
+  TString outFile = "hist/" + outFileBase;
+  TFile *fout = new TFile(outFile, "RECREATE");
   fout->cd();
 
   // Defining physics histograms
@@ -372,8 +373,7 @@ void qualityA_plots_BBCAL(const char *outFile="qualityA_plots_BBCAL.root",
   h2_PSeng_vs_trY->Draw("colz");
 
   // printing out the canvas
-  TString plotsFile = outFile;
-  plotsFile.ReplaceAll(".root",".pdf");
+  TString plotsFile = "plots/" + outFileBase.ReplaceAll(".root",".pdf");
   c1->Print(Form("%s[",plotsFile.Data()),"pdf");
   c1->Print(Form("%s",plotsFile.Data()),"pdf");
   c2->Print(Form("%s",plotsFile.Data()),"pdf");
