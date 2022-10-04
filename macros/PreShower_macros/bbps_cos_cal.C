@@ -352,7 +352,23 @@ void bbps_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
 	// Reject low energy peak
 	//if( hADCamp[r][c]->GetBinContent(maxBin-2) < 0.02*hADCamp[r][c]->GetBinContent(maxBin) ){ 
 	//|| hADCamp[r][c]->GetBinContent(maxBin+1) < 0.5*hADCamp[r][c]->GetBinContent(maxBin) ){
-	if( hADCamp[r][c]->GetBinContent(maxBin-1) == 0. ){
+	if( hADCamp[r][c]->GetBinContent(maxBin-1) == 0.){
+          while ( hADCamp[r][c]->GetBinContent(maxBin+1) < hADCamp[r][c]->GetBinContent(maxBin) || 
+		  hADCamp[r][c]->GetBinContent(maxBin+1) == hADCamp[r][c]->GetBinContent(maxBin) ) 
+	    {
+	      maxBin++;
+	    };
+	  hADCamp[r][c]->GetXaxis()->SetRange( maxBin+1 , hADCamp[r][c]->GetNbinsX() );
+	  maxBin = hADCamp[r][c]->GetMaximumBin();
+	  maxBinCenter = hADCamp[r][c]->GetXaxis()->GetBinCenter( maxBin );
+	  maxCount = hADCamp[r][c]->GetMaximum();
+	  binWidth = hADCamp[r][c]->GetBinWidth(maxBin);
+	  stdDev = hADCamp[r][c]->GetStdDev();
+	}
+
+	// Another check to reject low energy peak
+	// Should do all the checks in one loop but don't have time right now!
+	if (hADCamp[r][c]->GetBinContent(maxBin-2) < 0.5*hADCamp[r][c]->GetBinContent(maxBin)) {
 	  while ( hADCamp[r][c]->GetBinContent(maxBin+1) < hADCamp[r][c]->GetBinContent(maxBin) || 
 		  hADCamp[r][c]->GetBinContent(maxBin+1) == hADCamp[r][c]->GetBinContent(maxBin) ) 
 	    {
@@ -524,7 +540,7 @@ void bbps_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
   cout << "Finished loop over run " << runnumber << "." << endl;
   cout << " --------- " << endl;
   cout << " Peak positions written to : " << OutFile << endl;
-  cout << " Fit parameters written to : " << OutFile2  << endl;
+  //cout << " Fit parameters written to : " << OutFile2  << endl;
   cout << " Histograms written to : " << OutRootFile << endl;
   cout << " Signal peaks saved to : " << OutF_peaks << endl;
   cout << " Summary plots saved to : " << OutF_diagPlots << endl;
