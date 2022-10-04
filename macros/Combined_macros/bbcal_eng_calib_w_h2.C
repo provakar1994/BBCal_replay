@@ -372,9 +372,14 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH1D *h_thetabend = new TH1D("h_thetabend", "", 100, 0., 0.25);
 
   TTree *Tout = new TTree("Tout", "");
-  Double_t T_W2;           Tout->Branch("W2", &T_W2, "W2/D");
-  Double_t T_p_rec;        Tout->Branch("p_rec", &T_p_rec, "p_rec/D");
-  Double_t T_clusE;        Tout->Branch("clusE", &T_clusE, "clusE/D");
+  Double_t T_W2;      Tout->Branch("W2", &T_W2, "W2/D");
+  Double_t T_trP;     Tout->Branch("trP", &T_trP, "trP/D");
+  Double_t T_trX;     Tout->Branch("trX", &T_trX, "trX/D");
+  Double_t T_trY;     Tout->Branch("trY", &T_trY, "trY/D");
+  Double_t T_trTh;    Tout->Branch("trTh", &T_trTh, "trTh/D");
+  Double_t T_trPh;    Tout->Branch("trPh", &T_trPh, "trPh/D");
+  Double_t T_psE;     Tout->Branch("psE", &T_psE, "psE/D");
+  Double_t T_clusE;   Tout->Branch("clusE", &T_clusE, "clusE/D");
 
   // Looping over all events ====================================================================//
   cout << endl;
@@ -487,7 +492,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
       // fill out tree branches
       T_W2 = W2;
-      T_p_rec = p_rec;
+      T_trP = p_rec;
+      T_trX = trX[0];
+      T_trY = trY[0];
+      T_trTh = trTh[0];
+      T_trPh = trPh[0];
+      T_psE = ClusEngPS;
       T_clusE = clusEngBBCal;
       Tout->Fill();
 
@@ -666,7 +676,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   cout << endl;
 
   // add branches to Tout
-  Double_t T_clusE_calib;  TBranch *Tcalib = Tout->Branch("clusE_calib", &T_clusE_calib, "clusE_calib/D");
+  Double_t T_psE_calib;    TBranch *T_psE_c = Tout->Branch("psE_calib", &T_psE_calib, "psE_calib/D");
+  Double_t T_clusE_calib;  TBranch *T_clusE_c = Tout->Branch("clusE_calib", &T_clusE_calib, "clusE_calib/D");
 
   Long64_t itr = 0; nevent = 0;
   cout << "Looping over events again to check calibration.." << endl; 
@@ -701,8 +712,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       h_SHclusE_calib->Fill(shClusE);
       h_PSclusE_calib->Fill(psClusE);
       h2_EovP_vs_P_calib->Fill(p_rec, clusEngBBCal/p_rec);
-      T_clusE_calib = clusEngBBCal;
-      Tcalib->Fill();
+      T_psE_calib = psClusE;        T_psE_c->Fill();
+      T_clusE_calib = clusEngBBCal; T_clusE_c->Fill();
     }
   }
   cout << endl << endl;
