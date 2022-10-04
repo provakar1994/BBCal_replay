@@ -1,17 +1,20 @@
 /*
-This script has been prepared for the energy calibration of BigBite Calorimeter (BigBite Shower
-+ BigBite Preshower) detector. It does so by minimizing the chi2 of the difference between calorimeter
-cluster energy and the reconstructed electron energy(we get that from tracking information). It reads
-in the old adc gain coefficients (GeV/pC) and writes the new ones in file. One needs a configfile to
-execute this script. Example content of such a file is attached in the end. To execute, do:
-----
-[a-onl@aonl2 macros]$ pwd
-/adaqfs/home/a-onl/sbs/BBCal_replay/macros
-[a-onl@aonl2 macros]$ root -l 
-root [0] .L Combined_macros/eng_cal_BBCal.C+
-root [1] eng_cal_BBCal("Combined_macros/setup_eng_cal_BBCal.txt")
-----
-P. Datta  <pdbforce@jlab.org>  Created  15 Oct 2021 (Based on AJR Puckett & E. Fuchey s' version)
+  ################
+  IMPORTANT: This script is outdated. Use "bbcal_eng_calib_w_h2.C"
+  ################
+  This script has been prepared for the energy calibration of BigBite Calorimeter (BigBite Shower
+  + BigBite Preshower) detector. It does so by minimizing the chi2 of the difference between calorimeter
+  cluster energy and the reconstructed electron energy(we get that from tracking information). It reads
+  in the old adc gain coefficients (GeV/pC) and writes the new ones in file. One needs a configfile to
+  execute this script. Example content of such a file is attached in the end. To execute, do:
+  ----
+  [a-onl@aonl2 macros]$ pwd
+  /adaqfs/home/a-onl/sbs/BBCal_replay/macros
+  [a-onl@aonl2 macros]$ root -l 
+  root [0] .L Combined_macros/eng_cal_BBCal.C+
+  root [1] eng_cal_BBCal("Combined_macros/setup_eng_cal_BBCal.txt")
+  ----
+  P. Datta  <pdbforce@jlab.org>  Created  15 Oct 2021 (Based on AJR Puckett & E. Fuchey s' version)
 */
 #include <iostream>
 #include <sstream>

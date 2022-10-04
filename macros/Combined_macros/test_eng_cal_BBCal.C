@@ -1,4 +1,7 @@
 /*
+  ################
+  IMPORTANT: This script is outdated. Use "bbcal_eng_calib_w_h2.C"
+  ################
   This script has been prepared for the energy calibration of BigBite Calorimeter (BigBite Shower
   + BigBite Preshower) detector. It does so by minimizing the chi2 of the difference between calorimeter
   cluster energy and the reconstructed electron energy(we get that from tracking information). It reads
