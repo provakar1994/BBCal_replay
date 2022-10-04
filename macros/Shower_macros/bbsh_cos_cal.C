@@ -523,7 +523,7 @@ void bbsh_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
   cout << "Finished loop over run " << runnumber << "." << endl;
   cout << " --------- " << endl;
   cout << " Peak positions written to : " << OutFile << endl;
-  cout << " Fit parameters written to : " << OutFile2  << endl;
+  //cout << " Fit parameters written to : " << OutFile2  << endl;
   cout << " Histograms written to : " << OutRootFile << endl;
   cout << " Signal peaks saved to : " << OutF_peaks << endl;
   cout << " Summary plots saved to : " << OutF_diagPlots << endl;
