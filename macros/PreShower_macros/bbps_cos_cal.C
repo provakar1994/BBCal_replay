@@ -368,7 +368,7 @@ void bbps_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
 
 	// Another check to reject low energy peak
 	// Should do all the checks in one loop but don't have time right now!
-	if (hADCamp[r][c]->GetBinContent(maxBin-2) < 0.5*hADCamp[r][c]->GetBinContent(maxBin)) {
+	if (hADCamp[r][c]->GetBinContent(maxBin-2) < 0.3*hADCamp[r][c]->GetBinContent(maxBin)) {
 	  while ( hADCamp[r][c]->GetBinContent(maxBin+1) < hADCamp[r][c]->GetBinContent(maxBin) || 
 		  hADCamp[r][c]->GetBinContent(maxBin+1) == hADCamp[r][c]->GetBinContent(maxBin) ) 
 	    {
