@@ -31,7 +31,7 @@ static const Int_t kNcolsPS=2;
 
 void ReadAmpToInt(TString,bool);
 bool SHorPS=1; // SH=1,PS=0
-double cF = 1.21;
+double cF = 1.;
 double trigAmp = 25.;
 vector<double> ampToint;
 vector<double> elemID;
@@ -44,8 +44,8 @@ void calculate_adcGain_cos(int nrun=100){
   cin >> SHorPS;
   cout << " Trigger amplitude? (mV) [Default: 25mV] " << endl;
   cin >> trigAmp;
-  cout << " Correction factor for gain calibration? [Default: 1.21]" << endl;
-  cin >> cF;
+  // cout << " Correction factor for gain calibration? [Default: 1.]" << endl;
+  // cin >> cF;
 
   ampToint.clear();
   TString InFile;
@@ -101,7 +101,7 @@ void calculate_adcGain_cos(int nrun=100){
     outfile_data.open(OutFile);
     for(int r=0; r<kNrowsPS; r++){
       for(int c=0; c<kNcolsPS; c++){
-	Double_t convF = (ampToint.at(r*kNcolsPS+c)*0.06*cF)/trigAmp; //GeV/pC : Assuming 60MeV cosmic eng. dep.       
+	Double_t convF = (ampToint.at(r*kNcolsPS+c)*0.0726*cF)/trigAmp; //GeV/pC : Assuming 72.6MeV cosmic eng. dep.       
 	h_adcGain_PS->Fill(float(c+1),float(r+1),1000.*convF);   //and trigger amp is aligned at 10mV.
 	outfile_data << convF << ' ';
       }
