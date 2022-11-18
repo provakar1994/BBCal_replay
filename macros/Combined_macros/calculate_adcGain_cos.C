@@ -82,7 +82,7 @@ void calculate_adcGain_cos(int nrun=100){
     outfile_data.open(OutFile);
     for(int r=0; r<kNrows; r++){
       for(int c=0; c<kNcols; c++){
-	Double_t convF = (ampToint.at(r*kNcols+c)*0.06*cF)/trigAmp; //GeV/pC : Assuming 60MeV cosmic eng. dep. 
+	Double_t convF = (ampToint.at(r*kNcols+c)*0.0726*cF)/trigAmp; //GeV/pC : Assuming 60MeV cosmic eng. dep. 
 	h_adcGain_SH->Fill(float(c+1),float(r+1),1000.*convF);  //and trigger amp is aligned at 10mV.
 	outfile_data << convF << ' ';
       }
