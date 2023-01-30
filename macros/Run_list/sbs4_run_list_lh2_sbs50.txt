@@ -1,6 +1,0 @@
-#/lustre19/expphy/volatile/halla/sbs/seeds/GMN_Replays/e1209019_fullreplay_11590_stream0_seg2*
-/lustre19/expphy/volatile/halla/sbs/seeds/GMN_Replays/e1209019_fullreplay_11589_stream0*
-/lustre19/expphy/volatile/halla/sbs/seeds/GMN_Replays/e1209019_fullreplay_11590_stream0*
-/lustre19/expphy/volatile/halla/sbs/seeds/GMN_Replays/e1209019_fullreplay_11592_stream0*
-#../../Rootfiles/mkj3_bbshower_11590_0_200000_seg_*
-endlist

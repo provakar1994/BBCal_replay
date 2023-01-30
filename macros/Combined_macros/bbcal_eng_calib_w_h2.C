@@ -89,12 +89,26 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   // Reading config file
   ifstream configfile(configfilename);
-  TString currentline;
+  char runlistfile[1000]; 
+  TString currentline, readline;
   while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endRunlist") ){
     if( !currentline.BeginsWith("#") ){
-      C->Add(currentline);
-    }   
-  } 
+      sprintf(runlistfile,"%s",currentline.Data());
+      ifstream run_list(runlistfile);
+      while( readline.ReadLine( run_list ) && !readline.BeginsWith("endlist") ){
+  	if( !readline.BeginsWith("#") ){
+  	  cout << readline << endl;
+  	  C->Add(readline);
+  	}
+      }   
+    } 
+  }
+  // TString currentline;
+  // while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endRunlist") ){
+  //   if( !currentline.BeginsWith("#") ){
+  //     C->Add(currentline);
+  //   }   
+  // } 
   TCut globalcut = "";
   while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endcut") ){
     if( !currentline.BeginsWith("#") ){

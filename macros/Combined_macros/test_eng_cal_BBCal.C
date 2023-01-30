@@ -1,6 +1,6 @@
 /*
   ################
-  IMPORTANT: This script is outdated. Use "bbcal_eng_calib_w_h2.C"
+  IMPORTANT: This script is outdated. Use "bbcal_eng_calib_w_h2.C" instead.
   ################
   This script has been prepared for the energy calibration of BigBite Calorimeter (BigBite Shower
   + BigBite Preshower) detector. It does so by minimizing the chi2 of the difference between calorimeter
@@ -101,7 +101,7 @@ void test_eng_cal_BBCal(const char *configfilename, Int_t iter=1)
 
   // Reading config file
   ifstream configfile(configfilename);
-  char runlistfile[1000]; 
+  // char runlistfile[1000]; 
   // TString currentline, readline;
   // while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endRunlist") ){
   //   if( !currentline.BeginsWith("#") ){
