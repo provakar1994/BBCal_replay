@@ -109,10 +109,11 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   //     C->Add(currentline);
   //   }   
   // } 
-  TCut globalcut = "";
+  TCut globalcut = ""; TString gcutstr;
   while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endcut") ){
     if( !currentline.BeginsWith("#") ){
       globalcut += currentline;
+      gcutstr += currentline;
     }    
   }
   TTreeFormula *GlobalCut = new TTreeFormula("GlobalCut", globalcut, C);
@@ -786,22 +787,40 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   c1->cd(1);
   gPad->SetGridx();
-  h_EovP_calib->SetStats(1);
-  gStyle->SetOptFit(1111);
+  //h_EovP_calib->SetStats(1);
+  //gStyle->SetOptFit(1111);
+  Double_t param[3], param_bc[3], sigerr, sigerr_bc;
+  Int_t maxBin_bc = h_EovP->GetMaximumBin();
+  Double_t binW_bc = h_EovP->GetBinWidth(maxBin_bc), norm_bc = h_EovP->GetMaximum();
+  Double_t mean_bc = h_EovP->GetMean(), stdev_bc = h_EovP->GetStdDev();
+  Double_t lower_lim_bc = h_EovP_min + maxBin_bc*binW_bc - 1.5*stdev_bc;
+  Double_t upper_lim_bc = h_EovP_min + maxBin_bc*binW_bc + 1.5*stdev_bc; 
+  TF1* fitg_bc = new TF1("fitg_bc","gaus",h_EovP_min,h_EovP_max);
+  fitg_bc->SetRange(lower_lim_bc,upper_lim_bc);
+  fitg_bc->SetParameters(norm_bc,mean_bc,stdev_bc);
+  fitg_bc->SetLineWidth(2); fitg_bc->SetLineColor(2);
+  h_EovP->Fit(fitg_bc,"NO+QR"); fitg_bc->GetParameters(param_bc); fitg_bc->GetParError(2);
+  h_EovP->SetLineWidth(2); h_EovP->SetLineColor(kGreen+2);
   Int_t maxBin = h_EovP_calib->GetMaximumBin();
-  Double_t binW = h_EovP_calib->GetBinWidth(maxBin),norm = h_EovP_calib->GetMaximum();
+  Double_t binW = h_EovP_calib->GetBinWidth(maxBin), norm = h_EovP_calib->GetMaximum();
   Double_t mean = h_EovP_calib->GetMean(), stdev = h_EovP_calib->GetStdDev();
-  Double_t lower_lim = h_EovP_min + maxBin*binW - 1.*stdev;
-  Double_t upper_lim = h_EovP_min + maxBin*binW + 1.*stdev; 
+  Double_t lower_lim = h_EovP_min + maxBin*binW - 1.5*stdev;
+  Double_t upper_lim = h_EovP_min + maxBin*binW + 1.5*stdev; 
   TF1* fitg = new TF1("fitg","gaus",h_EovP_min,h_EovP_max);
   fitg->SetRange(lower_lim,upper_lim);
   fitg->SetParameters(norm,mean,stdev);
   fitg->SetLineWidth(2); fitg->SetLineColor(2);
-  h_EovP_calib->Fit(fitg,"QR");
+  h_EovP_calib->Fit(fitg,"QR"); fitg->GetParameters(param); fitg->GetParError(2);
   h_EovP_calib->SetLineWidth(2); h_EovP_calib->SetLineColor(1);
-  h_EovP_calib->Draw();
-  h_EovP->SetLineWidth(2); h_EovP->SetLineColor(kGreen+2);
-  h_EovP->Draw("same");
+  h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm*1.2);
+  h_EovP_calib->Draw(); h_EovP->Draw("same");
+
+  // draw the legend
+  TLegend *l = new TLegend(0.10,0.78,0.90,0.90);
+  l->SetTextFont(42);
+  l->AddEntry(h_EovP,Form("Before calib., #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100),"l");
+  l->AddEntry(h_EovP_calib,Form("After calib., #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100),"l");
+  l->Draw();
 
   c1->cd(2);
   gPad->SetGridy();
@@ -901,9 +920,23 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   h2_PSeng_vs_trY_calib->SetStats(0);
   h2_PSeng_vs_trY_calib->Draw("colz");
 
+  // let's record the summary
+  TCanvas *c4 = new TCanvas("c4");
+  c4->cd();
+
+  TPaveText *pt = new TPaveText(.05,.1,.95,.8);
+  pt->AddText(Form("Configfile: %s.cfg",cfgfilebase.Data()));
+  pt->AddText(Form(" E/p  (before calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
+  pt->AddText(Form(" E/p (after calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100));
+  pt->AddText(Form(" Global cuts = %s",gcutstr.Data()));
+  TText *t1 = pt->GetLineWith("Configfile");
+  t1->SetTextColor(kBlue);
+  pt->Draw();
+
   c1->Write();
   c2->Write();
   c3->Write();
+  c4->Write();
   fout->Write();
   //fout->Close();
 
