@@ -765,15 +765,9 @@ void makeSummaryPlots( string runnumber, string date, bool trigAmp = 0 ){
     CGr[i]->Write();
   }  
 
-  if(trigAmp){
-    CGr[0]->SaveAs( Form("%s[",OutF_diagPlots.Data()) );
-    for( int i=0; i<3; i++ ) CGr[i]->SaveAs( Form("%s",OutF_diagPlots.Data()) );
-    CGr[2]->SaveAs( Form("%s]",OutF_diagPlots.Data()) );
-  }else{
-    CGr[0]->SaveAs( Form("%s[",OutF_diagPlots.Data()) );
-    for( int i=0; i<3; i++ ) CGr[i]->SaveAs( Form("%s",OutF_diagPlots.Data()) );
-    CGr[2]->SaveAs( Form("%s]",OutF_diagPlots.Data()) );
-  }
+  CGr[0]->SaveAs( Form("%s[",OutF_diagPlots.Data()) );
+  for( int i=0; i<3; i++ ) CGr[i]->SaveAs( Form("%s",OutF_diagPlots.Data()) );
+  CGr[2]->SaveAs( Form("%s]",OutF_diagPlots.Data()) );
 }
 
 
