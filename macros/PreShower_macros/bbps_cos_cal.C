@@ -517,15 +517,9 @@ void bbps_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
     }
   }
 
-  if(trigAmp){
-    subCanv[0]->SaveAs(Form("%s[",OutF_peaks.Data()));
-    for( int canC=0; canC<4; canC++ ) subCanv[canC]->SaveAs(Form("%s",OutF_peaks.Data()));
-    subCanv[3]->SaveAs(Form("%s]",OutF_peaks.Data()));
-  }else{
-    subCanv[0]->SaveAs(Form("%s[",OutF_peaks.Data()));
-    for( int canC=0; canC<4; canC++ ) subCanv[canC]->SaveAs(Form("%s",OutF_peaks.Data()));
-    subCanv[3]->SaveAs(Form("%s]",OutF_peaks.Data()));
-  }
+  subCanv[0]->SaveAs(Form("%s[",OutF_peaks.Data()));
+  for( int canC=0; canC<4; canC++ ) subCanv[canC]->SaveAs(Form("%s",OutF_peaks.Data()));
+  subCanv[3]->SaveAs(Form("%s]",OutF_peaks.Data()));
 
   // Generating diagnostic plots
   if( diagPlots ){
