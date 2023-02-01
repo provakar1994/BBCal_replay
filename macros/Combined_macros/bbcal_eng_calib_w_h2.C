@@ -38,6 +38,7 @@ const Int_t kNrowsPS = 26;        // PS rows
 const Double_t zposSH = 1.901952; // m
 const Double_t zposPS = 1.695704; // m
 
+string getDate();
 void ReadGain(TString, Double_t*);
 TString GetOutFileBase(TString);
 
@@ -359,6 +360,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   // Creating output ROOT file to contain histograms
   TString outFile = Form("%s/hist/%s_bbcal_eng_calib.root", macros_dir.Data(), cfgfilebase.Data());
+  TString outPlot = Form("%s/plots/%s_bbcal_eng_calib.pdf", macros_dir.Data(), cfgfilebase.Data());
   TFile *fout = new TFile(outFile, "RECREATE");
   fout->cd();
 
@@ -921,17 +923,27 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   h2_PSeng_vs_trY_calib->Draw("colz");
 
   // let's record the summary
-  TCanvas *c4 = new TCanvas("c4");
+  TCanvas *c4 = new TCanvas("c4","Summary");
   c4->cd();
 
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
   pt->AddText(Form("Configfile: %s.cfg",cfgfilebase.Data()));
+  pt->AddText(Form(" Date of creation: %s", getDate().c_str()));
+  pt->AddText(Form(" Total no. of events analyzed: %lld", Nevents));
   pt->AddText(Form(" E/p  (before calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
   pt->AddText(Form(" E/p (after calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100));
   pt->AddText(Form(" Global cuts = %s",gcutstr.Data()));
   TText *t1 = pt->GetLineWith("Configfile");
   t1->SetTextColor(kBlue);
   pt->Draw();
+
+  // let's save the canvases in a pdf file
+  c1->SaveAs(Form("%s[",outPlot.Data()));
+  c1->SaveAs(Form("%s",outPlot.Data()));
+  c2->SaveAs(Form("%s",outPlot.Data()));
+  c3->SaveAs(Form("%s",outPlot.Data()));
+  c4->SaveAs(Form("%s",outPlot.Data()));
+  c4->SaveAs(Form("%s]",outPlot.Data()));
 
   c1->Write();
   c2->Write();
@@ -952,11 +964,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   cout << "List of output files:" << endl;
   cout << " --------- " << endl;
-  cout << " 1. Resulting histograms : " << outFile << endl;
-  cout << " 2. Gain ratios (new/old) for SH : " << gainRatio_SH << endl;
-  cout << " 3. Gain ratios (new/old) for PS : " << gainRatio_PS << endl;
-  cout << " 4. New ADC gain coeffs. (GeV/pC) for SH : " << adcGain_SH << endl;
-  cout << " 5. New ADC gain coeffs. (GeV/pC) for PS : " << adcGain_PS << endl;
+  cout << " 1. Summary plots : "        << outPlot << endl;
+  cout << " 2. Resulting histograms : " << outFile << endl;
+  cout << " 3. Gain ratios (new/old) for SH : " << gainRatio_SH << endl;
+  cout << " 4. Gain ratios (new/old) for PS : " << gainRatio_PS << endl;
+  cout << " 5. New ADC gain coeffs. (GeV/pC) for SH : " << adcGain_SH << endl;
+  cout << " 6. New ADC gain coeffs. (GeV/pC) for PS : " << adcGain_PS << endl;
   cout << " --------- " << endl;
 
   sw->Stop();
@@ -1003,6 +1016,19 @@ TString GetOutFileBase(TString configfilename) {
   }
   TString temp = result[result.size() - 1];
   return temp.ReplaceAll(".cfg", "");
+}
+
+// ---------------- Get today's date ----------------
+string getDate(){
+  time_t now = time(0);
+  tm ltm = *localtime(&now);
+
+  string yyyy = to_string(1900 + ltm.tm_year);
+  string mm = to_string(1 + ltm.tm_mon);
+  string dd = to_string(ltm.tm_mday);
+  string date = mm + '/' + dd + '/' + yyyy;
+
+  return date;
 }
 
 /*
