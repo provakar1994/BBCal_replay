@@ -33,7 +33,15 @@ void bbcal_hcal_clust_corr (const char* rootfile) {
   Double_t bb_sh_rowblk = 0., sbs_hcal_rowblk = 0.; 
   Double_t bb_sh_nclus = 0., sbs_hcal_nclus = 0.;
   Double_t bb_tdctrig_tdc[6] = {0.}, bb_tdctrig_tdcelemID[6] = {0.};
+  Int_t Ndata_bb_bbtrig_adcelemID = 0;
+  Double_t bb_bbtrig_adcelemID[25];
+  Int_t Ndata_bb_bbtrig_tdcelemID = 0;
+  Double_t bb_bbtrig_tdcelemID[25];
 
+  TH1F *h_bbtrig_adcelemID = new TH1F("h_bbtrig_adcelemID","",25,0,25);
+  TH1F *h_bbtrig_adcelemID_tcut = new TH1F("h_bbtrig_adcelemID_tcut","HCAL-BBCAL trigger time cut implemented",25,0,25);
+  TH1F *h_bbtrig_tdcelemID = new TH1F("h_bbtrig_tdcelemID","",25,0,25);
+  TH1F *h_bbtrig_tdcelemID_tcut = new TH1F("h_bbtrig_tdcelemID_tcut","HCAL-BBCAL trigger time cut implemented",25,0,25);
   TH1F *h_bbcal_hcal_trigtime_diff = new TH1F("h_bbcal_hcal_trigtime_diff","",240,400,640);
   TH2F *h2_bbcal_hcal_corr = new TH2F("h2_bbh_corr","BBCal-HCal Cluster Correlation; BB Shower Rows; HCal Rows",27,1,28,24,1,25);
 
@@ -42,6 +50,8 @@ void bbcal_hcal_clust_corr (const char* rootfile) {
   C->SetBranchStatus("bb.tdctrig.tdc",1);
   C->SetBranchStatus("bb.tdctrig.tdcelemID",1);
   C->SetBranchStatus("Ndata.bb.tdctrig.tdcelemID",1);
+  C->SetBranchStatus("bb.bbtrig.adcelemID",1);
+  C->SetBranchStatus("Ndata.bb.bbtrig.adcelemID",1);
   C->SetBranchStatus("bb.sh.nclus",1);
   C->SetBranchStatus("bb.sh.rowblk",1);
   C->SetBranchStatus("sbs.hcal.nclus",1);
@@ -49,6 +59,10 @@ void bbcal_hcal_clust_corr (const char* rootfile) {
   C->SetBranchAddress("bb.tdctrig.tdc", &bb_tdctrig_tdc);
   C->SetBranchAddress("bb.tdctrig.tdcelemID", &bb_tdctrig_tdcelemID);
   C->SetBranchAddress("Ndata.bb.tdctrig.tdcelemID", &Ndata_bb_tdctrig_tdcelemID);
+  C->SetBranchAddress("bb.bbtrig.adcelemID", &bb_bbtrig_adcelemID);
+  C->SetBranchAddress("Ndata.bb.bbtrig.adcelemID", &Ndata_bb_bbtrig_adcelemID);
+  C->SetBranchAddress("bb.bbtrig.tdcelemID", &bb_bbtrig_tdcelemID);
+  C->SetBranchAddress("Ndata.bb.bbtrig.tdcelemID", &Ndata_bb_bbtrig_tdcelemID);
   C->SetBranchAddress("bb.sh.nclus", &bb_sh_nclus);
   C->SetBranchAddress("sbs.hcal.nclus", &sbs_hcal_nclus);
   C->SetBranchAddress("bb.sh.rowblk", &bb_sh_rowblk);
@@ -73,10 +87,22 @@ void bbcal_hcal_clust_corr (const char* rootfile) {
     if(fabs(diff-506.)<20.){
       h2_bbcal_hcal_corr->Fill(bb_sh_rowblk+1, sbs_hcal_rowblk+1);
     }
+
+    // Trigger ADC 
+    for(Int_t ihit=0; ihit<Ndata_bb_bbtrig_adcelemID; ihit++){
+      h_bbtrig_adcelemID->Fill(bb_bbtrig_adcelemID[ihit]);
+      if (fabs(diff-506.)<20.) h_bbtrig_adcelemID_tcut->Fill(bb_bbtrig_adcelemID[ihit]);
+    }
+
+    // Trigger A=TDC 
+    for(Int_t ihit=0; ihit<Ndata_bb_bbtrig_tdcelemID; ihit++){
+      h_bbtrig_tdcelemID->Fill(bb_bbtrig_tdcelemID[ihit]);
+      if (fabs(diff-506.)<20.) h_bbtrig_tdcelemID_tcut->Fill(bb_bbtrig_tdcelemID[ihit]);
+    }
   }
 
-  TCanvas *c1 = new TCanvas("c1", "c1", 1200, 600);
-  c1->Divide(2,1);
+  TCanvas *c1 = new TCanvas("c1", "c1", 1200, 800);
+  c1->Divide(2,2);
   
   c1->cd(1);
   h_bbcal_hcal_trigtime_diff->Draw();
@@ -114,4 +140,12 @@ void bbcal_hcal_clust_corr (const char* rootfile) {
   h2_bbcal_hcal_corr->SetMinimum(-0.1);
   h2_bbcal_hcal_corr->SetStats(0);
   h2_bbcal_hcal_corr->Draw("colz");
+
+  c1->cd(3);
+  //h_bbtrig_adcelemID->Draw();
+  h_bbtrig_tdcelemID->Draw();
+
+  c1->cd(4);
+  //h_bbtrig_adcelemID_tcut->Draw();
+  h_bbtrig_tdcelemID_tcut->Draw();
 }
