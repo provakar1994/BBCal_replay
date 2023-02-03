@@ -1,0 +1,17 @@
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*11989*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*11990*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*11991*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*11992*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*11993*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*11994*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*12000*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*12008*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*12022*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*12035*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*12049*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*12052*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*12053*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*12058*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*12064*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS7/LH2/rootfiles/*12072*
+endlist

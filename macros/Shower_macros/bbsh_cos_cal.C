@@ -500,15 +500,9 @@ void bbsh_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
     outfile_data << endl;
   }
 
-  if(trigAmp){
-    subCanv[0]->SaveAs(Form("%s[",OutF_peaks.Data()));
-    for( int canC=0; canC<4; canC++ ) subCanv[canC]->SaveAs(Form("%s",OutF_peaks.Data()));
-    subCanv[3]->SaveAs(Form("%s]",OutF_peaks.Data()));
-  }else{
-    subCanv[0]->SaveAs(Form("%s[",OutF_peaks.Data()));
-    for( int canC=0; canC<4; canC++ ) subCanv[canC]->SaveAs(Form("%s",OutF_peaks.Data()));
-    subCanv[3]->SaveAs(Form("%s]",OutF_peaks.Data()));
-  }
+  subCanv[0]->SaveAs(Form("%s[",OutF_peaks.Data()));
+  for( int canC=0; canC<4; canC++ ) subCanv[canC]->SaveAs(Form("%s",OutF_peaks.Data()));
+  subCanv[3]->SaveAs(Form("%s]",OutF_peaks.Data()));
 
   // Generating diagnostic plots
   if( diagPlots ){
@@ -771,15 +765,9 @@ void makeSummaryPlots( string runnumber, string date, bool trigAmp = 0 ){
     CGr[i]->Write();
   }  
 
-  if(trigAmp){
-    CGr[0]->SaveAs( Form("%s[",OutF_diagPlots.Data()) );
-    for( int i=0; i<3; i++ ) CGr[i]->SaveAs( Form("%s",OutF_diagPlots.Data()) );
-    CGr[2]->SaveAs( Form("%s]",OutF_diagPlots.Data()) );
-  }else{
-    CGr[0]->SaveAs( Form("%s[",OutF_diagPlots.Data()) );
-    for( int i=0; i<3; i++ ) CGr[i]->SaveAs( Form("%s",OutF_diagPlots.Data()) );
-    CGr[2]->SaveAs( Form("%s]",OutF_diagPlots.Data()) );
-  }
+  CGr[0]->SaveAs( Form("%s[",OutF_diagPlots.Data()) );
+  for( int i=0; i<3; i++ ) CGr[i]->SaveAs( Form("%s",OutF_diagPlots.Data()) );
+  CGr[2]->SaveAs( Form("%s]",OutF_diagPlots.Data()) );
 }
 
 

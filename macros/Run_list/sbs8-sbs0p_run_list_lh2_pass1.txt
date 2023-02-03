@@ -1,0 +1,8 @@
+/w/halla-scshelf2102/sbs/sbs-gmn/pass1/SBS8/LH2/rootfiles/*13459*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass1/SBS8/LH2/rootfiles/*13460*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass1/SBS8/LH2/rootfiles/*13461*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass1/SBS8/LH2/rootfiles/*13463*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass1/SBS8/LH2/rootfiles/*13464*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass1/SBS8/LH2/rootfiles/*13465*
+/w/halla-scshelf2102/sbs/sbs-gmn/pass1/SBS8/LH2/rootfiles/*13466*
+endlist

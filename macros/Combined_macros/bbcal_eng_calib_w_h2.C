@@ -38,6 +38,7 @@ const Int_t kNrowsPS = 26;        // PS rows
 const Double_t zposSH = 1.901952; // m
 const Double_t zposPS = 1.695704; // m
 
+string getDate();
 void ReadGain(TString, Double_t*);
 TString GetOutFileBase(TString);
 
@@ -89,16 +90,31 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   // Reading config file
   ifstream configfile(configfilename);
-  TString currentline;
+  char runlistfile[1000]; 
+  TString currentline, readline;
   while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endRunlist") ){
     if( !currentline.BeginsWith("#") ){
-      C->Add(currentline);
-    }   
-  } 
-  TCut globalcut = "";
+      sprintf(runlistfile,"%s",currentline.Data());
+      ifstream run_list(runlistfile);
+      while( readline.ReadLine( run_list ) && !readline.BeginsWith("endlist") ){
+  	if( !readline.BeginsWith("#") ){
+  	  cout << readline << endl;
+  	  C->Add(readline);
+  	}
+      }   
+    } 
+  }
+  // TString currentline;
+  // while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endRunlist") ){
+  //   if( !currentline.BeginsWith("#") ){
+  //     C->Add(currentline);
+  //   }   
+  // } 
+  TCut globalcut = ""; TString gcutstr;
   while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endcut") ){
     if( !currentline.BeginsWith("#") ){
       globalcut += currentline;
+      gcutstr += currentline;
     }    
   }
   TTreeFormula *GlobalCut = new TTreeFormula("GlobalCut", globalcut, C);
@@ -330,46 +346,66 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   gStyle->SetOptStat(0);
   TH2D *h2_SHeng_vs_SHblk_raw = new TH2D("h2_SHeng_vs_SHblk_raw","Raw E_clus(SH) per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_EovP_vs_SHblk_raw = new TH2D("h2_EovP_vs_SHblk_raw","Raw E_clus/p_rec per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_EovP_vs_SHblk_raw_calib = new TH2D("h2_EovP_vs_SHblk_raw_calib","Raw E_clus/p_rec per SH block | After Calib.",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_count = new TH2D("h2_count","Count for E_clus/p_rec per per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_EovP_vs_SHblk_trPOS_raw = new TH2D("h2_EovP_vs_SHblk_trPOS_raw","Raw E_clus/p_rec per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
   TH2D *h2_count_trP = new TH2D("h2_count_trP","Count for E_clus/p_rec per per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
 
   TH2D *h2_PSeng_vs_PSblk_raw = new TH2D("h2_PSeng_vs_PSblk_raw","Raw E_clus(PS) per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_EovP_vs_PSblk_raw = new TH2D("h2_EovP_vs_PSblk_raw","Raw E_clus/p_rec per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_EovP_vs_PSblk_raw_calib = new TH2D("h2_EovP_vs_PSblk_raw_calib","Raw E_clus/p_rec per PS block | After Calib.",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_count_PS = new TH2D("h2_count_PS","Count for E_clus/p_rec per per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_EovP_vs_PSblk_trPOS_raw = new TH2D("h2_EovP_vs_PSblk_trPOS_raw","Raw E_clus/p_rec per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
   TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec per per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
   // Creating output ROOT file to contain histograms
   TString outFile = Form("%s/hist/%s_bbcal_eng_calib.root", macros_dir.Data(), cfgfilebase.Data());
+  TString outPlot = Form("%s/plots/%s_bbcal_eng_calib.pdf", macros_dir.Data(), cfgfilebase.Data());
   TFile *fout = new TFile(outFile, "RECREATE");
   fout->cd();
 
   // Physics histograms
   TH1D *h_W = new TH1D("h_W", "W distribution", h_W_bin, h_W_min, h_W_max);
   TH1D *h_Q2 = new TH1D("h_Q2", "Q2 distribution", h_Q2_bin, h_Q2_min, h_Q2_max);
-  TH1D *h_EovP = new TH1D("h_EovP", "E_clus/p_rec", h_EovP_bin, h_EovP_min, h_EovP_max);
-  TH1D *h_EovP_calib = new TH1D("h_EovP_calib", "E_clus/p_rec", h_EovP_bin, h_EovP_min, h_EovP_max);
-  TH1D *h_clusE = new TH1D("h_clusE", "Best Cluster Energy (SH+PS)", h_clusE_bin, h_clusE_min, h_clusE_max);
-  TH1D *h_clusE_calib = new TH1D("h_clusE_calib", Form("Best Cluster Energy (SH+PS) u (sh/ps.e)*%2.2f", cF), h_clusE_bin, h_clusE_min, h_clusE_max);
+  TH1D *h_EovP = new TH1D("h_EovP", "E/p (Before Calib.)", h_EovP_bin, h_EovP_min, h_EovP_max);
+  TH1D *h_EovP_calib = new TH1D("h_EovP_calib", "E/p", h_EovP_bin, h_EovP_min, h_EovP_max);
+  TH1D *h_clusE = new TH1D("h_clusE", "Best SH+PS cl. eng.", h_clusE_bin, h_clusE_min, h_clusE_max);
+  TH1D *h_clusE_calib = new TH1D("h_clusE_calib", Form("Best SH+PS cl. eng. u (sh/ps.e)*%2.2f", cF), h_clusE_bin, h_clusE_min, h_clusE_max);
   TH1D *h_SHclusE = new TH1D("h_SHclusE", "Best SH Cluster Energy", h_shE_bin, h_shE_min, h_shE_max);
-  TH1D *h_SHclusE_calib = new TH1D("h_SHclusE_calib", Form("Best SH Cluster Energy u (sh.e)*%2.2f", cF), h_shE_bin, h_shE_min, h_shE_max);
+  TH1D *h_SHclusE_calib = new TH1D("h_SHclusE_calib", Form("Best SH cl. eng. u (sh.e)*%2.2f", cF), h_shE_bin, h_shE_min, h_shE_max);
   TH1D *h_PSclusE = new TH1D("h_PSclusE", "Best PS Cluster Energy", h_psE_bin, h_psE_min, h_psE_max);
-  TH1D *h_PSclusE_calib = new TH1D("h_PSclusE_calib", Form("Best PS Cluster Energy u (ps.e)*%2.2f", cF), h_psE_bin, h_psE_min, h_psE_max);
+  TH1D *h_PSclusE_calib = new TH1D("h_PSclusE_calib", Form("Best PS cl. eng. u (ps.e)*%2.2f", cF), h_psE_bin, h_psE_min, h_psE_max);
   TH2D *h2_P_rec_vs_P_ang = new TH2D("h2_P_rec_vs_P_ang", "Track p vs Track ang", h2_pang_bin, h2_pang_min, h2_pang_max, h2_p_bin, h2_p_min, h2_p_max);
 
   TH2D *h2_EovP_vs_P = new TH2D("h2_EovP_vs_P", "E/p vs p; p (GeV); E/p", h2_p_coarse_bin, h2_p_coarse_min, h2_p_coarse_max, h2_EovP_bin, h2_EovP_min, h2_EovP_max);
-  TH2D *h2_EovP_vs_P_calib = new TH2D("h2_EovP_vs_P_calib", "E/p vs p; p (GeV); E/p", h2_p_coarse_bin, h2_p_coarse_min, h2_p_coarse_max, h2_EovP_bin, h2_EovP_min, h2_EovP_max);
+  TProfile *h2_EovP_vs_P_prof = new TProfile("h2_EovP_vs_P_prof","E/p vs P (Profile)",h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h_EovP_min,h_EovP_max);
+  TH2D *h2_EovP_vs_P_calib = new TH2D("h2_EovP_vs_P_calib", "E/p vs p | After Calib.; p (GeV); E/p", h2_p_coarse_bin, h2_p_coarse_min, h2_p_coarse_max, h2_EovP_bin, h2_EovP_min, h2_EovP_max);
+  TProfile *h2_EovP_vs_P_calib_prof = new TProfile("h2_EovP_vs_P_calib_prof","E/p vs P (Profile) a clib.",h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h_EovP_min,h_EovP_max);
 
-  TH2D *h2_SHeng_vs_SHblk = new TH2D("h2_SHeng_vs_SHblk", "Average E_clus(SH)*%2.2f per SH block", kNcolsSH, 0, kNcolsSH, kNrowsSH, 0, kNrowsSH);
-  TH2D *h2_EovP_vs_SHblk = new TH2D("h2_EovP_vs_SHblk", "Average E_clus*%2.2f/p_rec per SH block", kNcolsSH, 0, kNcolsSH, kNrowsSH, 0, kNrowsSH);
-  TH2D *h2_EovP_vs_SHblk_trPOS = new TH2D("h2_EovP_vs_SHblk_trPOS", "Average E_clus*%2.2f/p_rec per SH block(TrPos)", kNcolsSH, -0.2992, 0.2992, kNrowsSH, -1.1542, 1.1542);
+  TH2D *h2_SHeng_vs_SHblk = new TH2D("h2_SHeng_vs_SHblk", "SH cl. eng. per SH block", kNcolsSH, 0, kNcolsSH, kNrowsSH, 0, kNrowsSH);
+  TH2D *h2_EovP_vs_SHblk = new TH2D("h2_EovP_vs_SHblk", "E/p per SH block", kNcolsSH, 0, kNcolsSH, kNrowsSH, 0, kNrowsSH);
+  TH2D *h2_EovP_vs_SHblk_calib = new TH2D("h2_EovP_vs_SHblk_calib", "E/p per SH block | After Calib.", kNcolsSH, 0, kNcolsSH, kNrowsSH, 0, kNrowsSH);
+  TH2D *h2_EovP_vs_SHblk_trPOS = new TH2D("h2_EovP_vs_SHblk_trPOS", "E/p per SH block (TrPos)", kNcolsSH, -0.2992, 0.2992, kNrowsSH, -1.1542, 1.1542);
 
-  TH2D *h2_PSeng_vs_PSblk = new TH2D("h2_PSeng_vs_PSblk", "Average E_clus(PS)*%2.2f per PS block", kNcolsPS, 0, kNcolsPS, kNrowsPS, 0, kNrowsPS);
-  TH2D *h2_EovP_vs_PSblk = new TH2D("h2_EovP_vs_PSblk", "Average E_clus*%2.2f/p_rec per PS block", kNcolsPS, 0, kNcolsPS, kNrowsPS, 0, kNrowsPS);
-  TH2D *h2_EovP_vs_PSblk_trPOS = new TH2D("h2_EovP_vs_PSblk_trPOS", "Average E_clus*%2.2f/p_rec per PS block(TrPos)", kNcolsPS, -0.3705, 0.3705, kNrowsPS, -1.201, 1.151);
+  TH2D *h2_PSeng_vs_PSblk = new TH2D("h2_PSeng_vs_PSblk", "PS cl. eng. per PS block", kNcolsPS, 0, kNcolsPS, kNrowsPS, 0, kNrowsPS);
+  TH2D *h2_EovP_vs_PSblk = new TH2D("h2_EovP_vs_PSblk", "E/p per PS block", kNcolsPS, 0, kNcolsPS, kNrowsPS, 0, kNrowsPS);
+  TH2D *h2_EovP_vs_PSblk_calib = new TH2D("h2_EovP_vs_PSblk_calib", "E/p per PS block | After Calib.", kNcolsPS, 0, kNcolsPS, kNrowsPS, 0, kNrowsPS);
+  TH2D *h2_EovP_vs_PSblk_trPOS = new TH2D("h2_EovP_vs_PSblk_trPOS", "E/p per PS block (TrPos)", kNcolsPS, -0.3705, 0.3705, kNrowsPS, -1.201, 1.151);
 
   TH1D *h_thetabend = new TH1D("h_thetabend", "", 100, 0., 0.25);
+
+  TH2D *h2_EovP_vs_trX = new TH2D("h2_EovP_vs_trX","E/p vs Track x",200,-0.8,0.8,200,0,2);
+  TH2D *h2_EovP_vs_trX_calib = new TH2D("h2_EovP_vs_trX_calib","E/p vs Track x (Calib.)",200,-0.8,0.8,200,0,2);
+  TH2D *h2_EovP_vs_trY = new TH2D("h2_EovP_vs_trY","E/p vs Track y",200,-0.16,0.16,200,0,2);
+  TH2D *h2_EovP_vs_trY_calib = new TH2D("h2_EovP_vs_trY_calib","E/p vs Track y (Calib.)",200,-0.16,0.16,200,0,2);
+  TH2D *h2_EovP_vs_trTh = new TH2D("h2_EovP_vs_trTh","E/p vs Track theta",200,-0.2,0.2,200,0,2);
+  TH2D *h2_EovP_vs_trTh_calib = new TH2D("h2_EovP_vs_trTh_calib","E/p vs Track theta (Calib.)",200,-0.2,0.2,200,0,2);
+  TH2D *h2_EovP_vs_trPh = new TH2D("h2_EovP_vs_trPh","E/p vs Track phi",200,-0.08,0.08,200,0,2);
+  TH2D *h2_EovP_vs_trPh_calib = new TH2D("h2_EovP_vs_trPh_calib","E/p vs Track phi (Calib.)",200,-0.08,0.08,200,0,2);
+  TH2D *h2_PSeng_vs_trX = new TH2D("h2_PSeng_vs_trX","PS energy vs Track x",200,-0.8,0.8,200,0,4);
+  TH2D *h2_PSeng_vs_trX_calib = new TH2D("h2_PSeng_vs_trX_calib","PS energy vs Track x (Calib.)",200,-0.8,0.8,200,0,4);
+  TH2D *h2_PSeng_vs_trY = new TH2D("h2_PSeng_vs_trY","PS energy vs Track y",200,-0.16,0.16,200,0,4);
+  TH2D *h2_PSeng_vs_trY_calib = new TH2D("h2_PSeng_vs_trY_calib","PS energy vs Track y (Calib.)",200,-0.16,0.16,200,0,4);  
 
   TTree *Tout = new TTree("Tout", "");
   Double_t T_W2;      Tout->Branch("W2", &T_W2, "W2/D");
@@ -531,14 +567,15 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
       // E/p vs. p
       h2_EovP_vs_P->Fill(p_rec, clusEngBBCal/p_rec);
+      h2_EovP_vs_P_prof->Fill( p_rec, clusEngBBCal/p_rec, 1. );
 
-      // Let's customize the histograms
-      h2_SHeng_vs_SHblk->GetZaxis()->SetRangeUser(0.9,2.0);
-      h2_EovP_vs_SHblk->GetZaxis()->SetRangeUser(0.8,1.2);
-      h2_EovP_vs_SHblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
-      h2_PSeng_vs_PSblk->GetZaxis()->SetRangeUser(0.36,1.28);
-      h2_EovP_vs_PSblk->GetZaxis()->SetRangeUser(0.8,1.2);
-      h2_EovP_vs_PSblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
+      // histos to check bias in tracking
+      h2_EovP_vs_trX->Fill( trX[0], (clusEngBBCal/p_rec) );
+      h2_EovP_vs_trY->Fill( trY[0], (clusEngBBCal/p_rec) );
+      h2_EovP_vs_trTh->Fill( trTh[0], (clusEngBBCal/p_rec) );
+      h2_EovP_vs_trPh->Fill( trPh[0], (clusEngBBCal/p_rec) );
+      h2_PSeng_vs_trX->Fill( trX[0], ClusEngPS );
+      h2_PSeng_vs_trY->Fill( trY[0], ClusEngPS );
 
       // Let's costruct the matrix
       for(Int_t icol = 0; icol<ncell; icol++){
@@ -550,8 +587,15 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       
     } //global cut
   } //event loop
-
   cout << endl << endl;
+
+  // Let's customize the histogram ranges
+  h2_SHeng_vs_SHblk->GetZaxis()->SetRangeUser(0.9,2.0);
+  h2_EovP_vs_SHblk->GetZaxis()->SetRangeUser(0.8,1.2);
+  h2_EovP_vs_SHblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
+  h2_PSeng_vs_PSblk->GetZaxis()->SetRangeUser(0.36,1.28);
+  h2_EovP_vs_PSblk->GetZaxis()->SetRangeUser(0.8,1.2);
+  h2_EovP_vs_PSblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
   
   // B.Print();  
   // M.Print();
@@ -561,13 +605,15 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH1D *h_coeff_Ratio_SH = new TH1D("h_coeff_Ratio_SH", "Ratio of Gain Coefficients(new/old); SH Blocks", 189, 0, 189);
   TH1D *h_coeff_blk_SH = new TH1D("h_coeff_blk_SH", "ADC Gain Coefficients(GeV/pC); SH Blocks", 189, 0, 189);
   TH1D *h_Old_Coeff_blk_SH = new TH1D("h_Old_Coeff_blk_SH", "Old ADC Gain Coefficients(GeV/pC); SH Blocks", 189, 0, 189);
-  TH2D *h_coeff_detView_SH = new TH2D("h_coeff_detView_SH", "ADC Gain Coefficients(Detector View)", kNcolsSH, 1, kNcolsSH+1, kNrowsSH, 1, kNrowsSH+1);
+  TH2D *h2_Old_coeff_detView_SH = new TH2D("h2_Old_coeff_detView_SH", "Old ADC Gain Coefficients | SH", kNcolsSH, 1, kNcolsSH+1, kNrowsSH, 1, kNrowsSH+1);
+  TH2D *h2_coeff_detView_SH = new TH2D("h2_coeff_detView_SH", "New ADC Gain Coefficients | SH", kNcolsSH, 1, kNcolsSH+1, kNrowsSH, 1, kNrowsSH+1);
 
   TH1D *h_nevent_blk_PS = new TH1D("h_nevent_blk_PS", "No. of Good Events; PS Blocks", 52, 0, 52);
   TH1D *h_coeff_Ratio_PS = new TH1D("h_coeff_Ratio_PS", "Ratio of Gain Coefficients(new/old); PS Blocks", 52, 0, 52);
   TH1D *h_coeff_blk_PS = new TH1D("h_coeff_blk_PS", "ADC Gain Coefficients(GeV/pC); PS Blocks", 52, 0, 52);
   TH1D *h_Old_Coeff_blk_PS = new TH1D("h_Old_Coeff_blk_PS", "Old ADC Gain Coefficients(GeV/pC); PS Blocks", 52, 0, 52);
-  TH2D *h_coeff_detView_PS = new TH2D("h_coeff_detView_PS", "ADC Gain Coefficients(Detector View)", kNcolsPS, 1, kNcolsPS+1, kNrowsPS, 1, kNrowsPS+1);
+  TH2D *h2_Old_coeff_detView_PS = new TH2D("h2_Old_coeff_detView_PS", "Old ADC Gain Coefficients | PS", kNcolsPS, 1, kNcolsPS+1, kNrowsPS, 1, kNrowsPS+1);
+  TH2D *h2_coeff_detView_PS = new TH2D("h2_coeff_detView_PS", "New ADC Gain Coefficients | PS", kNcolsPS, 1, kNcolsPS+1, kNrowsPS, 1, kNrowsPS+1);
 
   // Leave the bad channels out of the calculation
   for(Int_t j = 0; j<ncell; j++){
@@ -606,7 +652,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	h_coeff_blk_SH->Fill(cell, CoeffR(cell) * oldCoeff);
 	h_nevent_blk_SH->Fill(cell, nevents_per_cell[cell]);
 	h_Old_Coeff_blk_SH->Fill(cell, oldCoeff);
-	h_coeff_detView_SH->Fill(shcol+1, shrow+1, CoeffR(cell) * oldCoeff);
+	h2_Old_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff);
+	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, CoeffR(cell) * oldCoeff);
 
 	cout << CoeffR(cell) << "  ";
 	adcGainSH_outData << CoeffR(cell) * oldCoeff << " ";
@@ -617,7 +664,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	h_Old_Coeff_blk_SH->Fill(cell, oldCoeff);
 	h_coeff_Ratio_SH->Fill(cell, 1. * Corr_Factor_Enrg_Calib_w_Cosmic);
 	h_coeff_blk_SH->Fill(cell, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
-	h_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h2_Old_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff);
+	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
 
 	cout << 1.*Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
 	adcGainSH_outData << oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
@@ -631,6 +679,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     gainRatioSH_outData << endl;
   }
   cout << endl;
+
+  // customizing histograms
+  h_nevent_blk_SH->SetLineWidth(0); h_nevent_blk_SH->SetMarkerStyle(8);
+  h_coeff_Ratio_SH->SetLineWidth(0); h_coeff_Ratio_SH->SetMarkerStyle(8);
+  h_coeff_blk_SH->SetLineWidth(0); h_coeff_blk_SH->SetMarkerStyle(8);
+  h_Old_Coeff_blk_SH->SetLineWidth(0); h_Old_Coeff_blk_SH->SetMarkerStyle(8);
 
   // PS : Filling diagnostic histograms
   adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib.txt", macros_dir.Data(), cfgfilebase.Data());
@@ -649,7 +703,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	h_coeff_blk_PS->Fill(psBlock, CoeffR(cell) * oldCoeff);
 	h_nevent_blk_PS->Fill(psBlock, nevents_per_cell[cell]);
 	h_Old_Coeff_blk_PS->Fill(psBlock, oldCoeff);
-	h_coeff_detView_PS->Fill(pscol+1, psrow+1, CoeffR(cell) * oldCoeff);
+	h2_Old_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff);
+	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, CoeffR(cell) * oldCoeff);
 
 	cout << CoeffR(cell) << "  ";
 	adcGainPS_outData << CoeffR(cell) * oldCoeff << " ";
@@ -660,7 +715,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	h_Old_Coeff_blk_PS->Fill(psBlock, oldCoeff);
 	h_coeff_Ratio_PS->Fill(psBlock, 1. * Corr_Factor_Enrg_Calib_w_Cosmic);
 	h_coeff_blk_PS->Fill(psBlock, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
-	h_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h2_Old_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff);
+	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
 
 	cout << 1. * Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
 	adcGainPS_outData << oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
@@ -674,6 +730,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     gainRatioPS_outData << endl;
   }
   cout << endl;
+
+  // customizing histograms
+  h_nevent_blk_PS->SetLineWidth(0); h_nevent_blk_PS->SetMarkerStyle(8);
+  h_coeff_Ratio_PS->SetLineWidth(0); h_coeff_Ratio_PS->SetMarkerStyle(8);
+  h_coeff_blk_PS->SetLineWidth(0); h_coeff_blk_PS->SetMarkerStyle(8);
+  h_Old_Coeff_blk_PS->SetLineWidth(0); h_Old_Coeff_blk_PS->SetMarkerStyle(8);
 
   // add branches to Tout
   Double_t T_psE_calib;    TBranch *T_psE_c = Tout->Branch("psE_calib", &T_psE_calib, "psE_calib/D");
@@ -711,21 +773,237 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       h_clusE_calib->Fill(clusEngBBCal);
       h_SHclusE_calib->Fill(shClusE);
       h_PSclusE_calib->Fill(psClusE);
+
       h2_EovP_vs_P_calib->Fill(p_rec, clusEngBBCal/p_rec);
+      h2_EovP_vs_P_calib_prof->Fill( p_rec, clusEngBBCal/p_rec, 1. );
+
+      h2_EovP_vs_SHblk_raw_calib->Fill(shColblk, shRowblk, clusEngBBCal/p_rec);
+      h2_EovP_vs_SHblk_calib->Divide(h2_EovP_vs_SHblk_raw_calib, h2_count);
+
+      h2_EovP_vs_PSblk_raw_calib->Fill(psColblk, psRowblk, clusEngBBCal/p_rec);
+      h2_EovP_vs_PSblk_calib->Divide(h2_EovP_vs_PSblk_raw_calib, h2_count_PS);
+
       T_psE_calib = psClusE;        T_psE_c->Fill();
       T_clusE_calib = clusEngBBCal; T_clusE_c->Fill();
+
+      // histos to check bias in tracking
+      h2_EovP_vs_trX_calib->Fill( trX[0], (clusEngBBCal/p_rec) );
+      h2_EovP_vs_trY_calib->Fill( trY[0], (clusEngBBCal/p_rec) );
+      h2_EovP_vs_trTh_calib->Fill( trTh[0], (clusEngBBCal/p_rec) );
+      h2_EovP_vs_trPh_calib->Fill( trPh[0], (clusEngBBCal/p_rec) );
+      h2_PSeng_vs_trX_calib->Fill( trX[0], psClusE );
+      h2_PSeng_vs_trY_calib->Fill( trY[0], psClusE );
     }
   }
   cout << endl << endl;
 
+  // Let's customize the histogram ranges
+  h2_EovP_vs_SHblk_calib->GetZaxis()->SetRangeUser(0.8,1.2);
+  h2_EovP_vs_PSblk_calib->GetZaxis()->SetRangeUser(0.8,1.2);
+
+  // draw some diagnostic plots
+  TCanvas *c1 = new TCanvas("c1","E/p",1500,1200);
+  c1->Divide(3,2);
+
+  c1->cd(1);
+  gPad->SetGridx();
+  //h_EovP_calib->SetStats(1);
+  //gStyle->SetOptFit(1111);
+  Double_t EovP_fit_width = 1.5; //0.6; for sbs11-sbs100p
+  Double_t param[3], param_bc[3], sigerr, sigerr_bc;
+  Int_t maxBin_bc = h_EovP->GetMaximumBin();
+  Double_t binW_bc = h_EovP->GetBinWidth(maxBin_bc), norm_bc = h_EovP->GetMaximum();
+  Double_t mean_bc = h_EovP->GetMean(), stdev_bc = h_EovP->GetStdDev();
+  Double_t lower_lim_bc = h_EovP_min + maxBin_bc*binW_bc - EovP_fit_width*stdev_bc;
+  Double_t upper_lim_bc = h_EovP_min + maxBin_bc*binW_bc + EovP_fit_width*stdev_bc; 
+  TF1* fitg_bc = new TF1("fitg_bc","gaus",h_EovP_min,h_EovP_max);
+  fitg_bc->SetRange(lower_lim_bc,upper_lim_bc);
+  fitg_bc->SetParameters(norm_bc,mean_bc,stdev_bc);
+  fitg_bc->SetLineWidth(2); fitg_bc->SetLineColor(2);
+  h_EovP->Fit(fitg_bc,"NO+QR"); fitg_bc->GetParameters(param_bc); fitg_bc->GetParError(2);
+  h_EovP->SetLineWidth(2); h_EovP->SetLineColor(kGreen+2);
+  Int_t maxBin = h_EovP_calib->GetMaximumBin();
+  Double_t binW = h_EovP_calib->GetBinWidth(maxBin), norm = h_EovP_calib->GetMaximum();
+  Double_t mean = h_EovP_calib->GetMean(), stdev = h_EovP_calib->GetStdDev();
+  Double_t lower_lim = h_EovP_min + maxBin*binW - EovP_fit_width*stdev;
+  Double_t upper_lim = h_EovP_min + maxBin*binW + EovP_fit_width*stdev; 
+  TF1* fitg = new TF1("fitg","gaus",h_EovP_min,h_EovP_max);
+  fitg->SetRange(lower_lim,upper_lim);
+  fitg->SetParameters(norm,mean,stdev);
+  fitg->SetLineWidth(2); fitg->SetLineColor(2);
+  h_EovP_calib->Fit(fitg,"QR"); fitg->GetParameters(param); fitg->GetParError(2);
+  h_EovP_calib->SetLineWidth(2); h_EovP_calib->SetLineColor(1);
+  // adjusting histogram height for the legend to fit in
+  if (norm > norm_bc) h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm*1.2);
+  else h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm_bc*1.2);
+  h_EovP_calib->Draw(); h_EovP->Draw("same");
+
+  // draw the legend
+  TLegend *l = new TLegend(0.10,0.78,0.90,0.90);
+  l->SetTextFont(42);
+  l->AddEntry(h_EovP,Form("Before calib., #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100),"l");
+  l->AddEntry(h_EovP_calib,Form("After calib., #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100),"l");
+  l->Draw();
+
+  c1->cd(2);
+  gPad->SetGridy();
+  gStyle->SetErrorX(0.0001);
+  h2_EovP_vs_P->SetStats(0);
+  h2_EovP_vs_P->Draw("colz");
+  h2_EovP_vs_P_prof->SetStats(0);
+  h2_EovP_vs_P_prof->SetMarkerStyle(20);
+  h2_EovP_vs_P_prof->SetMarkerColor(1);
+  h2_EovP_vs_P_prof->Draw("same");
+
+  c1->cd(3);
+  gPad->SetGridy();
+  gStyle->SetErrorX(0.0001);
+  h2_EovP_vs_P_calib->SetStats(0);
+  h2_EovP_vs_P_calib->Draw("colz");
+  h2_EovP_vs_P_calib_prof->SetStats(0);
+  h2_EovP_vs_P_calib_prof->SetMarkerStyle(20);
+  h2_EovP_vs_P_calib_prof->SetMarkerColor(1);
+  h2_EovP_vs_P_calib_prof->Draw("same");
+
+  c1->cd(4);
+  h2_EovP_vs_SHblk->SetStats(0);
+  h2_EovP_vs_SHblk->Draw("colz");
+
+  c1->cd(5);
+  h2_EovP_vs_SHblk_calib->SetStats(0);
+  h2_EovP_vs_SHblk_calib->Draw("colz");
+
+  c1->cd(6);
+  h2_EovP_vs_PSblk_calib->SetStats(0);
+  h2_EovP_vs_PSblk_calib->Draw("colz");
+
+  TCanvas *c2 = new TCanvas("c2","tr X,Y,Th",1500,1200);
+  c2->Divide(3,2);
+
+  c2->cd(1);
+  gPad->SetGridy();
+  h2_EovP_vs_trX->SetStats(0);
+  h2_EovP_vs_trX->Draw("colz");
+
+  c2->cd(2);
+  gPad->SetGridy();
+  h2_EovP_vs_trY->SetStats(0);
+  h2_EovP_vs_trY->Draw("colz");
+
+  c2->cd(3);
+  gPad->SetGridy();
+  h2_EovP_vs_trTh->SetStats(0);
+  h2_EovP_vs_trTh->Draw("colz");
+
+  c2->cd(4);
+  gPad->SetGridy();
+  h2_EovP_vs_trX_calib->SetStats(0);
+  h2_EovP_vs_trX_calib->Draw("colz");
+
+  c2->cd(5);
+  gPad->SetGridy();
+  h2_EovP_vs_trY_calib->SetStats(0);
+  h2_EovP_vs_trY_calib->Draw("colz");
+
+  c2->cd(6);
+  gPad->SetGridy();
+  h2_EovP_vs_trTh_calib->SetStats(0);
+  h2_EovP_vs_trTh_calib->Draw("colz");
+
+  TCanvas *c3 = new TCanvas("c3","tr Ph,PS",1500,1200);
+  c3->Divide(3,2);
+
+  c3->cd(1);
+  gPad->SetGridy();
+  h2_EovP_vs_trPh->SetStats(0);
+  h2_EovP_vs_trPh->Draw("colz");
+
+  c3->cd(2);
+  gPad->SetGridy();
+  h2_PSeng_vs_trX->SetStats(0);
+  h2_PSeng_vs_trX->Draw("colz");
+
+  c3->cd(3);
+  gPad->SetGridy();
+  h2_PSeng_vs_trY->SetStats(0);
+  h2_PSeng_vs_trY->Draw("colz");
+
+  c3->cd(4);
+  gPad->SetGridy();
+  h2_EovP_vs_trPh_calib->SetStats(0);
+  h2_EovP_vs_trPh_calib->Draw("colz");
+
+  c3->cd(5);
+  gPad->SetGridy();
+  h2_PSeng_vs_trX_calib->SetStats(0);
+  h2_PSeng_vs_trX_calib->Draw("colz");
+
+  c3->cd(6);
+  gPad->SetGridy();
+  h2_PSeng_vs_trY_calib->SetStats(0);
+  h2_PSeng_vs_trY_calib->Draw("colz");
+
+  TCanvas *c4 = new TCanvas("c4","gain Coeff",1200,1000);
+  c4->Divide(2,2);
+  
+  c4->cd(1); Double_t h_max;
+  h_max = h_Old_Coeff_blk_SH->GetMaximum();
+  h2_Old_coeff_detView_SH->GetZaxis()->SetRangeUser(0.,h_max); h2_Old_coeff_detView_SH->Draw("text col");
+
+  c4->cd(2);
+  h_max = h_coeff_blk_SH->GetMaximum();
+  h2_coeff_detView_SH->GetZaxis()->SetRangeUser(0.,h_max); h2_coeff_detView_SH->Draw("text col");
+
+  c4->cd(3);
+  h_max = h_Old_Coeff_blk_PS->GetMaximum();
+  h2_Old_coeff_detView_PS->GetZaxis()->SetRangeUser(0.,h_max); h2_Old_coeff_detView_PS->Draw("text col");
+
+  c4->cd(4);
+  h_max = h_coeff_blk_PS->GetMaximum();
+  h2_coeff_detView_PS->GetZaxis()->SetRangeUser(0.,h_max); h2_coeff_detView_PS->Draw("text col");
+
+  // let's record the summary
+  TCanvas *c5 = new TCanvas("c5","Summary");
+  c5->cd();
+
+  TPaveText *pt = new TPaveText(.05,.1,.95,.8);
+  pt->AddText(Form("Configfile: %s.cfg",cfgfilebase.Data()));
+  pt->AddText(Form(" Date of creation: %s", getDate().c_str()));
+  pt->AddText(Form(" Total no. of events analyzed: %lld", Nevents));
+  pt->AddText(Form(" E/p  (before calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
+  pt->AddText(Form(" E/p (after calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100));
+  pt->AddText(Form(" Global cuts: %s",gcutstr.Data()));
+  if (cut_on_W) pt->AddText(Form(" |W - %.3f| < %.3f",W_mean,W_sigma));
+  if (cut_on_EovP) pt->AddText(Form(" |E/p - 1| < %.1f",EovP_cut_limit));
+  if (cut_on_pmin && cut_on_pmax) pt->AddText(Form(" %.1f < p_recon < %.1f GeV/c",p_min_cut,p_max_cut));
+  else if (cut_on_pmin) pt->AddText(Form(" p_recon > %.1f GeV/c",p_min_cut));
+  else if (cut_on_pmax) pt->AddText(Form(" p_recon < %.1f GeV/c",p_max_cut));
+  TText *t1 = pt->GetLineWith("Configfile");
+  t1->SetTextColor(kBlue);
+  pt->Draw();
+
+  // let's save the canvases in a pdf file
+  c1->SaveAs(Form("%s[",outPlot.Data()));
+  c1->SaveAs(Form("%s",outPlot.Data()));
+  c2->SaveAs(Form("%s",outPlot.Data()));
+  c3->SaveAs(Form("%s",outPlot.Data()));
+  c4->SaveAs(Form("%s",outPlot.Data()));
+  c5->SaveAs(Form("%s",outPlot.Data()));
+  c5->SaveAs(Form("%s]",outPlot.Data()));
+
+  c1->Write();
+  c2->Write();
+  c3->Write();
+  c4->Write();
+  c5->Write();
   fout->Write();
-  fout->Close();
+  //fout->Close();
 
   M.Clear();
   B.Clear();
   C->Delete();
   CoeffR.Clear();
-  fout->Delete();
+  //fout->Delete();
   adcGainSH_outData.close();
   adcGainPS_outData.close();
   gainRatioSH_outData.close();
@@ -733,11 +1011,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   cout << "List of output files:" << endl;
   cout << " --------- " << endl;
-  cout << " 1. Resulting histograms : " << outFile << endl;
-  cout << " 2. Gain ratios (new/old) for SH : " << gainRatio_SH << endl;
-  cout << " 3. Gain ratios (new/old) for PS : " << gainRatio_PS << endl;
-  cout << " 4. New ADC gain coeffs. (GeV/pC) for SH : " << adcGain_SH << endl;
-  cout << " 5. New ADC gain coeffs. (GeV/pC) for PS : " << adcGain_PS << endl;
+  cout << " 1. Summary plots : "        << outPlot << endl;
+  cout << " 2. Resulting histograms : " << outFile << endl;
+  cout << " 3. Gain ratios (new/old) for SH : " << gainRatio_SH << endl;
+  cout << " 4. Gain ratios (new/old) for PS : " << gainRatio_PS << endl;
+  cout << " 5. New ADC gain coeffs. (GeV/pC) for SH : " << adcGain_SH << endl;
+  cout << " 6. New ADC gain coeffs. (GeV/pC) for PS : " << adcGain_PS << endl;
   cout << " --------- " << endl;
 
   sw->Stop();
@@ -748,7 +1027,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   sw2->Delete();
 }
 
-
+// **** ========== Useful functions ========== ****  
 void ReadGain(TString adcGain_rfile, Double_t* adcGain){
   ifstream adcGain_data;
   adcGain_data.open(adcGain_rfile);
@@ -784,6 +1063,19 @@ TString GetOutFileBase(TString configfilename) {
   }
   TString temp = result[result.size() - 1];
   return temp.ReplaceAll(".cfg", "");
+}
+
+// ---------------- Get today's date ----------------
+string getDate(){
+  time_t now = time(0);
+  tm ltm = *localtime(&now);
+
+  string yyyy = to_string(1900 + ltm.tm_year);
+  string mm = to_string(1 + ltm.tm_mon);
+  string dd = to_string(ltm.tm_mday);
+  string date = mm + '/' + dd + '/' + yyyy;
+
+  return date;
 }
 
 /*

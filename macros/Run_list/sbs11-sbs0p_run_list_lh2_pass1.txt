@@ -1,0 +1,3 @@
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass1/SBS11/LH2/rootfiles/*12730*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass1/SBS11/LH2/rootfiles/*12731*
+endlist
