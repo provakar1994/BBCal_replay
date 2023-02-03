@@ -367,8 +367,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   // Physics histograms
   TH1D *h_W = new TH1D("h_W", "W distribution", h_W_bin, h_W_min, h_W_max);
   TH1D *h_Q2 = new TH1D("h_Q2", "Q2 distribution", h_Q2_bin, h_Q2_min, h_Q2_max);
-  TH1D *h_EovP = new TH1D("h_EovP", "E/p", h_EovP_bin, h_EovP_min, h_EovP_max);
-  TH1D *h_EovP_calib = new TH1D("h_EovP_calib", "E/p (After Calib.)", h_EovP_bin, h_EovP_min, h_EovP_max);
+  TH1D *h_EovP = new TH1D("h_EovP", "E/p (Before Calib.)", h_EovP_bin, h_EovP_min, h_EovP_max);
+  TH1D *h_EovP_calib = new TH1D("h_EovP_calib", "E/p", h_EovP_bin, h_EovP_min, h_EovP_max);
   TH1D *h_clusE = new TH1D("h_clusE", "Best SH+PS cl. eng.", h_clusE_bin, h_clusE_min, h_clusE_max);
   TH1D *h_clusE_calib = new TH1D("h_clusE_calib", Form("Best SH+PS cl. eng. u (sh/ps.e)*%2.2f", cF), h_clusE_bin, h_clusE_min, h_clusE_max);
   TH1D *h_SHclusE = new TH1D("h_SHclusE", "Best SH Cluster Energy", h_shE_bin, h_shE_min, h_shE_max);
@@ -605,13 +605,15 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH1D *h_coeff_Ratio_SH = new TH1D("h_coeff_Ratio_SH", "Ratio of Gain Coefficients(new/old); SH Blocks", 189, 0, 189);
   TH1D *h_coeff_blk_SH = new TH1D("h_coeff_blk_SH", "ADC Gain Coefficients(GeV/pC); SH Blocks", 189, 0, 189);
   TH1D *h_Old_Coeff_blk_SH = new TH1D("h_Old_Coeff_blk_SH", "Old ADC Gain Coefficients(GeV/pC); SH Blocks", 189, 0, 189);
-  TH2D *h_coeff_detView_SH = new TH2D("h_coeff_detView_SH", "ADC Gain Coefficients(Detector View)", kNcolsSH, 1, kNcolsSH+1, kNrowsSH, 1, kNrowsSH+1);
+  TH2D *h2_Old_coeff_detView_SH = new TH2D("h2_Old_coeff_detView_SH", "Old ADC Gain Coefficients | SH", kNcolsSH, 1, kNcolsSH+1, kNrowsSH, 1, kNrowsSH+1);
+  TH2D *h2_coeff_detView_SH = new TH2D("h2_coeff_detView_SH", "New ADC Gain Coefficients | SH", kNcolsSH, 1, kNcolsSH+1, kNrowsSH, 1, kNrowsSH+1);
 
   TH1D *h_nevent_blk_PS = new TH1D("h_nevent_blk_PS", "No. of Good Events; PS Blocks", 52, 0, 52);
   TH1D *h_coeff_Ratio_PS = new TH1D("h_coeff_Ratio_PS", "Ratio of Gain Coefficients(new/old); PS Blocks", 52, 0, 52);
   TH1D *h_coeff_blk_PS = new TH1D("h_coeff_blk_PS", "ADC Gain Coefficients(GeV/pC); PS Blocks", 52, 0, 52);
   TH1D *h_Old_Coeff_blk_PS = new TH1D("h_Old_Coeff_blk_PS", "Old ADC Gain Coefficients(GeV/pC); PS Blocks", 52, 0, 52);
-  TH2D *h_coeff_detView_PS = new TH2D("h_coeff_detView_PS", "ADC Gain Coefficients(Detector View)", kNcolsPS, 1, kNcolsPS+1, kNrowsPS, 1, kNrowsPS+1);
+  TH2D *h2_Old_coeff_detView_PS = new TH2D("h2_Old_coeff_detView_PS", "Old ADC Gain Coefficients | PS", kNcolsPS, 1, kNcolsPS+1, kNrowsPS, 1, kNrowsPS+1);
+  TH2D *h2_coeff_detView_PS = new TH2D("h2_coeff_detView_PS", "New ADC Gain Coefficients | PS", kNcolsPS, 1, kNcolsPS+1, kNrowsPS, 1, kNrowsPS+1);
 
   // Leave the bad channels out of the calculation
   for(Int_t j = 0; j<ncell; j++){
@@ -650,7 +652,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	h_coeff_blk_SH->Fill(cell, CoeffR(cell) * oldCoeff);
 	h_nevent_blk_SH->Fill(cell, nevents_per_cell[cell]);
 	h_Old_Coeff_blk_SH->Fill(cell, oldCoeff);
-	h_coeff_detView_SH->Fill(shcol+1, shrow+1, CoeffR(cell) * oldCoeff);
+	h2_Old_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff);
+	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, CoeffR(cell) * oldCoeff);
 
 	cout << CoeffR(cell) << "  ";
 	adcGainSH_outData << CoeffR(cell) * oldCoeff << " ";
@@ -661,7 +664,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	h_Old_Coeff_blk_SH->Fill(cell, oldCoeff);
 	h_coeff_Ratio_SH->Fill(cell, 1. * Corr_Factor_Enrg_Calib_w_Cosmic);
 	h_coeff_blk_SH->Fill(cell, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
-	h_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h2_Old_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff);
+	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
 
 	cout << 1.*Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
 	adcGainSH_outData << oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
@@ -675,6 +679,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     gainRatioSH_outData << endl;
   }
   cout << endl;
+
+  // customizing histograms
+  h_nevent_blk_SH->SetLineWidth(0); h_nevent_blk_SH->SetMarkerStyle(8);
+  h_coeff_Ratio_SH->SetLineWidth(0); h_coeff_Ratio_SH->SetMarkerStyle(8);
+  h_coeff_blk_SH->SetLineWidth(0); h_coeff_blk_SH->SetMarkerStyle(8);
+  h_Old_Coeff_blk_SH->SetLineWidth(0); h_Old_Coeff_blk_SH->SetMarkerStyle(8);
 
   // PS : Filling diagnostic histograms
   adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib.txt", macros_dir.Data(), cfgfilebase.Data());
@@ -693,7 +703,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	h_coeff_blk_PS->Fill(psBlock, CoeffR(cell) * oldCoeff);
 	h_nevent_blk_PS->Fill(psBlock, nevents_per_cell[cell]);
 	h_Old_Coeff_blk_PS->Fill(psBlock, oldCoeff);
-	h_coeff_detView_PS->Fill(pscol+1, psrow+1, CoeffR(cell) * oldCoeff);
+	h2_Old_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff);
+	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, CoeffR(cell) * oldCoeff);
 
 	cout << CoeffR(cell) << "  ";
 	adcGainPS_outData << CoeffR(cell) * oldCoeff << " ";
@@ -704,7 +715,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	h_Old_Coeff_blk_PS->Fill(psBlock, oldCoeff);
 	h_coeff_Ratio_PS->Fill(psBlock, 1. * Corr_Factor_Enrg_Calib_w_Cosmic);
 	h_coeff_blk_PS->Fill(psBlock, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
-	h_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h2_Old_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff);
+	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
 
 	cout << 1. * Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
 	adcGainPS_outData << oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
@@ -718,6 +730,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     gainRatioPS_outData << endl;
   }
   cout << endl;
+
+  // customizing histograms
+  h_nevent_blk_PS->SetLineWidth(0); h_nevent_blk_PS->SetMarkerStyle(8);
+  h_coeff_Ratio_PS->SetLineWidth(0); h_coeff_Ratio_PS->SetMarkerStyle(8);
+  h_coeff_blk_PS->SetLineWidth(0); h_coeff_blk_PS->SetMarkerStyle(8);
+  h_Old_Coeff_blk_PS->SetLineWidth(0); h_Old_Coeff_blk_PS->SetMarkerStyle(8);
 
   // add branches to Tout
   Double_t T_psE_calib;    TBranch *T_psE_c = Tout->Branch("psE_calib", &T_psE_calib, "psE_calib/D");
@@ -791,12 +809,13 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   gPad->SetGridx();
   //h_EovP_calib->SetStats(1);
   //gStyle->SetOptFit(1111);
+  Double_t EovP_fit_width = 1.5; //0.6; for sbs11-sbs100p
   Double_t param[3], param_bc[3], sigerr, sigerr_bc;
   Int_t maxBin_bc = h_EovP->GetMaximumBin();
   Double_t binW_bc = h_EovP->GetBinWidth(maxBin_bc), norm_bc = h_EovP->GetMaximum();
   Double_t mean_bc = h_EovP->GetMean(), stdev_bc = h_EovP->GetStdDev();
-  Double_t lower_lim_bc = h_EovP_min + maxBin_bc*binW_bc - 1.5*stdev_bc;
-  Double_t upper_lim_bc = h_EovP_min + maxBin_bc*binW_bc + 1.5*stdev_bc; 
+  Double_t lower_lim_bc = h_EovP_min + maxBin_bc*binW_bc - EovP_fit_width*stdev_bc;
+  Double_t upper_lim_bc = h_EovP_min + maxBin_bc*binW_bc + EovP_fit_width*stdev_bc; 
   TF1* fitg_bc = new TF1("fitg_bc","gaus",h_EovP_min,h_EovP_max);
   fitg_bc->SetRange(lower_lim_bc,upper_lim_bc);
   fitg_bc->SetParameters(norm_bc,mean_bc,stdev_bc);
@@ -806,15 +825,17 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Int_t maxBin = h_EovP_calib->GetMaximumBin();
   Double_t binW = h_EovP_calib->GetBinWidth(maxBin), norm = h_EovP_calib->GetMaximum();
   Double_t mean = h_EovP_calib->GetMean(), stdev = h_EovP_calib->GetStdDev();
-  Double_t lower_lim = h_EovP_min + maxBin*binW - 1.5*stdev;
-  Double_t upper_lim = h_EovP_min + maxBin*binW + 1.5*stdev; 
+  Double_t lower_lim = h_EovP_min + maxBin*binW - EovP_fit_width*stdev;
+  Double_t upper_lim = h_EovP_min + maxBin*binW + EovP_fit_width*stdev; 
   TF1* fitg = new TF1("fitg","gaus",h_EovP_min,h_EovP_max);
   fitg->SetRange(lower_lim,upper_lim);
   fitg->SetParameters(norm,mean,stdev);
   fitg->SetLineWidth(2); fitg->SetLineColor(2);
   h_EovP_calib->Fit(fitg,"QR"); fitg->GetParameters(param); fitg->GetParError(2);
   h_EovP_calib->SetLineWidth(2); h_EovP_calib->SetLineColor(1);
-  h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm*1.2);
+  // adjusting histogram height for the legend to fit in
+  if (norm > norm_bc) h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm*1.2);
+  else h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm_bc*1.2);
   h_EovP_calib->Draw(); h_EovP->Draw("same");
 
   // draw the legend
@@ -922,9 +943,28 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   h2_PSeng_vs_trY_calib->SetStats(0);
   h2_PSeng_vs_trY_calib->Draw("colz");
 
+  TCanvas *c4 = new TCanvas("c4","gain Coeff",1200,1000);
+  c4->Divide(2,2);
+  
+  c4->cd(1); Double_t h_max;
+  h_max = h_Old_Coeff_blk_SH->GetMaximum();
+  h2_Old_coeff_detView_SH->GetZaxis()->SetRangeUser(0.,h_max); h2_Old_coeff_detView_SH->Draw("text col");
+
+  c4->cd(2);
+  h_max = h_coeff_blk_SH->GetMaximum();
+  h2_coeff_detView_SH->GetZaxis()->SetRangeUser(0.,h_max); h2_coeff_detView_SH->Draw("text col");
+
+  c4->cd(3);
+  h_max = h_Old_Coeff_blk_PS->GetMaximum();
+  h2_Old_coeff_detView_PS->GetZaxis()->SetRangeUser(0.,h_max); h2_Old_coeff_detView_PS->Draw("text col");
+
+  c4->cd(4);
+  h_max = h_coeff_blk_PS->GetMaximum();
+  h2_coeff_detView_PS->GetZaxis()->SetRangeUser(0.,h_max); h2_coeff_detView_PS->Draw("text col");
+
   // let's record the summary
-  TCanvas *c4 = new TCanvas("c4","Summary");
-  c4->cd();
+  TCanvas *c5 = new TCanvas("c5","Summary");
+  c5->cd();
 
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
   pt->AddText(Form("Configfile: %s.cfg",cfgfilebase.Data()));
@@ -932,7 +972,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   pt->AddText(Form(" Total no. of events analyzed: %lld", Nevents));
   pt->AddText(Form(" E/p  (before calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
   pt->AddText(Form(" E/p (after calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100));
-  pt->AddText(Form(" Global cuts = %s",gcutstr.Data()));
+  pt->AddText(Form(" Global cuts: %s",gcutstr.Data()));
+  if (cut_on_W) pt->AddText(Form(" |W - %.3f| < %.3f",W_mean,W_sigma));
+  if (cut_on_EovP) pt->AddText(Form(" |E/p - 1| < %.1f",EovP_cut_limit));
+  if (cut_on_pmin && cut_on_pmax) pt->AddText(Form(" %.1f < p_recon < %.1f GeV/c",p_min_cut,p_max_cut));
+  else if (cut_on_pmin) pt->AddText(Form(" p_recon > %.1f GeV/c",p_min_cut));
+  else if (cut_on_pmax) pt->AddText(Form(" p_recon < %.1f GeV/c",p_max_cut));
   TText *t1 = pt->GetLineWith("Configfile");
   t1->SetTextColor(kBlue);
   pt->Draw();
@@ -943,12 +988,14 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   c2->SaveAs(Form("%s",outPlot.Data()));
   c3->SaveAs(Form("%s",outPlot.Data()));
   c4->SaveAs(Form("%s",outPlot.Data()));
-  c4->SaveAs(Form("%s]",outPlot.Data()));
+  c5->SaveAs(Form("%s",outPlot.Data()));
+  c5->SaveAs(Form("%s]",outPlot.Data()));
 
   c1->Write();
   c2->Write();
   c3->Write();
   c4->Write();
+  c5->Write();
   fout->Write();
   //fout->Close();
 
