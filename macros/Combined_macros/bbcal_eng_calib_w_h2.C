@@ -410,7 +410,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH2D *h2_PSeng_vs_trY_calib = new TH2D("h2_PSeng_vs_trY_calib","PS energy vs Track y | After Calib.",200,-0.16,0.16,200,0,4);  
 
   TTree *Tout = new TTree("Tout", "");
-  Double_t T_ebeam;   Tout->Branch("ebeam", &E_beam, "ebeam/D");
+  Double_t T_ebeam;   Tout->Branch("ebeam", &T_ebeam, "ebeam/D");
   Double_t T_W2;      Tout->Branch("W2", &T_W2, "W2/D");
   Double_t T_trP;     Tout->Branch("trP", &T_trP, "trP/D");
   Double_t T_trX;     Tout->Branch("trX", &T_trX, "trX/D");
