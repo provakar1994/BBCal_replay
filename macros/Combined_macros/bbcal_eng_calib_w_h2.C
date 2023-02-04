@@ -8,7 +8,7 @@
   [a-onl@aonl2 macros]$ pwd
   /adaqfs/home/a-onl/sbs/BBCal_replay/macros
   [a-onl@aonl2 macros]$ root -l 
-  root [0] .x Combined_macros/bbcal_eng_calib_w_h2.C("Combined_macros/cfg/test.txt")
+  root [0] .x Combined_macros/bbcal_eng_calib_w_h2.C("Combined_macros/cfg/example.cfg")
   ----
   P. Datta  <pdbforce@jlab.org>  Created  28 Sep 2022 (Based on test_eng_cal_BBCal.C)
 */
@@ -1093,7 +1093,8 @@ string getDate(){
   *Input files: 
   1. Gain/<configFileBase>_gainCoeff_sh(ps).txt # Old gain coeff. for SH(PS) [Needed if, "read_gain" = 1]
   *Output files:
-  1. hist/<configFileBase>_bbcal_eng_calib.root # Contains all the interesting histograms
-  2. Gain/<configFileBase>_gainRatio_sh(ps)_calib.txt # Contains gain ratios (new/old) for SH(PS)
-  3. Gain/<configFileBase>_gainCoeff_sh(ps)_calib.txt # Contains new gain coeff. for SH(PS)
+  1. plots/<configFileBase>_bbcal_eng_calib.pdf # Contains all the canvases
+  2. hist/<configFileBase>_bbcal_eng_calib.root # Contains all the interesting histograms
+  3. Gain/<configFileBase>_gainRatio_sh(ps)_calib.txt # Contains gain ratios (new/old) for SH(PS)
+  4. Gain/<configFileBase>_gainCoeff_sh(ps)_calib.txt # Contains new gain coeff. for SH(PS)
 */
