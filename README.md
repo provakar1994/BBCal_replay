@@ -18,7 +18,7 @@ The names of the directories are self-explanatory. Still, below is a brief descr
   -  `How-to` - Documentaion on how to execute all the different macros, how to carry out cosmic calibration procedure and then generate gain coefficients, et cetera can be found here.
   -  `Shower_macros` - All analysis scripts that only involve SH, such as SH cosmic calibration, getting new HV values for SH PMTs, et cetera can be found here.
   -  `PreShower_macros` - All analysis scripts that only involve PS, such as PS cosmic calibration, getting new HV values for PS PMTs, et cetera can be found here.
-  -  `Combined_macros` - General macros those are applicable to both SH and PS, such as [energy calibration script (with beam)](https://github.com/provakar1994/BBCal_replay/blob/master/macros/Combined_macros/bbcal_eng_calib_w_h2.C), script to calculate ADC gain with cosmic, et cetera, can be found here.
+  -  `Combined_macros` - General macros those are applicable to both SH and PS, such as [energy calibration script (with beam)](https://github.com/provakar1994/BBCal_replay/blob/master/macros/Combined_macros/bbcal_eng_calib_w_h2.C), script to calculate ADC gain with cosmic, et cetera can be found here.
      - `cfg` - _Combined_macros/cfg_ contains all the configuration files for various SBS GMn configurations (taking into consideration different BB & SBS magnet settings within a configuration), which are needed to execute the [energy calibration script (with beam)](https://github.com/provakar1994/BBCal_replay/blob/master/macros/Combined_macros/bbcal_eng_calib_w_h2.C) script.
   -  `Event_disp_macros` - Scripts to look single BBCal events can be found here.
   -  `Output` - Various output .txt files get stored here.
