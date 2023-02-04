@@ -60,7 +60,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t Corr_Factor_Enrg_Calib_w_Cosmic = 1., cF = 1.;
   Double_t h_W_bin = 200, h_W_min = 0., h_W_max = 5.;
   Double_t h_Q2_bin = 200, h_Q2_min = 0., h_Q2_max = 5.;
-  Double_t h_EovP_bin = 200, h_EovP_min = 0., h_EovP_max = 5.;
+  Double_t h_EovP_bin = 200, h_EovP_min = 0., h_EovP_max = 5., EovP_fit_width = 1.5;
   Double_t h_clusE_bin = 200, h_clusE_min = 0., h_clusE_max = 5.;
   Double_t h_shE_bin = 200, h_shE_min = 0., h_shE_max = 5.;
   Double_t h_psE_bin = 200, h_psE_min = 0., h_psE_max = 5.;
@@ -192,6 +192,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	h_EovP_min = sval1.Atof();
 	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
 	h_EovP_max = sval2.Atof();
+      }
+     if( skey == "EovP_fit_width" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	EovP_fit_width = sval.Atof();
       }
       if( skey == "h_clusE" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
@@ -410,7 +414,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH2D *h2_PSeng_vs_trY_calib = new TH2D("h2_PSeng_vs_trY_calib","PS energy vs Track y | After Calib.",200,-0.16,0.16,200,0,4);  
 
   TTree *Tout = new TTree("Tout", "");
-  Double_t T_ebeam;   Tout->Branch("ebeam", &T_ebeam, "ebeam/D");
+  Double_t T_ebeam;   Tout->Branch("ebeam", &E_beam, "ebeam/D");
   Double_t T_W2;      Tout->Branch("W2", &T_W2, "W2/D");
   Double_t T_trP;     Tout->Branch("trP", &T_trP, "trP/D");
   Double_t T_trX;     Tout->Branch("trX", &T_trX, "trX/D");
@@ -449,7 +453,6 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     // from the ones which come right before those.
     if (HALLA_p > 0.) {
       E_beam = HALLA_p/1000.; // GeV 
-      T_ebeam = E_beam;       // T_ebeam is redundant, still keeping it for better readability!
     }
 
     // apply global cuts efficiently (AJRP method)
@@ -817,9 +820,6 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   c1->cd(1);
   gPad->SetGridx();
-  //h_EovP_calib->SetStats(1);
-  //gStyle->SetOptFit(1111);
-  Double_t EovP_fit_width = 1.5; //0.6; for sbs11-sbs100p
   Double_t param[3], param_bc[3], sigerr, sigerr_bc;
   Int_t maxBin_bc = h_EovP->GetMaximumBin();
   Double_t binW_bc = h_EovP->GetBinWidth(maxBin_bc), norm_bc = h_EovP->GetMaximum();
