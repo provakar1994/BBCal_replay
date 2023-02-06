@@ -844,8 +844,9 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   h_EovP_calib->Fit(fitg,"QR"); fitg->GetParameters(param); fitg->GetParError(2);
   h_EovP_calib->SetLineWidth(2); h_EovP_calib->SetLineColor(1);
   // adjusting histogram height for the legend to fit in
-  if (norm > norm_bc) h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm*1.2);
-  else h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm_bc*1.2);
+  // if (norm > norm_bc) h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm*1.2);
+  // else h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm_bc*1.2);
+  h_EovP_calib->GetYaxis()->SetRangeUser(0.,max(norm,norm_bc)*1.2);
   h_EovP_calib->Draw(); h_EovP->Draw("same");
 
   // draw the legend
@@ -1001,24 +1002,6 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   c5->SaveAs(Form("%s",outPlot.Data()));
   c5->SaveAs(Form("%s]",outPlot.Data()));
 
-  c1->Write();
-  c2->Write();
-  c3->Write();
-  c4->Write();
-  c5->Write();
-  fout->Write();
-  //fout->Close();
-
-  M.Clear();
-  B.Clear();
-  C->Delete();
-  CoeffR.Clear();
-  //fout->Delete();
-  adcGainSH_outData.close();
-  adcGainPS_outData.close();
-  gainRatioSH_outData.close();
-  gainRatioPS_outData.close();
-
   cout << "List of output files:" << endl;
   cout << " --------- " << endl;
   cout << " 1. Summary plots : "        << outPlot << endl;
@@ -1033,6 +1016,73 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   sw2->Stop();
   cout << "CPU time elapsed = " << sw->CpuTime() << " s. Real time = " << sw->RealTime() << " s. " << endl << endl;
 
+  // write individual memories to file explicitely
+  Tout->Write();
+  c1->Write();
+  c2->Write();
+  c3->Write();
+  c4->Write();
+  c5->Write();
+  h_W->Write();
+  h_Q2->Write();
+  h_EovP->Write();
+  h_EovP_calib->Write();
+  h_clusE->Write();
+  h_clusE_calib->Write();
+  h_SHclusE->Write();
+  h_SHclusE_calib->Write();
+  h_PSclusE->Write();
+  h_PSclusE_calib->Write();
+  h2_P_rec_vs_P_ang->Write();
+  h2_EovP_vs_P->Write();
+  h2_EovP_vs_P_prof->Write();
+  h2_EovP_vs_P_calib->Write();
+  h2_EovP_vs_P_calib_prof->Write();
+  h2_SHeng_vs_SHblk->Write();
+  h2_EovP_vs_SHblk->Write();
+  h2_EovP_vs_SHblk_calib->Write();
+  h2_EovP_vs_SHblk_trPOS->Write();
+  h2_PSeng_vs_PSblk->Write();
+  h2_EovP_vs_PSblk->Write();
+  h2_EovP_vs_PSblk_calib->Write();
+  h2_EovP_vs_PSblk_trPOS->Write();
+  h2_EovP_vs_trX->Write();
+  h2_EovP_vs_trX_calib->Write();
+  h2_EovP_vs_trY->Write();
+  h2_EovP_vs_trY_calib->Write();
+  h2_EovP_vs_trTh->Write();
+  h2_EovP_vs_trTh_calib->Write();
+  h2_EovP_vs_trPh->Write();
+  h2_EovP_vs_trPh_calib->Write();
+  h2_PSeng_vs_trX->Write();
+  h2_PSeng_vs_trX_calib->Write();
+  h2_PSeng_vs_trY->Write();
+  h2_PSeng_vs_trY_calib->Write();
+  if (mom_calib) h_thetabend->Write();
+  h_nevent_blk_SH->Write();
+  h_coeff_Ratio_SH->Write();
+  h_coeff_blk_SH->Write();
+  h_old_coeff_blk_SH->Write();
+  h2_old_coeff_detView_SH->Write();
+  h2_coeff_detView_SH->Write();
+  h_nevent_blk_PS->Write();
+  h_coeff_Ratio_PS->Write();
+  h_coeff_blk_PS->Write();
+  h_old_coeff_blk_PS->Write();
+  h2_old_coeff_detView_PS->Write();
+  h2_coeff_detView_PS->Write();
+  //fout->Write();
+  //fout->Close();
+
+  M.Clear();
+  B.Clear();
+  C->Delete();
+  CoeffR.Clear();
+  //fout->Delete();
+  adcGainSH_outData.close();
+  adcGainPS_outData.close();
+  gainRatioSH_outData.close();
+  gainRatioPS_outData.close();
   sw->Delete();
   sw2->Delete();
 }
