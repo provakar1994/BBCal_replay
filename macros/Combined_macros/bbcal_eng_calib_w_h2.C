@@ -384,9 +384,9 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH2D *h2_P_rec_vs_P_ang = new TH2D("h2_P_rec_vs_P_ang", "Track p vs Track ang", h2_pang_bin, h2_pang_min, h2_pang_max, h2_p_bin, h2_p_min, h2_p_max);
 
   TH2D *h2_EovP_vs_P = new TH2D("h2_EovP_vs_P", "E/p vs p; p (GeV); E/p", h2_p_coarse_bin, h2_p_coarse_min, h2_p_coarse_max, h2_EovP_bin, h2_EovP_min, h2_EovP_max);
-  TProfile *h2_EovP_vs_P_prof = new TProfile("h2_EovP_vs_P_prof","E/p vs P (Profile)",h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h_EovP_min,h_EovP_max);
+  TProfile *h2_EovP_vs_P_prof = new TProfile("h2_EovP_vs_P_prof","E/p vs P (Profile)",h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h_EovP_min,h_EovP_max,"S");
   TH2D *h2_EovP_vs_P_calib = new TH2D("h2_EovP_vs_P_calib", "E/p vs p | After Calib.; p (GeV); E/p", h2_p_coarse_bin, h2_p_coarse_min, h2_p_coarse_max, h2_EovP_bin, h2_EovP_min, h2_EovP_max);
-  TProfile *h2_EovP_vs_P_calib_prof = new TProfile("h2_EovP_vs_P_calib_prof","E/p vs P (Profile) a clib.",h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h_EovP_min,h_EovP_max);
+  TProfile *h2_EovP_vs_P_calib_prof = new TProfile("h2_EovP_vs_P_calib_prof","E/p vs P (Profile) a clib.",h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h_EovP_min,h_EovP_max,"S");
 
   TH2D *h2_SHeng_vs_SHblk = new TH2D("h2_SHeng_vs_SHblk", "SH cl. eng. per SH block", kNcolsSH, 0, kNcolsSH, kNrowsSH, 0, kNrowsSH);
   TH2D *h2_EovP_vs_SHblk = new TH2D("h2_EovP_vs_SHblk", "E/p per SH block", kNcolsSH, 0, kNcolsSH, kNrowsSH, 0, kNrowsSH);
@@ -424,7 +424,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t T_psE;     Tout->Branch("psE", &T_psE, "psE/D");
   Double_t T_clusE;   Tout->Branch("clusE", &T_clusE, "clusE/D");
 
-  // Looping over all events ====================================================================//
+  ///////////////////////////////////////////
+  // 1st Loop over all events to calibrate //
+  ///////////////////////////////////////////
+
   cout << endl;
   Long64_t Nevents = C->GetEntries(), nevent=0;  
   Double_t timekeeper = 0., timeremains = 0.;
@@ -539,7 +542,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       h_PSclusE->Fill(ClusEngPS);
       h2_P_rec_vs_P_ang->Fill(P_ang, p_rec);
 
-      // fill out tree branches
+      // fill out-tree branches
       T_W2 = W2;
       T_trP = p_rec;
       T_trX = trX[0];
@@ -613,7 +616,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   // B.Print();  
   // M.Print();
 
-  //Diagnostic histograms
+  ////////////////////////////////////////////////////
+  // Time to calculate and report gain coefficients //
+  ////////////////////////////////////////////////////
+
   TH1D *h_nevent_blk_SH = new TH1D("h_nevent_blk_SH", "No. of Good Events; SH Blocks", 189, 0, 189);
   TH1D *h_coeff_Ratio_SH = new TH1D("h_coeff_Ratio_SH", "Ratio of Gain Coefficients(new/old); SH Blocks", 189, 0, 189);
   TH1D *h_coeff_blk_SH = new TH1D("h_coeff_blk_SH", "ADC Gain Coefficients(GeV/pC); SH Blocks", 189, 0, 189);
@@ -750,7 +756,11 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   h_coeff_blk_PS->SetLineWidth(0); h_coeff_blk_PS->SetMarkerStyle(8);
   h_old_coeff_blk_PS->SetLineWidth(0); h_old_coeff_blk_PS->SetMarkerStyle(8);
 
-  // add branches to Tout
+  //////////////////////////////////////////////////////////////////////
+  // 2nd Loop over all events to check the performance of calibration //
+  //////////////////////////////////////////////////////////////////////
+
+  // add branches to Tout to store values after calibration
   Double_t T_psE_calib;    TBranch *T_psE_c = Tout->Branch("psE_calib", &T_psE_calib, "psE_calib/D");
   Double_t T_clusE_calib;  TBranch *T_clusE_c = Tout->Branch("clusE_calib", &T_clusE_calib, "clusE_calib/D");
 
@@ -761,7 +771,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     if (nevent % 100 == 0) cout << nevent << "/" << Nevents  << "\r";;
     cout.flush();    
 
-    if (nevent == goodevents[itr]) { // choosing good events
+    // selecting events that passed the global cutsusing goodevents container. 
+    // This method is very fast and efficient. It took some thinking to come up
+    // with this algorithm but the outcome made all the hard work worth it!
+    if (nevent == goodevents[itr]) { 
       itr++;
 
       p_rec = trP[0] * p_rec_Offset; 
@@ -814,7 +827,9 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   h2_EovP_vs_SHblk_calib->GetZaxis()->SetRangeUser(0.8,1.2);
   h2_EovP_vs_PSblk_calib->GetZaxis()->SetRangeUser(0.8,1.2);
 
-  // draw some diagnostic plots
+  //////////////////////////////
+  // Drawing diagnostic plots //
+  //////////////////////////////
   TCanvas *c1 = new TCanvas("c1","E/p",1500,1200);
   c1->Divide(3,2);
 
@@ -978,7 +993,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   c5->cd();
 
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
-  pt->AddText(Form("Configfile: %s.cfg",cfgfilebase.Data()));
+  pt->AddText(Form("Configfile: BBCal_replay/macros/Combined_macros/cfg/%s.cfg",cfgfilebase.Data()));
   pt->AddText(Form(" Date of creation: %s", getDate().c_str()));
   pt->AddText(Form(" Total no. of events analyzed: %lld", Nevents));
   pt->AddText(Form(" E/p  (before calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
@@ -993,7 +1008,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   t1->SetTextColor(kBlue);
   pt->Draw();
 
-  // let's save the canvases in a pdf file
+  // let's save the canvases to a pdf file
   c1->SaveAs(Form("%s[",outPlot.Data()));
   c1->SaveAs(Form("%s",outPlot.Data()));
   c2->SaveAs(Form("%s",outPlot.Data()));
@@ -1016,7 +1031,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   sw2->Stop();
   cout << "CPU time elapsed = " << sw->CpuTime() << " s. Real time = " << sw->RealTime() << " s. " << endl << endl;
 
-  // write individual memories to file explicitely
+  ///////////////////////////////////////////////////
+  // Write individual memories to file explicitely //
+  // to be able to read them using uproot          //
+  ///////////////////////////////////////////////////
   Tout->Write();
   c1->Write();
   c2->Write();
