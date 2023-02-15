@@ -771,7 +771,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     if (nevent % 100 == 0) cout << nevent << "/" << Nevents  << "\r";;
     cout.flush();    
 
-    // selecting events that passed the global cutsusing goodevents container. 
+    // selecting events that passed the global cuts using "goodevents" container. 
     // This method is very fast and efficient. It took some thinking to come up
     // with this algorithm but the outcome made all the hard work worth it!
     if (nevent == goodevents[itr]) { 
@@ -830,6 +830,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   //////////////////////////////
   // Drawing diagnostic plots //
   //////////////////////////////
+
   TCanvas *c1 = new TCanvas("c1","E/p",1500,1200);
   c1->Divide(3,2);
 
@@ -858,9 +859,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   fitg->SetLineWidth(2); fitg->SetLineColor(2);
   h_EovP_calib->Fit(fitg,"QR"); fitg->GetParameters(param); fitg->GetParError(2);
   h_EovP_calib->SetLineWidth(2); h_EovP_calib->SetLineColor(1);
-  // adjusting histogram height for the legend to fit in
-  // if (norm > norm_bc) h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm*1.2);
-  // else h_EovP_calib->GetYaxis()->SetRangeUser(0.,norm_bc*1.2);
+  // adjusting histogram height for the legend to fit properly
   h_EovP_calib->GetYaxis()->SetRangeUser(0.,max(norm,norm_bc)*1.2);
   h_EovP_calib->Draw(); h_EovP->Draw("same");
 
@@ -1035,6 +1034,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   // Write individual memories to file explicitely //
   // to be able to read them using uproot          //
   ///////////////////////////////////////////////////
+
   Tout->Write();
   c1->Write();
   c2->Write();
