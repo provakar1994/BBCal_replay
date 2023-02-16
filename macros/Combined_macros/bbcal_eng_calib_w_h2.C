@@ -300,8 +300,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t psNblk;             C->SetBranchAddress("bb.ps.nblk", &psNblk);
   Double_t psNclus;            C->SetBranchAddress("bb.ps.nclus", &psNclus);
   Double_t psE;                C->SetBranchAddress("bb.ps.e", &psE);
+  Double_t psX;                C->SetBranchAddress("bb.ps.x", &psX);
+  Double_t psY;                C->SetBranchAddress("bb.ps.y", &psY);
   Double_t psClBlkId[maxNtr];  C->SetBranchAddress("bb.ps.clus_blk.id", &psClBlkId);
   Double_t psClBlkE[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.e", &psClBlkE);
+  Double_t psClBlkX[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.x", &psClBlkX);
+  Double_t psClBlkY[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.y", &psClBlkY);
   Double_t psAgainblk;         if (!read_gain) C->SetBranchAddress("bb.ps.againblk", &psAgainblk);
   // bb.sh branches
   C->SetBranchStatus("bb.sh.*", 1);
@@ -311,8 +315,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t shNblk;             C->SetBranchAddress("bb.sh.nblk", &shNblk);
   Double_t shNclus;            C->SetBranchAddress("bb.sh.nclus", &shNclus);
   Double_t shE;                C->SetBranchAddress("bb.sh.e", &shE);
+  Double_t shX;                C->SetBranchAddress("bb.sh.x", &shX);
+  Double_t shY;                C->SetBranchAddress("bb.sh.y", &shY);
   Double_t shClBlkId[maxNtr];  C->SetBranchAddress("bb.sh.clus_blk.id", &shClBlkId);
   Double_t shClBlkE[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.e", &shClBlkE);
+  Double_t shClBlkX[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.x", &shClBlkX);
+  Double_t shClBlkY[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.y", &shClBlkY);
   Double_t shAgainblk;         if (!read_gain) C->SetBranchAddress("bb.sh.againblk", &shAgainblk);
   // bb.tr branches
   C->SetBranchStatus("bb.tr.*", 1);
@@ -381,6 +389,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH1D *h_SHclusE_calib = new TH1D("h_SHclusE_calib", Form("Best SH cl. eng. u (sh.e)*%2.2f", cF), h_shE_bin, h_shE_min, h_shE_max);
   TH1D *h_PSclusE = new TH1D("h_PSclusE", "Best PS Cluster Energy", h_psE_bin, h_psE_min, h_psE_max);
   TH1D *h_PSclusE_calib = new TH1D("h_PSclusE_calib", Form("Best PS cl. eng. u (ps.e)*%2.2f", cF), h_psE_bin, h_psE_min, h_psE_max);
+  TH1D *h_shX_diff = new TH1D("h_shX_diff", "Vertical Position Difference; sh.x - tr.x (m)", 200, -0.5, 0.5);
+  TH1D *h_shY_diff = new TH1D("h_shY_diff", "Horizontal Position Difference; sh.y - tr.y (m)", 200, -0.5, 0.5);
+  TH1D *h_shX_diff_calib = new TH1D("h_shX_diff_calib", "Vertical Pos. Diff. | After Calib.; sh.x - tr.x (m)", 200, -0.5, 0.5);
+  TH1D *h_shY_diff_calib = new TH1D("h_shY_diff_calib", "Horizontal Pos. Diff. | After Calib.; sh.y - tr.y (m)", 200, -0.5, 0.5);
   TH2D *h2_P_rec_vs_P_ang = new TH2D("h2_P_rec_vs_P_ang", "Track p vs Track ang", h2_pang_bin, h2_pang_min, h2_pang_max, h2_p_bin, h2_p_min, h2_p_max);
 
   TH2D *h2_EovP_vs_P = new TH2D("h2_EovP_vs_P", "E/p vs p; p (GeV); E/p", h2_p_coarse_bin, h2_p_coarse_min, h2_p_coarse_max, h2_EovP_bin, h2_EovP_min, h2_EovP_max);
@@ -414,15 +426,21 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH2D *h2_PSeng_vs_trY_calib = new TH2D("h2_PSeng_vs_trY_calib","PS energy vs Track y | After Calib.",200,-0.16,0.16,200,0,4);  
 
   TTree *Tout = new TTree("Tout", "");
-  Double_t T_ebeam;   Tout->Branch("ebeam", &E_beam, "ebeam/D");
-  Double_t T_W2;      Tout->Branch("W2", &T_W2, "W2/D");
-  Double_t T_trP;     Tout->Branch("trP", &T_trP, "trP/D");
-  Double_t T_trX;     Tout->Branch("trX", &T_trX, "trX/D");
-  Double_t T_trY;     Tout->Branch("trY", &T_trY, "trY/D");
-  Double_t T_trTh;    Tout->Branch("trTh", &T_trTh, "trTh/D");
-  Double_t T_trPh;    Tout->Branch("trPh", &T_trPh, "trPh/D");
-  Double_t T_psE;     Tout->Branch("psE", &T_psE, "psE/D");
-  Double_t T_clusE;   Tout->Branch("clusE", &T_clusE, "clusE/D");
+  Double_t T_ebeam;     Tout->Branch("ebeam", &E_beam, "ebeam/D");
+  Double_t T_W2;        Tout->Branch("W2", &T_W2, "W2/D");
+  Double_t T_trP;       Tout->Branch("trP", &T_trP, "trP/D");
+  Double_t T_trX;       Tout->Branch("trX", &T_trX, "trX/D");
+  Double_t T_trY;       Tout->Branch("trY", &T_trY, "trY/D");
+  Double_t T_trTh;      Tout->Branch("trTh", &T_trTh, "trTh/D");
+  Double_t T_trPh;      Tout->Branch("trPh", &T_trPh, "trPh/D");
+  Double_t T_psE;       Tout->Branch("psE", &T_psE, "psE/D");
+  Double_t T_clusE;     Tout->Branch("clusE", &T_clusE, "clusE/D");
+  Double_t T_psX;       Tout->Branch("psX", &T_psX, "psX/D");
+  Double_t T_psY;       Tout->Branch("psY", &T_psY, "psY/D");
+  Double_t T_shX;       Tout->Branch("shX", &T_shX, "shX/D");
+  Double_t T_shY;       Tout->Branch("shY", &T_shY, "shY/D");
+  Double_t T_shX_diff;  Tout->Branch("shX_diff", &T_shX_diff, "shX_diff/D");
+  Double_t T_shY_diff;  Tout->Branch("shY_diff", &T_shY_diff, "shY_diff/D");
 
   ///////////////////////////////////////////
   // 1st Loop over all events to calibrate //
@@ -551,6 +569,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       T_trPh = trPh[0];
       T_psE = ClusEngPS;
       T_clusE = clusEngBBCal;
+      T_psX = psX;
+      T_psY = psY;
+      T_shX = shX;
+      T_shY = shY;
       Tout->Fill();
 
       // Checking to see if there is any bias in track recostruction ----
@@ -563,6 +585,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
       Double_t xtrATsh = trX[0] + zposSH*trTh[0];
       Double_t ytrATsh = trY[0] + zposSH*trPh[0];
+      T_shX_diff = shX - xtrATsh;
+      T_shY_diff = shY - ytrATsh;
+      h_shX_diff->Fill(T_shX_diff);
+      h_shY_diff->Fill(T_shY_diff);
       h2_EovP_vs_SHblk_trPOS_raw->Fill(ytrATsh, xtrATsh, clusEngBBCal/p_rec);
       h2_count_trP->Fill(ytrATsh, xtrATsh, 1.);
       h2_EovP_vs_SHblk_trPOS->Divide(h2_EovP_vs_SHblk_trPOS_raw, h2_count_trP);
@@ -761,8 +787,14 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   //////////////////////////////////////////////////////////////////////
 
   // add branches to Tout to store values after calibration
-  Double_t T_psE_calib;    TBranch *T_psE_c = Tout->Branch("psE_calib", &T_psE_calib, "psE_calib/D");
-  Double_t T_clusE_calib;  TBranch *T_clusE_c = Tout->Branch("clusE_calib", &T_clusE_calib, "clusE_calib/D");
+  Double_t T_psE_calib;       TBranch *T_psE_c = Tout->Branch("psE_calib", &T_psE_calib, "psE_calib/D");
+  Double_t T_clusE_calib;     TBranch *T_clusE_c = Tout->Branch("clusE_calib", &T_clusE_calib, "clusE_calib/D");
+  Double_t T_psX_calib;       TBranch *T_psX_c = Tout->Branch("psX_calib", &T_psX_calib, "psX_calib/D");
+  Double_t T_psY_calib;       TBranch *T_psY_c = Tout->Branch("psY_calib", &T_psY_calib, "psY_calib/D");
+  Double_t T_shX_calib;       TBranch *T_shX_c = Tout->Branch("shX_calib", &T_shX_calib, "shX_calib/D");
+  Double_t T_shY_calib;       TBranch *T_shY_c = Tout->Branch("shY_calib", &T_shY_calib, "shY_calib/D");
+  Double_t T_shX_diff_calib;  TBranch *T_shX_diff_c = Tout->Branch("shX_diff_calib", &T_shX_diff_calib, "shX_diff_calib/D");
+  Double_t T_shY_diff_calib;  TBranch *T_shY_diff_c = Tout->Branch("shY_diff_calib", &T_shY_diff_calib, "shY_diff_calib/D");
 
   Long64_t itr = 0; nevent = 0;
   cout << "Looping over events again to check calibration.." << endl; 
@@ -780,18 +812,36 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       p_rec = trP[0] * p_rec_Offset; 
 
       // ****** Shower ******
-      Double_t shClusE = 0.;
+      Double_t shClusE = 0., shX_calib = 0., shY_calib = 0.;
       for(Int_t blk=0; blk<shNblk; blk++){
   	Int_t blkID = int(shClBlkId[blk]);
-  	shClusE += shClBlkE[blk] * newADCgratioSH[blkID];
+	// calculating the updated cluster centroid
+	shX_calib = (shX_calib*shClusE + shClBlkX[blk]*shClBlkE[blk]) / (shClusE+shClBlkE[blk]);
+	shY_calib = (shY_calib*shClusE + shClBlkY[blk]*shClBlkE[blk]) / (shClusE+shClBlkE[blk]);
+	 
+ 	shClusE += shClBlkE[blk] * newADCgratioSH[blkID];
       }
-    
+      T_shX_calib = shX_calib; T_shX_c->Fill();
+      T_shY_calib = shY_calib; T_shY_c->Fill();
+      Double_t xtrATsh = trX[0] + zposSH*trTh[0];
+      Double_t ytrATsh = trY[0] + zposSH*trPh[0];
+      T_shX_diff_calib = shX_calib - xtrATsh; T_shX_diff_c->Fill();
+      T_shY_diff_calib = shY_calib - ytrATsh; T_shY_diff_c->Fill();
+      h_shX_diff_calib->Fill(T_shX_diff_calib);
+      h_shY_diff_calib->Fill(T_shY_diff_calib);
+
       // ****** PreShower ******
-      Double_t psClusE = 0.;
+      Double_t psClusE = 0., psX_calib = 0., psY_calib = 0.;
       for(Int_t blk=0; blk<psNblk; blk++){
   	Int_t blkID = int(psClBlkId[blk]);
+	// calculating the updated cluster centroid
+	psX_calib = (psX_calib*psClusE + psClBlkX[blk]*psClBlkE[blk]) / (psClusE+psClBlkE[blk]);
+	psY_calib = (psY_calib*psClusE + psClBlkY[blk]*psClBlkE[blk]) / (psClusE+psClBlkE[blk]);
+
   	psClusE += psClBlkE[blk] * newADCgratioPS[blkID];
       }
+      T_psX_calib = psX_calib; T_psX_c->Fill();
+      T_psY_calib = psY_calib; T_psY_c->Fill();
 
       // Let's fill diagnostic histograms
       Double_t clusEngBBCal = shClusE + psClusE;
@@ -968,28 +1018,51 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   h2_PSeng_vs_trY_calib->SetStats(0);
   h2_PSeng_vs_trY_calib->Draw("colz");
 
-  TCanvas *c4 = new TCanvas("c4","gain Coeff",1200,1000);
-  c4->Divide(2,2);
+  TCanvas *c4 = new TCanvas("c4","pos. res.",1200,1000);
+  c4->Divide(2,2);  gStyle->SetOptFit(1111);
+
+  c4->cd(1);
+  TF1* fit_c41 = new TF1("fit_c41","gaus",-0.5,0.5);
+  h_shX_diff->Fit(fit_c41,"QR");
+  h_shX_diff->SetStats(1);
+
+  c4->cd(2);
+  TF1* fit_c42 = new TF1("fit_c42","gaus",-0.5,0.5);
+  h_shY_diff->Fit(fit_c42,"QR");
+  h_shY_diff->SetStats(1);
+
+  c4->cd(3);
+  TF1* fit_c43 = new TF1("fit_c43","gaus",-0.5,0.5);
+  h_shX_diff_calib->Fit(fit_c43,"QR");
+  h_shX_diff_calib->SetStats(1);
+
+  c4->cd(4);
+  TF1* fit_c44 = new TF1("fit_c44","gaus",-0.5,0.5);
+  h_shY_diff_calib->Fit(fit_c44,"QR");
+  h_shY_diff_calib->SetStats(1);
+
+  TCanvas *c5 = new TCanvas("c5","gain Coeff",1200,1000);
+  c5->Divide(2,2);
   
-  c4->cd(1); Double_t h_max;
+  c5->cd(1); Double_t h_max;
   h_max = h_old_coeff_blk_SH->GetMaximum();
   h2_old_coeff_detView_SH->GetZaxis()->SetRangeUser(0.,h_max); h2_old_coeff_detView_SH->Draw("text col");
 
-  c4->cd(2);
+  c5->cd(2);
   h_max = h_coeff_blk_SH->GetMaximum();
   h2_coeff_detView_SH->GetZaxis()->SetRangeUser(0.,h_max); h2_coeff_detView_SH->Draw("text col");
 
-  c4->cd(3);
+  c5->cd(3);
   h_max = h_old_coeff_blk_PS->GetMaximum();
   h2_old_coeff_detView_PS->GetZaxis()->SetRangeUser(0.,h_max); h2_old_coeff_detView_PS->Draw("text col");
 
-  c4->cd(4);
+  c5->cd(4);
   h_max = h_coeff_blk_PS->GetMaximum();
   h2_coeff_detView_PS->GetZaxis()->SetRangeUser(0.,h_max); h2_coeff_detView_PS->Draw("text col");
 
   // let's record the summary
-  TCanvas *c5 = new TCanvas("c5","Summary");
-  c5->cd();
+  TCanvas *c6 = new TCanvas("c6","Summary");
+  c6->cd();
 
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
   pt->AddText(Form("Configfile: BBCal_replay/macros/Combined_macros/cfg/%s.cfg",cfgfilebase.Data()));
@@ -1014,7 +1087,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   c3->SaveAs(Form("%s",outPlot.Data()));
   c4->SaveAs(Form("%s",outPlot.Data()));
   c5->SaveAs(Form("%s",outPlot.Data()));
-  c5->SaveAs(Form("%s]",outPlot.Data()));
+  c6->SaveAs(Form("%s",outPlot.Data()));
+  c6->SaveAs(Form("%s]",outPlot.Data()));
 
   cout << "List of output files:" << endl;
   cout << " --------- " << endl;
@@ -1041,6 +1115,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   c3->Write();
   c4->Write();
   c5->Write();
+  c6->Write();
   h_W->Write();
   h_Q2->Write();
   h_EovP->Write();
