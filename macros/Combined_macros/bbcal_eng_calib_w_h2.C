@@ -290,8 +290,6 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   int maxNtr = 1000;
   C->SetBranchStatus("*", 0);
-  // beam energy
-  Double_t HALLA_p;            C->SetBranchStatus("HALLA_p", 1); C->SetBranchAddress("HALLA_p", &HALLA_p);
   // bb.ps branches
   C->SetBranchStatus("bb.ps.*", 1);
   Double_t psIdblk;            C->SetBranchAddress("bb.ps.idblk", &psIdblk);
@@ -468,12 +466,6 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     if (!read_gain) {
       oldADCgainSH[int(shIdblk)] = shAgainblk;
       oldADCgainPS[int(psIdblk)] = psAgainblk;
-    }
-
-    // get E_beam from the tree. For the events which are missing data use the value
-    // from the ones which come right before those.
-    if (HALLA_p > 0.) {
-      E_beam = HALLA_p/1000.; // GeV 
     }
 
     // apply global cuts efficiently (AJRP method)
