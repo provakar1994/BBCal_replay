@@ -1,3 +1,15 @@
+/*
+  This script Script to determine ADC time offsets for all SH and PS channels w.r.t
+  BBTH cluster mean time (bbhodo.clus.tmean). One needs a configfile, setup_bbcal_atime_offset.cfg, 
+  to execute this script. To execute, do:
+  ----
+  [a-onl@aonl2 macros]$ pwd
+  /adaqfs/home/a-onl/sbs/BBCal_replay/macros
+  [a-onl@aonl2 macros]$ root -l 
+  root [0] .x Combined_macros/bbcal_atime_offset.C("Combined_macros/setup_bbcal_atime_offset.cfg")
+  ----
+  P. Datta  <pdbforce@jlab.org>  Created  16 Feb 2022
+*/
 #include <TH2F.h>
 #include <TChain.h>
 #include <TCanvas.h>
@@ -9,9 +21,8 @@
 #include <fstream>
 #include <iomanip>
 #include <ctime>
-//#include "gmn_tree.C"
 
-const Double_t Mp = 0.938272; // GeV
+const Double_t Mp = 0.938272081;  // +/- 6E-9 GeV
 const Double_t Ebeam = 5.965; // GeV
 
 const Int_t kNcolsSH = 7;  // SH columns
@@ -104,7 +115,7 @@ namespace shgui {
   }
 };
 
-void bbcal_atime_offset( const char *rootfilename ){
+void bbcal_atime_offset( const char *configfilename ){
 
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
 
@@ -114,10 +125,39 @@ void bbcal_atime_offset( const char *rootfilename ){
   gStyle->SetTitleFontSize(0.08);
 
   TChain *C = new TChain("T");
-  //gmn_tree *T = new gmn_tree(C);
-
   C->Add(rootfilename);
 
+  TString currentline;
+  while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endRunlist") ){
+    if( !currentline.BeginsWith("#") ){
+      C->Add(currentline);
+    }   
+  } 
+  TCut globalcut = ""; TString gcutstr;
+  while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endcut") ){
+    if( !currentline.BeginsWith("#") ){
+      globalcut += currentline;
+      gcutstr += currentline;
+    }    
+  }
+  TTreeFormula *GlobalCut = new TTreeFormula("GlobalCut", globalcut, C);
+  while( currentline.ReadLine( configfile ) ){
+    if( currentline.BeginsWith("#") ) continue;
+    TObjArray *tokens = currentline.Tokenize(" ");
+    Int_t ntokens = tokens->GetEntries();
+    if( ntokens>1 ){
+      if( skey == "E_beam" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	E_beam = sval.Atof();
+      }
+      if( skey == "*****" ){
+	break;
+      }
+    } 
+    delete tokens;
+  }
+
+  // Setting useful ROOT tree branch addresses
   Int_t maxtr=1000, hodo_trindex=0;
   Double_t sh_nclus, sh_e, sh_rowblk, sh_colblk, sh_nblk, sh_atimeblk;
   Double_t ps_nclus, ps_idblk, ps_e, ps_rowblk, ps_colblk, ps_atimeblk;
