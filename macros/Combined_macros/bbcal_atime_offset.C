@@ -23,7 +23,6 @@
 #include <ctime>
 
 const Double_t Mp = 0.938272081;  // +/- 6E-9 GeV
-const Double_t Ebeam = 5.965; // GeV
 
 const Int_t kNcolsSH = 7;  // SH columns
 const Int_t kNrowsSH = 27; // SH rows
@@ -115,9 +114,15 @@ namespace shgui {
   }
 };
 
+// main function
 void bbcal_atime_offset( const char *configfilename ){
+  gErrorIgnoreLevel = kError; // Ignore all ROOT warnings
 
-  gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
+  // Define a clock to check macro processing time
+  TStopwatch *sw = new TStopwatch();
+  TStopwatch *sw2 = new TStopwatch();
+  sw->Start();
+  sw2->Start();
 
   //gui setup
   shgui::SetupGUI();
@@ -125,8 +130,11 @@ void bbcal_atime_offset( const char *configfilename ){
   gStyle->SetTitleFontSize(0.08);
 
   TChain *C = new TChain("T");
-  C->Add(rootfilename);
+  Double_t Ebeam = 0.; // GeV
+  Double_t h_atime_bin = 200, h_atime_min = 0., h_atime_max = 5.;
 
+  // Reading configfile
+  ifstream configfile(configfilename);
   TString currentline;
   while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endRunlist") ){
     if( !currentline.BeginsWith("#") ){
@@ -146,9 +154,18 @@ void bbcal_atime_offset( const char *configfilename ){
     TObjArray *tokens = currentline.Tokenize(" ");
     Int_t ntokens = tokens->GetEntries();
     if( ntokens>1 ){
+      TString skey = ( (TObjString*)(*tokens)[0] )->GetString();
       if( skey == "E_beam" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	E_beam = sval.Atof();
+	Ebeam = sval.Atof();
+      }
+      if( skey == "h_atime" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h_atime_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h_atime_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h_atime_max = sval2.Atof();
       }
       if( skey == "*****" ){
 	break;
@@ -157,12 +174,19 @@ void bbcal_atime_offset( const char *configfilename ){
     delete tokens;
   }
 
+  // Check for empty rootfiles and set tree branches
+  if(C->GetEntries()==0){
+    cerr << endl << " --- No ROOT file found!! --- " << endl << endl;
+    throw;
+  }else cout << endl << "Found " << C->GetEntries() << " events. Starting analysis.. " << endl;
+
   // Setting useful ROOT tree branch addresses
   Int_t maxtr=1000, hodo_trindex=0;
   Double_t sh_nclus, sh_e, sh_rowblk, sh_colblk, sh_nblk, sh_atimeblk;
   Double_t ps_nclus, ps_idblk, ps_e, ps_rowblk, ps_colblk, ps_atimeblk;
   Double_t hodo_nclus;
   Double_t sh_clblk_atime[maxtr], sh_clblk_e[maxtr];
+  Double_t ps_clblk_atime[maxtr];
   Double_t p[maxtr], pz[maxtr], tg_th[maxtr], tg_ph[maxtr];
   Double_t hodo_tmean[maxtr], hodo_trIndex[maxtr];
 
@@ -197,6 +221,8 @@ void bbcal_atime_offset( const char *configfilename ){
   C->SetBranchAddress("bb.ps.atimeblk",&ps_atimeblk);
   C->SetBranchStatus("bb.ps.idblk",1);
   C->SetBranchAddress("bb.ps.idblk",&ps_idblk);
+  C->SetBranchStatus("bb.ps.clus_blk.atime",1);
+  C->SetBranchAddress("bb.ps.clus_blk.atime",&ps_clblk_atime);
   //gem
   C->SetBranchStatus("bb.tr.p",1);
   C->SetBranchAddress("bb.tr.p",&p);
@@ -213,22 +239,24 @@ void bbcal_atime_offset( const char *configfilename ){
   C->SetBranchAddress("bb.hodotdc.clus.tmean",&hodo_tmean);
   C->SetBranchStatus("bb.hodotdc.clus.trackindex",1);
   C->SetBranchAddress("bb.hodotdc.clus.trackindex",&hodo_trIndex);
+  // turning on additional branches for the global cut
+  C->SetBranchStatus("bb.tr.n", 1);
+  C->SetBranchStatus("bb.tr.vz", 1);
+  C->SetBranchStatus("bb.gem.track.nhits", 1);
 
   //defining atime histograms
-  Int_t nBins=240;
-  Double_t h_min=-60., h_max=60.;
-  // Double_t h_min=-70., h_max=-10.;
   for(int r = 0; r < kNrowsSH; r++) {
     for(int c = 0; c < kNcolsSH; c++) {
-      h_atime_sh[r][c] = MakeHisto(r, c, nBins, "_i", h_min, h_max);
+      h_atime_sh[r][c] = MakeHisto(r, c, h_atime_bin, "_i", h_atime_min, h_atime_max);
     }
   }
   for(int r = 0; r < kNrowsPS; r++) {
     for(int c = 0; c < kNcolsPS; c++) {
-      h_atime_ps[r][c] = MakeHisto(r, c, nBins, "_i", h_min, h_max);
+      h_atime_ps[r][c] = MakeHisto(r, c, h_atime_bin, "_i", h_atime_min, h_atime_max);
     }
   }
 
+  // define output files
   TString outFile, outPeaks, toffset_ps, toffset_sh;
   outPeaks = Form("plots/bbcal_atime_offset.pdf");
   outFile = Form("hist/bbcal_atime_offset.root");
@@ -241,62 +269,83 @@ void bbcal_atime_offset( const char *configfilename ){
   fout->cd();
 
   TH1F *h_W = new TH1F("h_W","W distribution",200,0.,5.);
-  TH1F *h_Q2 = new TH1F("h_Q2","Q2 distribution",200,0.,10.);
-  TH1F *h_atime_offset_sh = new TH1F("h_atime_offset_sh","SH ADCtime offset"
-				     " w.r.t. BBHodo time",189,0.,189.);
+  TH1F *h_Q2 = new TH1F("h_Q2","Q2 distribution",300,1.,15.);
+  TH1F *h_atime_offset_sh = new TH1F("h_atime_offset_sh","SH ADCtime offset w.r.t. BBHodo time",189,0.,189.);
   //h_atime_offset_sh->GetYaxis()->SetRangeUser(-100.,0.);
   h_atime_offset_sh->GetYaxis()->SetLabelSize(0.045);
   h_atime_offset_sh->GetXaxis()->SetLabelSize(0.045);
   h_atime_offset_sh->SetLineWidth(0);
   h_atime_offset_sh->SetMarkerStyle(kFullCircle);
-  TH1F *h_atime_offset_ps = new TH1F("h_atime_offset_ps","PS ADCtime offset"
-				     " w.r.t. BBHodo time",52,0.,52.);
+  TH1F *h_atime_offset_ps = new TH1F("h_atime_offset_ps","PS ADCtime offset w.r.t. BBHodo time",52,0.,52.);
   //h_atime_offset_ps->GetYaxis()->SetRangeUser(-100.,0.);
   h_atime_offset_ps->GetYaxis()->SetLabelSize(0.045);
   h_atime_offset_ps->GetXaxis()->SetLabelSize(0.045);
   h_atime_offset_ps->SetLineWidth(0);
   h_atime_offset_ps->SetMarkerStyle(kFullCircle);
-  
-  Long64_t nevent=0, nevents=0;
-  nevents = C->GetEntries();
 
-  cout << endl;
+  ///////////////////////////////////////////
+  // 1st Loop over all events to calibrate //
+  ///////////////////////////////////////////
+
+  cout << endl;  
+  Long64_t nevent=0, nevents=C->GetEntries();
+  Double_t timekeeper = 0., timeremains = 0.;
+  int treenum = 0, currenttreenum = 0;
+  vector<Long64_t> goodevents; // list of good events passed all the cuts
   while( C->GetEntry( nevent++ ) ){
-    if( nevent%1000 == 0 ) cout << nevent << "/" << nevents << "\r";
+    // Calculating remaining time 
+    sw2->Stop();
+    timekeeper += sw2->RealTime();
+    if (nevent % 25000 == 0 && nevent != 0) 
+      timeremains = timekeeper * (double(nevents) / double(nevent) - 1.); 
+    sw2->Reset();
+    sw2->Continue();
+
+    if(nevent % 100 == 0) cout << nevent << "/" << nevents  << ", " << int(timeremains/60.) << "m \r";;
     cout.flush();
+    // ------
 
-    //calculating W
-    Double_t P_ang = 57.3*TMath::ACos(pz[0]/p[0]);
-    Double_t Q2 = 4.*Ebeam*p[0]*pow( TMath::Sin(P_ang/57.3/2.),2. );
-    Double_t W2 = Mp*Mp + 2.*Mp*(Ebeam-p[0]) - Q2;
-    Double_t W = 0.;
+    // apply global cuts efficiently (AJRP method)
+    currenttreenum = C->GetTreeNumber();
+    if (nevent == 1 || currenttreenum != treenum) {
+      treenum = currenttreenum;
+      GlobalCut->UpdateFormulaLeaves();
+    } 
+    bool passedgCut = GlobalCut->EvalInstance(0) != 0;   
+    if (passedgCut) {
 
-    h_Q2->Fill(Q2);
-    if( W2>0. ){
-      W = TMath::Sqrt(W2);  
-      h_W->Fill(W);
-    }
+      //calculating physics parameters
+      Double_t P_ang = 57.3*TMath::ACos(pz[0]/p[0]);
+      Double_t Q2 = 4.*Ebeam*p[0]*pow( TMath::Sin(P_ang/57.3/2.),2. );
+      Double_t W2 = Mp*Mp + 2.*Mp*(Ebeam-p[0]) - Q2;
+      Double_t W = 0.;
 
-    //good cluster cut
-    if( sh_nclus==0 || ps_nclus==0 || ps_idblk==-1 || ps_e<0.2 ) continue;
+      h_Q2->Fill(Q2);
+      if( W2>0. ){
+	W = TMath::Sqrt(W2);  
+	h_W->Fill(W);
+      }
 
-    //hodo cut
-    if( hodo_trIndex[0]!=0 ) continue;
-
-    //good track cut
-    // if( tg_th[0]>-0.15 && tg_th[0]<0.15 && 
-    // 	tg_ph[0]>-0.3 && tg_ph[0]<0 ){
+      //hodo cut
+      if( hodo_trIndex[0]!=0 ) continue;
  
       //avoiding clusters on the edge
       // if(sh_rowblk==0 || sh_rowblk==26 ||
       // 	 sh_colblk==0 || sh_colblk==6) continue; 
 
-      h_atime_sh[(int)sh_rowblk][(int)sh_colblk]->Fill( hodo_tmean[0]-sh_atimeblk );
-      h_atime_ps[(int)ps_rowblk][(int)ps_colblk]->Fill( hodo_tmean[0]-ps_atimeblk );
+      // cut on W
+      // if (fabs(W - 0.938) >= 0.2) continue;
 
-      //} // if, good track cut
+      // storing good event numbers for 2nd loop
+      goodevents.push_back(nevent);
 
+      h_atime_sh[(int)sh_rowblk][(int)sh_colblk]->Fill(hodo_tmean[0] - sh_clblk_atime[0]); //- sh_atimeblk);
+      h_atime_ps[(int)ps_rowblk][(int)ps_colblk]->Fill(hodo_tmean[0] - ps_clblk_atime[0]); //- ps_atimeblk);
 
+      // h_atime_sh[(int)sh_rowblk][(int)sh_colblk]->Fill(sh_atimeblk);
+      // h_atime_ps[(int)ps_rowblk][(int)ps_colblk]->Fill(ps_atimeblk);
+
+    } //global cut
   } //while
   cout << endl; 
 
@@ -314,8 +363,8 @@ void bbcal_atime_offset( const char *configfilename ){
       double maxCount = h_atime_sh[r][c]->GetMaximum();
       double binWidth = h_atime_sh[r][c]->GetBinWidth(maxBin);
       double stdDev = h_atime_sh[r][c]->GetStdDev();
-      int lofitlim = h_min + (maxBin)*binWidth - (1.3*stdDev);
-      int hifitlim = h_min + (maxBin)*binWidth + (0.8*stdDev);
+      int lofitlim = h_atime_min + (maxBin)*binWidth - (1.3*stdDev);
+      int hifitlim = h_atime_min + (maxBin)*binWidth + (0.8*stdDev);
 
       if( h_atime_sh[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
@@ -366,8 +415,8 @@ void bbcal_atime_offset( const char *configfilename ){
       double maxCount = h_atime_ps[r][c]->GetMaximum();
       double binWidth = h_atime_ps[r][c]->GetBinWidth(maxBin);
       double stdDev = h_atime_ps[r][c]->GetStdDev();
-      int lofitlim = h_min + (maxBin)*binWidth - (1.2*stdDev);
-      int hifitlim = h_min + (maxBin)*binWidth + (0.5*stdDev);
+      int lofitlim = h_atime_min + (maxBin)*binWidth - (1.2*stdDev);
+      int hifitlim = h_atime_min + (maxBin)*binWidth + (0.5*stdDev);
 
       if( h_atime_ps[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
@@ -421,6 +470,10 @@ void bbcal_atime_offset( const char *configfilename ){
   cout << " ADCtime offsets for SH written to : " << toffset_sh << endl;
   cout << " ADCtime offsets for PS written to : " << toffset_ps << endl;
   cout << " --------- " << endl;
+
+  sw->Stop();
+  sw2->Stop();
+  cout << "CPU time elapsed = " << sw->CpuTime() << " s. Real time = " << sw->RealTime() << " s. " << endl << endl;
 
 }
 
