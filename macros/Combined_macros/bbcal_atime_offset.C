@@ -29,7 +29,7 @@ const Int_t kNrowsSH = 27; // SH rows
 const Int_t kNcolsPS = 2;  // PS columns
 const Int_t kNrowsPS = 26; // PS rows
 
-TH1F* MakeHisto( Int_t, Int_t, Int_t, const char*, Double_t, Double_t );
+TH1F* MakeHisto(Int_t, Int_t, Int_t, Double_t, Double_t);
 TH1F *h_atime_sh[kNrowsSH][kNcolsSH];
 TH1F *h_atime_ps[kNrowsPS][kNcolsPS];
 
@@ -130,8 +130,9 @@ void bbcal_atime_offset( const char *configfilename ){
   gStyle->SetTitleFontSize(0.08);
 
   TChain *C = new TChain("T");
+  Int_t SBSconf = 0;   // SBS configuration
   Double_t Ebeam = 0.; // GeV
-  Double_t h_atime_bin = 200, h_atime_min = 0., h_atime_max = 5.;
+  Double_t h_atime_bin = 240, h_atime_min = -60., h_atime_max = 60.;
 
   // Reading configfile
   ifstream configfile(configfilename);
@@ -155,6 +156,10 @@ void bbcal_atime_offset( const char *configfilename ){
     Int_t ntokens = tokens->GetEntries();
     if( ntokens>1 ){
       TString skey = ( (TObjString*)(*tokens)[0] )->GetString();
+      if( skey == "SBSconf" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	SBSconf = sval.Atof();
+      }
       if( skey == "E_beam" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	Ebeam = sval.Atof();
@@ -247,21 +252,21 @@ void bbcal_atime_offset( const char *configfilename ){
   //defining atime histograms
   for(int r = 0; r < kNrowsSH; r++) {
     for(int c = 0; c < kNcolsSH; c++) {
-      h_atime_sh[r][c] = MakeHisto(r, c, h_atime_bin, "_i", h_atime_min, h_atime_max);
+      h_atime_sh[r][c] = MakeHisto(r, c, h_atime_bin, h_atime_min, h_atime_max);
     }
   }
   for(int r = 0; r < kNrowsPS; r++) {
     for(int c = 0; c < kNcolsPS; c++) {
-      h_atime_ps[r][c] = MakeHisto(r, c, h_atime_bin, "_i", h_atime_min, h_atime_max);
+      h_atime_ps[r][c] = MakeHisto(r, c, h_atime_bin, h_atime_min, h_atime_max);
     }
   }
 
   // define output files
   TString outFile, outPeaks, toffset_ps, toffset_sh;
-  outPeaks = Form("plots/bbcal_atime_offset.pdf");
-  outFile = Form("hist/bbcal_atime_offset.root");
-  toffset_ps = Form("Output/adctime_offset_ps.txt");
-  toffset_sh = Form("Output/adctime_offset_sh.txt");
+  outPeaks = Form("plots/bbcal_atime_offset_sbs%d.pdf",SBSconf);
+  outFile = Form("hist/bbcal_atime_offset_sbs%d.root",SBSconf);
+  toffset_ps = Form("Output/adctime_offset_sbs%d_ps.txt",SBSconf);
+  toffset_sh = Form("Output/adctime_offset_sbs%d_sh.txt",SBSconf);
   ofstream toffset_psdata, toffset_shdata;
   toffset_psdata.open(toffset_ps);
   toffset_shdata.open(toffset_sh);
@@ -478,15 +483,16 @@ void bbcal_atime_offset( const char *configfilename ){
 }
 
 // Create generic histogram function
-TH1F* MakeHisto(Int_t row, Int_t col, Int_t bins, const char* suf="", Double_t min=0., Double_t max=50.)
+TH1F* MakeHisto(Int_t row, Int_t col, Int_t bins, Double_t min=0., Double_t max=50.)
 {
-  TH1F *h = new TH1F(TString::Format("h_R%d_C%d_Blk_%d%s",row,col,row*kNcolsSH+col,suf),
+  TH1F *h = new TH1F(TString::Format("h_R%d_C%d_Blk_%d",row,col,row*kNcolsSH+col),
 		     "",bins,min,max);
   //h->SetStats(0);
   h->SetLineWidth(1);
   h->SetLineColor(2);
   h->GetYaxis()->SetLabelSize(0.06);
   //h->GetYaxis()->SetLabelOffset(-0.17);
+  h->GetYaxis()->SetMaxDigits(3);
   h->GetYaxis()->SetNdivisions(5);
   return h;
 }
