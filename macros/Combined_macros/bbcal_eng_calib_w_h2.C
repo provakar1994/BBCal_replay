@@ -42,7 +42,8 @@ string getDate();
 void ReadGain(TString, Double_t*);
 TString GetOutFileBase(TString);
 
-void bbcal_eng_calib_w_h2(const char *configfilename)
+void bbcal_eng_calib_w_h2(const char *configfilename,
+			  bool isdebug=1) 
 {
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
 
@@ -53,13 +54,20 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TString macros_dir;
   Int_t Nmin = 10;
   Double_t minMBratio = 0.1;
-  Double_t E_beam = 0.;
+  Double_t E_beam = 0., sbstheta = 0., hcaldist = 0., hcalheight = -0.2897;
+  Double_t psE_cut_limit = 0., clusE_cut_limit = 0., EovP_cut_limit = 0.3;
   Double_t p_rec_Offset = 1., p_min_cut = 0., p_max_cut = 0.;
-  Double_t W_mean = 0., W_sigma = 0., EovP_cut_limit = 0.3;
-  bool cut_on_W = 0, cut_on_EovP = 0, cut_on_pmin = 0, cut_on_pmax = 0, read_gain = 0;
+  Double_t W_mean = 0., W_sigma = 0., W_nsigma = 0.;
+  Double_t dpel_mean = 0., dpel_sigma = 0., dpel_nsigma = 0.;
+  Double_t pspot_dxM = 0., pspot_dxS = 0., pspot_ndxS = 0.; 
+  Double_t pspot_dyM = 0., pspot_dyS = 0., pspot_ndyS = 0.;
+  bool read_gain = 0, cut_on_EovP = 0, cut_on_pmin = 0, cut_on_pmax = 0;
+  bool cut_on_psE = 0, cut_on_clusE = 0;
+  bool cut_on_W = 0, cut_on_dpel = 0, cut_on_pspot = 0; 
   Double_t Corr_Factor_Enrg_Calib_w_Cosmic = 1., cF = 1.;
   Double_t h_W_bin = 200, h_W_min = 0., h_W_max = 5.;
   Double_t h_Q2_bin = 200, h_Q2_min = 0., h_Q2_max = 5.;
+  Double_t h_dpel_bin = 100, h_dpel_min = -0.5, h_dpel_max = 0.5;
   Double_t h_EovP_bin = 200, h_EovP_min = 0., h_EovP_max = 5., EovP_fit_width = 1.5;
   Double_t h_clusE_bin = 200, h_clusE_min = 0., h_clusE_max = 5.;
   Double_t h_shE_bin = 200, h_shE_min = 0., h_shE_max = 5.;
@@ -68,6 +76,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t h2_pang_bin = 200, h2_pang_min = 0., h2_pang_max = 5.;
   Double_t h2_p_coarse_bin = 25, h2_p_coarse_min = 0., h2_p_coarse_max = 5.;
   Double_t h2_EovP_bin = 200, h2_EovP_min = 0., h2_EovP_max = 5.;
+  Double_t h2_EovP_rnum_bin = 0, h2_EovP_rnum_min = 0., h2_EovP_rnum_max = 0.;
   //parameters to calculate calibrated momentum
   bool mom_calib = 0;
   Double_t A_fit = 0., B_fit = 0., C_fit = 0.;
@@ -127,13 +136,21 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       if( skey == "macros_dir" ){
 	macros_dir = ( (TObjString*)(*tokens)[1] )->GetString();
       }
+      if( skey == "read_gain" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	read_gain = sval.Atof();
+      }
       if( skey == "E_beam" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	E_beam = sval.Atof();
       }
-      if( skey == "read_gain" ){
+      if( skey == "SBS_theta" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	read_gain = sval.Atof();
+	sbstheta = sval.Atof(); sbstheta *= TMath::DegToRad(); 
+      }
+      if( skey == "HCAL_dist" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	hcaldist = sval.Atof();
       }
       if( skey == "Min_Event_Per_Channel" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
@@ -143,14 +160,18 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	minMBratio = sval.Atoi();
       }
-      if( skey == "W_cut" ){
+      if( skey == "psE_cut" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_W = sval.Atoi();
+	cut_on_psE = sval.Atoi();
 	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	W_mean = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	W_sigma = sval2.Atof();
-      }
+	psE_cut_limit = sval1.Atof();
+      } 
+      if( skey == "clusE_cut" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	cut_on_clusE = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	clusE_cut_limit = sval1.Atof();
+      }      
       if( skey == "pmin_cut" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	cut_on_pmin = sval.Atoi();
@@ -169,6 +190,42 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
 	EovP_cut_limit = sval1.Atof();
       }
+      if( skey == "W_cut" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	cut_on_W = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	W_mean = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	W_sigma = sval2.Atof();
+	TString sval3 = ( (TObjString*)(*tokens)[4] )->GetString();
+	W_nsigma = sval3.Atof();
+      }
+      if( skey == "dpel_cut" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	cut_on_dpel = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	dpel_mean = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	dpel_sigma = sval2.Atof();
+	TString sval3 = ( (TObjString*)(*tokens)[4] )->GetString();
+	dpel_nsigma = sval3.Atof();
+      }
+      if( skey == "pspot_cut" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	cut_on_pspot = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	pspot_dxM = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	pspot_dxS = sval2.Atof();
+	TString sval3 = ( (TObjString*)(*tokens)[4] )->GetString();
+	pspot_ndxS = sval3.Atof();
+	TString sval4 = ( (TObjString*)(*tokens)[5] )->GetString();
+	pspot_dyM = sval4.Atof();
+	TString sval5 = ( (TObjString*)(*tokens)[6] )->GetString();
+	pspot_dyS = sval5.Atof();
+	TString sval6 = ( (TObjString*)(*tokens)[7] )->GetString();
+	pspot_ndyS = sval6.Atof();
+      }
       if( skey == "h_W" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	h_W_bin = sval.Atoi();
@@ -184,6 +241,14 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	h_Q2_min = sval1.Atof();
 	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
 	h_Q2_max = sval2.Atof();
+      }
+      if( skey == "h_dpel" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h_dpel_bin = sval.Atoi();
+	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
+	h_dpel_min = sval1.Atof();
+	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
+	h_dpel_max = sval2.Atof();
       }
       if( skey == "h_EovP" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
@@ -253,6 +318,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
 	h2_EovP_max = sval2.Atof();
       }
+      if( skey == "h2_EovP_rnum" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	h2_EovP_rnum_bin = sval.Atoi();
+	h2_EovP_rnum_min = 0.5;
+	h2_EovP_rnum_max = h2_EovP_rnum_bin + 0.5;
+      }
       if( skey == "p_rec_Offset" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	p_rec_Offset = sval.Atof();
@@ -282,6 +353,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     delete tokens;
   }
   
+  // Sanity checks
+  if ((cut_on_clusE&&cut_on_EovP) || (cut_on_clusE&&cut_on_pmin) || (cut_on_pmin&&cut_on_EovP)) 
+    cout << "*!*[WARNING] Chosen cut combination involving bbcalE, trP, & E/p may introduce bias in the fit" << endl;
+  if (cut_on_W && cut_on_dpel)
+    cout << "*!*[WARNING] Cutting on W is equivalent to cutting on dpel! Why cutting on them simultaneously?" << endl;
+
   // Check for empty rootfiles and set tree branches
   if(C->GetEntries()==0){
     cerr << endl << " --- No ROOT file found!! --- " << endl << endl;
@@ -320,13 +397,18 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t shClBlkX[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.x", &shClBlkX);
   Double_t shClBlkY[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.y", &shClBlkY);
   Double_t shAgainblk;         if (!read_gain) C->SetBranchAddress("bb.sh.againblk", &shAgainblk);
+  // sbs.hcal branches
+  Double_t hcalX;              C->SetBranchStatus("sbs.hcal.x",1); C->SetBranchAddress("sbs.hcal.x", &hcalX);
+  Double_t hcalY;              C->SetBranchStatus("sbs.hcal.y",1); C->SetBranchAddress("sbs.hcal.y", &hcalY);  
   // bb.tr branches
   C->SetBranchStatus("bb.tr.*", 1);
+  Double_t trN;                C->SetBranchAddress("bb.tr.n", &trN);
   Double_t trP[maxNtr];        C->SetBranchAddress("bb.tr.p", &trP);
+  Double_t trPx[maxNtr];       C->SetBranchAddress("bb.tr.px", &trPx);
+  Double_t trPy[maxNtr];       C->SetBranchAddress("bb.tr.py", &trPy);
   Double_t trPz[maxNtr];       C->SetBranchAddress("bb.tr.pz", &trPz);
   Double_t trX[maxNtr];        C->SetBranchAddress("bb.tr.x", &trX);
   Double_t trY[maxNtr];        C->SetBranchAddress("bb.tr.y", &trY);
-  Double_t trN[maxNtr];        C->SetBranchAddress("bb.tr.n", &trN);
   Double_t trTh[maxNtr];       C->SetBranchAddress("bb.tr.th", &trTh);
   Double_t trPh[maxNtr];       C->SetBranchAddress("bb.tr.ph", &trPh);
   Double_t trVz[maxNtr];       C->SetBranchAddress("bb.tr.vz", &trVz);
@@ -334,6 +416,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t trTgph[maxNtr];     C->SetBranchAddress("bb.tr.tg_ph", &trTgph);
   Double_t trRth[maxNtr];      C->SetBranchAddress("bb.tr.r_th", &trRth);
   Double_t trRph[maxNtr];      C->SetBranchAddress("bb.tr.r_ph", &trRph);
+  // Event info
+  C->SetMakeClass(1);
+  C->SetBranchStatus("fEvtHdr.*", 1);
+  UInt_t rnum;                 C->SetBranchAddress("fEvtHdr.fRun", &rnum);
+  UInt_t trigbits;             C->SetBranchAddress("fEvtHdr.fTrigBits", &trigbits);
+  ULong64_t gevnum;            C->SetBranchAddress("fEvtHdr.fEvtNum", &gevnum);
   // turning on additional branches for the global cut
   C->SetBranchStatus("sbs.hcal.e", 1);
   C->SetBranchStatus("bb.gem.track.nhits", 1);
@@ -348,9 +436,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t oldADCgainPS[kNcolsPS*kNrowsPS];
   for (int i=0; i<189; i++) { oldADCgainSH[i] = -1000; }  
   for (int i=0; i<52; i++) { oldADCgainPS[i] = -1000; }  
-  TString adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh.txt", macros_dir.Data(), cfgfilebase.Data());
-  TString adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps.txt", macros_dir.Data(), cfgfilebase.Data());
+  TString adcGain_SH, gainRatio_SH, adcGain_PS, gainRatio_PS;
   if (read_gain) {
+    adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh.txt", macros_dir.Data(), cfgfilebase.Data());
+    adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps.txt", macros_dir.Data(), cfgfilebase.Data());
     ReadGain(adcGain_SH, oldADCgainSH);
     ReadGain(adcGain_PS, oldADCgainPS);
   }
@@ -360,6 +449,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH2D *h2_EovP_vs_SHblk_raw = new TH2D("h2_EovP_vs_SHblk_raw","Raw E_clus/p_rec per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_EovP_vs_SHblk_raw_calib = new TH2D("h2_EovP_vs_SHblk_raw_calib","Raw E_clus/p_rec per SH block | After Calib.",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_count = new TH2D("h2_count","Count for E_clus/p_rec per per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_count_calib = new TH2D("h2_count_calib","Count for E_clus/p_rec per per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_EovP_vs_SHblk_trPOS_raw = new TH2D("h2_EovP_vs_SHblk_trPOS_raw","Raw E_clus/p_rec per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
   TH2D *h2_count_trP = new TH2D("h2_count_trP","Count for E_clus/p_rec per per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
 
@@ -367,18 +457,27 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH2D *h2_EovP_vs_PSblk_raw = new TH2D("h2_EovP_vs_PSblk_raw","Raw E_clus/p_rec per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_EovP_vs_PSblk_raw_calib = new TH2D("h2_EovP_vs_PSblk_raw_calib","Raw E_clus/p_rec per PS block | After Calib.",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_count_PS = new TH2D("h2_count_PS","Count for E_clus/p_rec per per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_count_PS_calib = new TH2D("h2_count_PS_calib","Count for E_clus/p_rec per per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_EovP_vs_PSblk_trPOS_raw = new TH2D("h2_EovP_vs_PSblk_trPOS_raw","Raw E_clus/p_rec per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
   TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec per per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
   // Creating output ROOT file to contain histograms
-  TString outFile = Form("%s/hist/%s_bbcal_eng_calib.root", macros_dir.Data(), cfgfilebase.Data());
-  TString outPlot = Form("%s/plots/%s_bbcal_eng_calib.pdf", macros_dir.Data(), cfgfilebase.Data());
+  TString outFile, outPlot;
+  if (!isdebug) {
+    outFile = Form("%s/hist/%s_bbcal_eng_calib.root", macros_dir.Data(), cfgfilebase.Data());
+    outPlot = Form("%s/plots/%s_bbcal_eng_calib.pdf", macros_dir.Data(), cfgfilebase.Data());
+  } else {
+    outFile = Form("%s/hist/%s_bbcal_eng_calib_test.root", macros_dir.Data(), cfgfilebase.Data());
+    outPlot = Form("%s/plots/%s_bbcal_eng_calib_test.pdf", macros_dir.Data(), cfgfilebase.Data());
+  }
   TFile *fout = new TFile(outFile, "RECREATE");
   fout->cd();
 
   // Physics histograms
   TH1D *h_W = new TH1D("h_W", "W distribution", h_W_bin, h_W_min, h_W_max);
   TH1D *h_Q2 = new TH1D("h_Q2", "Q2 distribution", h_Q2_bin, h_Q2_min, h_Q2_max);
+  TH1D *h_dpel = new TH1D("h_dpel", ";p/p_{elastic}(#theta) - 1", h_dpel_bin, h_dpel_min, h_dpel_max);
+  TH1D *h_dpel_ecut = new TH1D("h_dpel_ecut", "dpel cut region;p/p_{elastic}(#theta) - 1 (w/ p spot cut)", h_dpel_bin, h_dpel_min, h_dpel_max);
   TH1D *h_EovP = new TH1D("h_EovP", "E/p (Before Calib.)", h_EovP_bin, h_EovP_min, h_EovP_max);
   TH1D *h_EovP_calib = new TH1D("h_EovP_calib", "E/p", h_EovP_bin, h_EovP_min, h_EovP_max);
   TH1D *h_clusE = new TH1D("h_clusE", "Best SH+PS cl. eng.", h_clusE_bin, h_clusE_min, h_clusE_max);
@@ -391,7 +490,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH1D *h_shY_diff = new TH1D("h_shY_diff", "Horizontal Position Difference; sh.y - tr.y (m)", 200, -0.5, 0.5);
   TH1D *h_shX_diff_calib = new TH1D("h_shX_diff_calib", "Vertical Pos. Diff. | After Calib.; sh.x - tr.x (m)", 200, -0.5, 0.5);
   TH1D *h_shY_diff_calib = new TH1D("h_shY_diff_calib", "Horizontal Pos. Diff. | After Calib.; sh.y - tr.y (m)", 200, -0.5, 0.5);
-  TH2D *h2_P_rec_vs_P_ang = new TH2D("h2_P_rec_vs_P_ang", "Track p vs Track ang", h2_pang_bin, h2_pang_min, h2_pang_max, h2_p_bin, h2_p_min, h2_p_max);
+  TH2D *h2_p_rec_vs_etheta = new TH2D("h2_p_rec_vs_etheta", "Track p vs Track ang", h2_pang_bin, h2_pang_min, h2_pang_max, h2_p_bin, h2_p_min, h2_p_max);
 
   TH2D *h2_EovP_vs_P = new TH2D("h2_EovP_vs_P", "E/p vs p; p (GeV); E/p", h2_p_coarse_bin, h2_p_coarse_min, h2_p_coarse_max, h2_EovP_bin, h2_EovP_min, h2_EovP_max);
   TProfile *h2_EovP_vs_P_prof = new TProfile("h2_EovP_vs_P_prof","E/p vs P (Profile)",h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h_EovP_min,h_EovP_max,"S");
@@ -423,9 +522,33 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   TH2D *h2_PSeng_vs_trY = new TH2D("h2_PSeng_vs_trY","PS energy vs Track y",200,-0.16,0.16,200,0,4);
   TH2D *h2_PSeng_vs_trY_calib = new TH2D("h2_PSeng_vs_trY_calib","PS energy vs Track y | After Calib.",200,-0.16,0.16,200,0,4);  
 
+  TH2D *h2_EovP_vs_rnum = new TH2D("h2_EovP_vs_rnum","E/p vs Run no.",h2_EovP_rnum_bin,h2_EovP_rnum_min,h2_EovP_rnum_max,200,0,2);
+  TProfile *h2_EovP_vs_rnum_prof = new TProfile("h2_EovP_vs_rnum_prof","E/p vs Run no. (Profile)",h2_EovP_rnum_bin,h2_EovP_rnum_min,h2_EovP_rnum_max,0,2,"S");
+  TH2D *h2_EovP_vs_rnum_calib = new TH2D("h2_EovP_vs_rnum_calib","E/p vs Run no. | After Calib.",h2_EovP_rnum_bin,h2_EovP_rnum_min,h2_EovP_rnum_max,200,0,2);
+  TProfile *h2_EovP_vs_rnum_calib_prof = new TProfile("h2_EovP_vs_rnum_calib_prof","E/p vs Run no. | After Calib. (Profile)",h2_EovP_rnum_bin,h2_EovP_rnum_min,h2_EovP_rnum_max,0,2,"S");
+
+  TH2D *h2_dxdyHCAL = new TH2D("h2_dxdyHCAL","p Spot cut;#Deltay (m);#Deltax (m)",200,-1,1,150,-2.5,1);
+
+  // defining output ROOT tree
   TTree *Tout = new TTree("Tout", "");
+  //
+  bool WCut;            Tout->Branch("WCut", &WCut, "WCut/O");
+  bool dpelCut;         Tout->Branch("dpelCut", &dpelCut, "dpelCut/O");
+  bool pCut;            Tout->Branch("pCut", &pCut, "pCut/O");
+  bool shEdge;          Tout->Branch("shEdge", &shEdge, "shEdge/O");
+  //
+  UInt_t T_rnum;        Tout->Branch("rnum", &T_rnum, "rnum/i");
+  ULong64_t T_gevnum;   Tout->Branch("gevnum", &T_gevnum, "gevnum/l");
+  //
   Double_t T_ebeam;     Tout->Branch("ebeam", &E_beam, "ebeam/D");
+  Double_t T_etheta;    Tout->Branch("etheta", &T_etheta, "etheta/D");
+  Double_t T_ephi;      Tout->Branch("ephi", &T_ephi, "ephi/D");
+  Double_t T_nu;        Tout->Branch("nu", &T_nu, "nu/D");
   Double_t T_W2;        Tout->Branch("W2", &T_W2, "W2/D");
+  Double_t T_Q2;        Tout->Branch("Q2", &T_Q2, "Q2/D"); 
+  Double_t T_dpel;      Tout->Branch("dpel", &T_dpel, "dpel/D");
+  Double_t T_pelas;     Tout->Branch("pelas", &T_pelas, "pelas/D");
+  //
   Double_t T_trP;       Tout->Branch("trP", &T_trP, "trP/D");
   Double_t T_trX;       Tout->Branch("trX", &T_trX, "trX/D");
   Double_t T_trY;       Tout->Branch("trY", &T_trY, "trY/D");
@@ -439,16 +562,27 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t T_shY;       Tout->Branch("shY", &T_shY, "shY/D");
   Double_t T_shX_diff;  Tout->Branch("shX_diff", &T_shX_diff, "shX_diff/D");
   Double_t T_shY_diff;  Tout->Branch("shY_diff", &T_shY_diff, "shY_diff/D");
+  //
+  double T_dx;          Tout->Branch("dx", &T_dx, "dx/D"); 
+  double T_dy;          Tout->Branch("dy", &T_dy, "dy/D");
+
+  // calculating HCAL co-ordinates
+  TVector3 HCAL_zaxis(sin(-sbstheta),0,cos(-sbstheta));
+  TVector3 HCAL_xaxis(0,-1,0);
+  TVector3 HCAL_yaxis = HCAL_zaxis.Cross(HCAL_xaxis).Unit();
+  TVector3 HCAL_origin = hcaldist*HCAL_zaxis + hcalheight*HCAL_xaxis;
 
   ///////////////////////////////////////////
   // 1st Loop over all events to calibrate //
   ///////////////////////////////////////////
 
   cout << endl;
-  Long64_t Nevents = C->GetEntries(), nevent=0;  
-  Double_t timekeeper = 0., timeremains = 0.;
-  int treenum = 0, currenttreenum = 0;
+  Long64_t Nevents = C->GetEntries(), nevent=0; UInt_t runnum=0; 
+  Double_t timekeeper=0., timeremains=0.;
+  Int_t treenum=0, currenttreenum=0, itrrun=0;
+  map<UInt_t, Int_t> urnum;    // map between unique rnum & dummy index
   vector<Long64_t> goodevents; // list of good events passed all the cuts
+
   while(C->GetEntry(nevent++)) {
     // Calculating remaining time 
     sw2->Stop();
@@ -473,6 +607,12 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
     if (nevent == 1 || currenttreenum != treenum) {
       treenum = currenttreenum;
       GlobalCut->UpdateFormulaLeaves();
+
+      // track change of runnum
+      if (nevent == 1 || rnum != runnum) {
+	runnum = rnum; itrrun++;
+	urnum[rnum] = itrrun;
+      }
     } 
     bool passedgCut = GlobalCut->EvalInstance(0) != 0;   
     if (passedgCut) {
@@ -501,33 +641,128 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       }
       // *----
 
-      // cut on E/p
-      if (cut_on_EovP) if(fabs((shE + psE) / p_rec - 1.) > EovP_cut_limit) continue;
+      // elastic calculations (Using 4-vector method)
+      // Relevant 4-vectors
+      /* Reaction    : e + e' -> p + p'
+	 Conservation: Pe + Peprime = Pp + Ppprime */
+      TVector3 vertex(0,0,trVz[0]);
+      TLorentzVector Pe(0,0,E_beam,E_beam);           // incoming e- 4-vector
+      TLorentzVector Peprime(trPx[0] * (p_rec/trP[0]),// scattered e- 4-vector
+			     trPy[0] * (p_rec/trP[0]),
+			     trPz[0] * (p_rec/trP[0]),
+			     p_rec);                 
+      TLorentzVector Pp(0,0,0,Mp);                    // target nucleon 4-vector
+      TLorentzVector Ppprime;                         // Recoil nucleon 4-vector
+      TLorentzVector q = Pe - Peprime;                // 4-momentum of virtual photon
+      // scattered e-
+      Double_t etheta = TMath::ACos(trPz[0]/p_rec);
+      Double_t ephi = atan2(trPy[0],trPx[0]);
+      Double_t pelas = E_beam/(1. + (E_beam/Mp)*(1.0-cos(etheta)));
+      // struck nucleon
+      Double_t nu = q.E();
+      Ppprime = q + Pp;
+      TVector3 pNhat = Ppprime.Vect().Unit();
+      Double_t Q2 = -q.M2();
+      Double_t W2 = Ppprime.M2();
+      Double_t W = sqrt(max(0., W2));
+      Double_t dpel = Peprime.E()/pelas - 1.0;
+
+      // calculating expected hit positions on HCAL
+      Double_t sintersect = (HCAL_origin - vertex).Dot(HCAL_zaxis) / (pNhat.Dot(HCAL_zaxis));
+      TVector3 HCAL_intersect = vertex + sintersect*pNhat; 
+      Double_t hcalX_exp = (HCAL_intersect - HCAL_origin).Dot(HCAL_xaxis);
+      Double_t hcalY_exp = (HCAL_intersect - HCAL_origin).Dot(HCAL_yaxis);
+      Double_t dx = hcalX - hcalX_exp;
+      Double_t dy = hcalY - hcalY_exp;
+
+      // storing good event numbers for 2nd loop
+      //goodevents.push_back(nevent);
+
+      // bbcal energy and position projections
+      Double_t clusEngBBCal = (shE + psE) * Corr_Factor_Enrg_Calib_w_Cosmic;
+      Double_t ClusEngSH = shE * Corr_Factor_Enrg_Calib_w_Cosmic;
+      Double_t ClusEngPS = psE * Corr_Factor_Enrg_Calib_w_Cosmic;
+      Double_t xtrATsh = trX[0] + zposSH*trTh[0];
+      Double_t ytrATsh = trY[0] + zposSH*trPh[0];
+
+      // cut definitions
+      // cut on W
+      WCut = abs(W - W_mean) <= W_sigma;
+      // cut on dpel
+      dpelCut = abs(dpel - dpel_mean) <= dpel_sigma;
+      // defining pspot cut
+      pCut = pow((dx-pspot_dxM) / (pspot_dxS*pspot_ndxS), 2) + pow((dy-pspot_dyM) / (pspot_dyS*pspot_ndyS), 2) <= 1.;
+      // SH active area
+      shEdge = shRowblk == 0 || shRowblk == 26 || shColblk == 0 || shColblk == 6;
+
+      // fill out-tree branches before applying elastic cuts
+      T_rnum = rnum;
+      T_gevnum = gevnum;
+
+      T_ebeam = E_beam;
+      T_etheta = etheta;
+      T_ephi = ephi;
+      T_pelas = pelas;
+      T_dpel = dpel;
+
+      T_nu = nu;
+      T_W2 = W2;
+      T_Q2 = Q2;
+
+      T_trP = p_rec;
+      T_trX = trX[0];
+      T_trY = trY[0];
+      T_trTh = trTh[0];
+      T_trPh = trPh[0];
+      T_psE = ClusEngPS;
+      T_clusE = clusEngBBCal;
+      T_psX = psX;
+      T_psY = psY;
+      T_shX = shX;
+      T_shY = shY;
+
+      T_dx = dx;
+      T_dy = dy;
+
+      T_shX_diff = shX - xtrATsh;
+      T_shY_diff = shY - ytrATsh;
+      Tout->Fill();
+
+      /////////////////////
+      // Additional cuts //
+      /////////////////////
 
       // cut on p
       if (cut_on_pmin) if(p_rec < p_min_cut) continue;
       if (cut_on_pmax) if(p_rec > p_max_cut) continue;
 
-      if (trP[0]==0 || E_e==0 ) continue;
+      // ps cut
+      if (cut_on_psE) if (ClusEngPS<psE_cut_limit) continue;
+      // bbcal cluster eng. cut
+      if (cut_on_clusE) if (clusEngBBCal<clusE_cut_limit) continue;
+      // cut on E/p
+      if (cut_on_EovP) if(fabs(clusEngBBCal/p_rec - 1.) > EovP_cut_limit) continue;
 
-      Double_t P_ang = TMath::ACos(trPz[0]/trP[0]);
-      Double_t Q2 = 4. * E_beam * p_rec * pow(TMath::Sin((P_ang/2.)), 2.);
-      P_ang *= TMath::RadToDeg();
-      Double_t W2 = Mp*Mp + 2.*Mp*(E_beam - p_rec) - Q2;
-      Double_t W = sqrt(max(0., W2));
+      // filling some histos before cutting on elastics
       h_W->Fill(W);
       h_Q2->Fill(Q2);
+      h_dpel->Fill(dpel);
+      if (pCut) h_dpel_ecut->Fill(dpel);
+      h2_dxdyHCAL->Fill(dy,dx);
 
-      // Reject events with max edep on the edge
-      if (shRowblk == 0 || shRowblk == 26 ||
-	  shColblk == 0 || shColblk == 6) continue; 
+      /* elastic cuts */
+      if (cut_on_W) if (!WCut) continue;
+      if (cut_on_dpel) if (!dpelCut) continue;
+      if (cut_on_pspot) if (!pCut) continue;
+      /* ------------ */
 
-      // cut on W
-      if (cut_on_W) if (fabs(W - W_mean) > W_sigma) continue;
+      // Reject events with max edep on the edge (SH active area cut)
+      if (shEdge) continue; 
 
-      // storing good event numbers for 2nd loop
-      goodevents.push_back(nevent);
-      
+      /************************
+       * Starting calibration *
+       ************************/
+
       // Loop over all the blocks in main cluster and fill in A's
       for(Int_t blk=0; blk<shNblk; blk++){
 	Int_t blkID = int(shClBlkId[blk]);
@@ -541,50 +776,19 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	A[189+blkID] += psClBlkE[blk];
 	nevents_per_cell[189+blkID]++;
       }
-    
-      // Let's fill some interesting histograms
-      Double_t clusEngBBCal = (shE + psE) * Corr_Factor_Enrg_Calib_w_Cosmic;
-      Double_t ClusEngSH = shE * Corr_Factor_Enrg_Calib_w_Cosmic;
-      Double_t ClusEngPS = psE * Corr_Factor_Enrg_Calib_w_Cosmic;
+
+      // filling diagnostic histos
       h_EovP->Fill(clusEngBBCal / p_rec);
       h_clusE->Fill(clusEngBBCal);
       h_SHclusE->Fill(ClusEngSH);
       h_PSclusE->Fill(ClusEngPS);
-      h2_P_rec_vs_P_ang->Fill(P_ang, p_rec);
+      h2_p_rec_vs_etheta->Fill(etheta*TMath::RadToDeg(), p_rec);
 
-      // fill out-tree branches
-      T_W2 = W2;
-      T_trP = p_rec;
-      T_trX = trX[0];
-      T_trY = trY[0];
-      T_trTh = trTh[0];
-      T_trPh = trPh[0];
-      T_psE = ClusEngPS;
-      T_clusE = clusEngBBCal;
-      T_psX = psX;
-      T_psY = psY;
-      T_shX = shX;
-      T_shY = shY;
-      Tout->Fill();
-
-      // Checking to see if there is any bias in track recostruction ----
-      //SH
-      h2_SHeng_vs_SHblk_raw->Fill(shColblk, shRowblk, ClusEngSH);
-      h2_EovP_vs_SHblk_raw->Fill(shColblk, shRowblk, clusEngBBCal/p_rec);
-      h2_count->Fill(shColblk, shRowblk, 1.);
-      h2_SHeng_vs_SHblk->Divide(h2_SHeng_vs_SHblk_raw, h2_count);
-      h2_EovP_vs_SHblk->Divide(h2_EovP_vs_SHblk_raw, h2_count);
-
-      Double_t xtrATsh = trX[0] + zposSH*trTh[0];
-      Double_t ytrATsh = trY[0] + zposSH*trPh[0];
-      T_shX_diff = shX - xtrATsh;
-      T_shY_diff = shY - ytrATsh;
       h_shX_diff->Fill(T_shX_diff);
       h_shY_diff->Fill(T_shY_diff);
       h2_EovP_vs_SHblk_trPOS_raw->Fill(ytrATsh, xtrATsh, clusEngBBCal/p_rec);
       h2_count_trP->Fill(ytrATsh, xtrATsh, 1.);
-      h2_EovP_vs_SHblk_trPOS->Divide(h2_EovP_vs_SHblk_trPOS_raw, h2_count_trP);
-
+ 
       //PS
       h2_PSeng_vs_PSblk_raw->Fill(psColblk, psRowblk, ClusEngPS);
       h2_EovP_vs_PSblk_raw->Fill(psColblk, psRowblk, clusEngBBCal/p_rec);
@@ -596,20 +800,31 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       Double_t ytrATps = trY[0] + zposPS*trPh[0];
       h2_EovP_vs_PSblk_trPOS_raw->Fill(ytrATps, xtrATps, clusEngBBCal/p_rec);
       h2_count_trP_PS->Fill(ytrATps, xtrATps, 1.);
-      h2_EovP_vs_PSblk_trPOS->Divide(h2_EovP_vs_PSblk_trPOS_raw, h2_count_trP_PS);
       // -----
+
+      // Checking to see if there is any bias in track recostruction ----
+      //SH
+      h2_SHeng_vs_SHblk_raw->Fill(shColblk, shRowblk, ClusEngSH);
+      h2_EovP_vs_SHblk_raw->Fill(shColblk, shRowblk, clusEngBBCal/p_rec);
+      h2_count->Fill(shColblk, shRowblk, 1.);
+      h2_SHeng_vs_SHblk->Divide(h2_SHeng_vs_SHblk_raw, h2_count);
+      h2_EovP_vs_SHblk->Divide(h2_EovP_vs_SHblk_raw, h2_count);
 
       // E/p vs. p
       h2_EovP_vs_P->Fill(p_rec, clusEngBBCal/p_rec);
-      h2_EovP_vs_P_prof->Fill( p_rec, clusEngBBCal/p_rec, 1. );
+      h2_EovP_vs_P_prof->Fill(p_rec, clusEngBBCal/p_rec, 1.);
 
       // histos to check bias in tracking
-      h2_EovP_vs_trX->Fill( trX[0], (clusEngBBCal/p_rec) );
-      h2_EovP_vs_trY->Fill( trY[0], (clusEngBBCal/p_rec) );
-      h2_EovP_vs_trTh->Fill( trTh[0], (clusEngBBCal/p_rec) );
-      h2_EovP_vs_trPh->Fill( trPh[0], (clusEngBBCal/p_rec) );
-      h2_PSeng_vs_trX->Fill( trX[0], ClusEngPS );
-      h2_PSeng_vs_trY->Fill( trY[0], ClusEngPS );
+      h2_EovP_vs_trX->Fill(trX[0], clusEngBBCal/p_rec);
+      h2_EovP_vs_trY->Fill(trY[0], clusEngBBCal/p_rec);
+      h2_EovP_vs_trTh->Fill(trTh[0], clusEngBBCal/p_rec);
+      h2_EovP_vs_trPh->Fill(trPh[0], clusEngBBCal/p_rec);
+      h2_PSeng_vs_trX->Fill(trX[0], ClusEngPS);
+      h2_PSeng_vs_trY->Fill(trY[0], ClusEngPS);
+
+      // E/p vs. rnum (to check correlations with beam current and/or threshold)
+      h2_EovP_vs_rnum->Fill(itrrun, clusEngBBCal/p_rec);
+      h2_EovP_vs_rnum_prof->Fill(itrrun, clusEngBBCal/p_rec, 1.);
 
       // Let's costruct the matrix
       for(Int_t icol = 0; icol<ncell; icol++){
@@ -621,6 +836,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
       
     } //global cut
   } //event loop
+  h2_EovP_vs_SHblk_trPOS->Divide(h2_EovP_vs_SHblk_trPOS_raw, h2_count_trP);
+  h2_EovP_vs_PSblk_trPOS->Divide(h2_EovP_vs_PSblk_trPOS_raw, h2_count_trP_PS);
   cout << endl << endl;
 
   // Let's customize the histogram ranges
@@ -674,8 +891,13 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 
   // SH : Filling diagnostic histograms
   Int_t cell = 0;
-  adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh_calib.txt", macros_dir.Data(), cfgfilebase.Data());
-  TString gainRatio_SH = Form("%s/Gain/%s_gainRatio_sh_calib.txt", macros_dir.Data(), cfgfilebase.Data());
+  if (!isdebug) {
+    adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh_calib.txt", macros_dir.Data(), cfgfilebase.Data());
+    gainRatio_SH = Form("%s/Gain/%s_gainRatio_sh_calib.txt", macros_dir.Data(), cfgfilebase.Data());
+  } else {
+    adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh_calib_test.txt", macros_dir.Data(), cfgfilebase.Data());
+    gainRatio_SH = Form("%s/Gain/%s_gainRatio_sh_calib_test.txt", macros_dir.Data(), cfgfilebase.Data());
+  }
   Double_t newADCgratioSH[kNcolsSH*kNrowsSH];
   for (int i=0; i<189; i++) { newADCgratioSH[i] = -1000; }  
   ofstream adcGainSH_outData, gainRatioSH_outData;
@@ -724,8 +946,13 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   h_old_coeff_blk_SH->SetLineWidth(0); h_old_coeff_blk_SH->SetMarkerStyle(8);
 
   // PS : Filling diagnostic histograms
-  adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib.txt", macros_dir.Data(), cfgfilebase.Data());
-  TString gainRatio_PS = Form("%s/Gain/%s_gainRatio_ps_calib.txt", macros_dir.Data(), cfgfilebase.Data());
+  if (!isdebug) {
+    adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib.txt", macros_dir.Data(), cfgfilebase.Data());
+    gainRatio_PS = Form("%s/Gain/%s_gainRatio_ps_calib.txt", macros_dir.Data(), cfgfilebase.Data());
+  } else {
+    adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib_test.txt", macros_dir.Data(), cfgfilebase.Data());
+    gainRatio_PS = Form("%s/Gain/%s_gainRatio_ps_calib_test.txt", macros_dir.Data(), cfgfilebase.Data());
+  }
   Double_t newADCgratioPS[kNcolsPS*kNrowsPS];
   for (int i=0; i<52; i++) { newADCgratioPS[i] = -1000; }  
   ofstream adcGainPS_outData, gainRatioPS_outData;
@@ -788,21 +1015,85 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   Double_t T_shX_diff_calib;  TBranch *T_shX_diff_c = Tout->Branch("shX_diff_calib", &T_shX_diff_calib, "shX_diff_calib/D");
   Double_t T_shY_diff_calib;  TBranch *T_shY_diff_c = Tout->Branch("shY_diff_calib", &T_shY_diff_calib, "shY_diff_calib/D");
 
-  Long64_t itr = 0; nevent = 0;
+  //Long64_t itr = 0; nevent = 0;
+  Nevents = C->GetEntries(), nevent=0;
   cout << "Looping over events again to check calibration.." << endl; 
   while(C->GetEntry(nevent++)) {
-    // progress report
-    if (nevent % 100 == 0) cout << nevent << "/" << Nevents  << "\r";;
-    cout.flush();    
+    // Calculating remaining time 
+    sw2->Stop();
+    timekeeper += sw2->RealTime();
+    if (nevent % 25000 == 0 && nevent != 0) 
+      timeremains = timekeeper * (double(Nevents) / double(nevent) - 1.); 
+    sw2->Reset();
+    sw2->Continue();
 
-    // selecting events that passed the global cuts using "goodevents" container. 
-    // This method is very fast and efficient. It took some thinking to come up
-    // with this algorithm but the outcome made all the hard work worth it!
-    if (nevent == goodevents[itr]) { 
-      itr++;
+    if(nevent % 100 == 0) cout << nevent << "/" << Nevents  << ", " << int(timeremains/60.) << "m \r";;
+    cout.flush();
+    // ------
+
+    // apply global cuts efficiently (AJRP method)
+    currenttreenum = C->GetTreeNumber();
+    if (nevent == 1 || currenttreenum != treenum) {
+      treenum = currenttreenum;
+      GlobalCut->UpdateFormulaLeaves();
+    } 
+    bool passedgCut = GlobalCut->EvalInstance(0) != 0;   
+    if (passedgCut) {
 
       p_rec = trP[0] * p_rec_Offset; 
 
+      // *---- calculating calibrated momentum (Helps avoiding replay)
+      if(mom_calib){
+	TVector3 enhat_tgt(trTgth[0], trTgph[0], 1.0);
+	enhat_tgt = enhat_tgt.Unit();	
+	TVector3 enhat_fp(trRth[0], trRph[0], 1.0);
+	enhat_fp = enhat_fp.Unit();
+	TVector3 GEMzaxis(-sin(GEMpitch*TMath::DegToRad()),0,cos(GEMpitch*TMath::DegToRad()));
+	TVector3 GEMyaxis(0,1,0);
+	TVector3 GEMxaxis = (GEMyaxis.Cross(GEMzaxis)).Unit();	
+	TVector3 enhat_fp_rot = enhat_fp.X() * GEMxaxis + enhat_fp.Y() * GEMyaxis + enhat_fp.Z() * GEMzaxis;
+	double thetabend = acos(enhat_fp_rot.Dot(enhat_tgt));
+	h_thetabend->Fill(thetabend);
+
+	p_rec = (A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend) * p_rec_Offset;
+      }
+      // *----
+
+      // elastic calculations (Using 4-vector method)
+      // Relevant 4-vectors
+      /* Reaction    : e + e' -> p + p'
+	 Conservation: Pe + Peprime = Pp + Ppprime */
+      TVector3 vertex(0,0,trVz[0]);
+      TLorentzVector Pe(0,0,E_beam,E_beam);           // incoming e- 4-vector
+      TLorentzVector Peprime(trPx[0] * (p_rec/trP[0]),// scattered e- 4-vector
+			     trPy[0] * (p_rec/trP[0]),
+			     trPz[0] * (p_rec/trP[0]),
+			     p_rec);                 
+      TLorentzVector Pp(0,0,0,Mp);                    // target nucleon 4-vector
+      TLorentzVector Ppprime;                         // Recoil nucleon 4-vector
+      TLorentzVector q = Pe - Peprime;                // 4-momentum of virtual photon
+      // scattered e-
+      Double_t etheta = TMath::ACos(trPz[0]/p_rec);
+      Double_t ephi = atan2(trPy[0],trPx[0]);
+      Double_t pelas = E_beam/(1. + (E_beam/Mp)*(1.0-cos(etheta)));
+      // struck nucleon
+      Double_t nu = q.E();
+      Ppprime = q + Pp;
+      TVector3 pNhat = Ppprime.Vect().Unit();
+      Double_t Q2 = -q.M2();
+      Double_t W2 = Ppprime.M2();
+      Double_t W = sqrt(max(0., W2));
+      Double_t dpel = Peprime.E()/pelas - 1.0;
+
+      // calculating expected hit positions on HCAL
+      Double_t sintersect = (HCAL_origin - vertex).Dot(HCAL_zaxis) / (pNhat.Dot(HCAL_zaxis));
+      TVector3 HCAL_intersect = vertex + sintersect*pNhat; 
+      Double_t hcalX_exp = (HCAL_intersect - HCAL_origin).Dot(HCAL_xaxis);
+      Double_t hcalY_exp = (HCAL_intersect - HCAL_origin).Dot(HCAL_yaxis);
+      Double_t dx = hcalX - hcalX_exp;
+      Double_t dy = hcalY - hcalY_exp;
+
+      // calculating calibrated BBCAL energy
       // ****** Shower ******
       Double_t shClusE = 0., shX_calib = 0., shY_calib = 0.;
       for(Int_t blk=0; blk<shNblk; blk++){
@@ -813,56 +1104,99 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
 	 
  	shClusE += shClBlkE[blk] * newADCgratioSH[blkID];
       }
-      T_shX_calib = shX_calib; T_shX_c->Fill();
-      T_shY_calib = shY_calib; T_shY_c->Fill();
-      Double_t xtrATsh = trX[0] + zposSH*trTh[0];
-      Double_t ytrATsh = trY[0] + zposSH*trPh[0];
-      T_shX_diff_calib = shX_calib - xtrATsh; T_shX_diff_c->Fill();
-      T_shY_diff_calib = shY_calib - ytrATsh; T_shY_diff_c->Fill();
-      h_shX_diff_calib->Fill(T_shX_diff_calib);
-      h_shY_diff_calib->Fill(T_shY_diff_calib);
-
       // ****** PreShower ******
       Double_t psClusE = 0., psX_calib = 0., psY_calib = 0.;
       for(Int_t blk=0; blk<psNblk; blk++){
-  	Int_t blkID = int(psClBlkId[blk]);
+	Int_t blkID = int(psClBlkId[blk]);
 	// calculating the updated cluster centroid
 	psX_calib = (psX_calib*psClusE + psClBlkX[blk]*psClBlkE[blk]) / (psClusE+psClBlkE[blk]);
 	psY_calib = (psY_calib*psClusE + psClBlkY[blk]*psClBlkE[blk]) / (psClusE+psClBlkE[blk]);
 
-  	psClusE += psClBlkE[blk] * newADCgratioPS[blkID];
+	psClusE += psClBlkE[blk] * newADCgratioPS[blkID];
       }
+      Double_t clusEngBBCal = shClusE + psClusE;
+      Double_t xtrATsh = trX[0] + zposSH*trTh[0];
+      Double_t ytrATsh = trY[0] + zposSH*trPh[0];
+      Double_t shX_diff = shX_calib - xtrATsh;
+      Double_t shY_diff = shY_calib - ytrATsh;
+
+      // filling tree with calibrated entries
+      T_psE_calib = psClusE;        T_psE_c->Fill();
+      T_clusE_calib = clusEngBBCal; T_clusE_c->Fill();
+
+      T_shX_calib = shX_calib; T_shX_c->Fill();
+      T_shY_calib = shY_calib; T_shY_c->Fill();
+
+      T_shX_diff_calib = shX_diff; T_shX_diff_c->Fill();
+      T_shY_diff_calib = shY_diff; T_shY_diff_c->Fill();
+
       T_psX_calib = psX_calib; T_psX_c->Fill();
       T_psY_calib = psY_calib; T_psY_c->Fill();
 
+      //////////////////////////////////////////////////////
+      // Additional cuts before filling diagnostic histos //
+      //////////////////////////////////////////////////////
+
+      // cut on p
+      if (cut_on_pmin) if(p_rec < p_min_cut) continue;
+      if (cut_on_pmax) if(p_rec > p_max_cut) continue;
+
+      // ps cut
+      if (cut_on_psE) if (psClusE<psE_cut_limit) continue;
+      // bbcal cluster eng. cut
+      if (cut_on_clusE) if (clusEngBBCal<clusE_cut_limit) continue;
+      // cut on E/p
+      if (cut_on_EovP) if(fabs(clusEngBBCal/p_rec - 1.) > EovP_cut_limit) continue;
+
+      /* elastic cuts */
+      // cut on W
+      bool WCutc = fabs(W - W_mean) <= W_sigma;
+      if (cut_on_W) if (!WCutc) continue;
+      // cut on dpel
+      bool dpelCutc = fabs(dpel - dpel_mean) <= dpel_sigma;
+      if (cut_on_dpel) if (!dpelCutc) continue;
+      // defining pspot cut
+      bool pCutc = pow((dx-pspot_dxM) / (pspot_dxS*pspot_ndxS), 2) + pow((dy-pspot_dyM) / (pspot_dyS*pspot_ndyS), 2) <= 1.;
+      if (cut_on_pspot) if (!pCutc) continue;
+      /* ------------ */
+
+      // Reject events with max edep on the edge (SH active area cut)
+      shEdge = shRowblk == 0 || shRowblk == 26 || shColblk == 0 || shColblk == 6;
+      if (shEdge) continue; 
+
       // Let's fill diagnostic histograms
-      Double_t clusEngBBCal = shClusE + psClusE;
+      h_shX_diff_calib->Fill(shX_diff);
+      h_shY_diff_calib->Fill(shY_diff);
+
       h_EovP_calib->Fill(clusEngBBCal / p_rec);
       h_clusE_calib->Fill(clusEngBBCal);
       h_SHclusE_calib->Fill(shClusE);
       h_PSclusE_calib->Fill(psClusE);
 
       h2_EovP_vs_P_calib->Fill(p_rec, clusEngBBCal/p_rec);
-      h2_EovP_vs_P_calib_prof->Fill( p_rec, clusEngBBCal/p_rec, 1. );
+      h2_EovP_vs_P_calib_prof->Fill(p_rec, clusEngBBCal/p_rec, 1.);
 
+      h2_count_calib->Fill(shColblk, shRowblk, 1.);
       h2_EovP_vs_SHblk_raw_calib->Fill(shColblk, shRowblk, clusEngBBCal/p_rec);
-      h2_EovP_vs_SHblk_calib->Divide(h2_EovP_vs_SHblk_raw_calib, h2_count);
 
+      h2_count_PS_calib->Fill(psColblk, psRowblk, 1.);
       h2_EovP_vs_PSblk_raw_calib->Fill(psColblk, psRowblk, clusEngBBCal/p_rec);
-      h2_EovP_vs_PSblk_calib->Divide(h2_EovP_vs_PSblk_raw_calib, h2_count_PS);
-
-      T_psE_calib = psClusE;        T_psE_c->Fill();
-      T_clusE_calib = clusEngBBCal; T_clusE_c->Fill();
 
       // histos to check bias in tracking
-      h2_EovP_vs_trX_calib->Fill( trX[0], (clusEngBBCal/p_rec) );
-      h2_EovP_vs_trY_calib->Fill( trY[0], (clusEngBBCal/p_rec) );
-      h2_EovP_vs_trTh_calib->Fill( trTh[0], (clusEngBBCal/p_rec) );
-      h2_EovP_vs_trPh_calib->Fill( trPh[0], (clusEngBBCal/p_rec) );
-      h2_PSeng_vs_trX_calib->Fill( trX[0], psClusE );
-      h2_PSeng_vs_trY_calib->Fill( trY[0], psClusE );
+      h2_EovP_vs_trX_calib->Fill(trX[0], clusEngBBCal/p_rec);
+      h2_EovP_vs_trY_calib->Fill(trY[0], clusEngBBCal/p_rec);
+      h2_EovP_vs_trTh_calib->Fill(trTh[0], clusEngBBCal/p_rec);
+      h2_EovP_vs_trPh_calib->Fill(trPh[0], clusEngBBCal/p_rec);
+      h2_PSeng_vs_trX_calib->Fill(trX[0], psClusE);
+      h2_PSeng_vs_trY_calib->Fill(trY[0], psClusE);
+
+      // E/p vs. rnum (to check correlations with beam current and/or threshold)
+      h2_EovP_vs_rnum_calib->Fill(urnum[rnum], clusEngBBCal/p_rec);
+      h2_EovP_vs_rnum_calib_prof->Fill(urnum[rnum], clusEngBBCal/p_rec, 1.);
     }
   }
+  h2_EovP_vs_SHblk_calib->Divide(h2_EovP_vs_SHblk_raw_calib, h2_count_calib);
+  h2_EovP_vs_PSblk_calib->Divide(h2_EovP_vs_PSblk_raw_calib, h2_count_PS_calib);
   cout << endl << endl;
 
   // Let's customize the histogram ranges
@@ -1033,28 +1367,86 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   h_shY_diff_calib->Fit(fit_c44,"QR");
   h_shY_diff_calib->SetStats(1);
 
-  TCanvas *c5 = new TCanvas("c5","gain Coeff",1200,1000);
-  c5->Divide(2,2);
-  
-  c5->cd(1); Double_t h_max;
+  TCanvas *c5 = new TCanvas("c5","E/p vs rnum",1200,1000);
+  c5->Divide(1,2);
+
+  // manipulating urnum vector
+  if (urnum.size()!=h2_EovP_rnum_bin)
+    cout << "*!*[WARNING] h2_EovP_rnum value in the cfg file doesn't match with total # runs analyzed!" << endl;
+
+  c5->cd(1);
+  gPad->SetGridy();
+  gStyle->SetErrorX(0.0001);
+  h2_EovP_vs_rnum->SetStats(0);
+  h2_EovP_vs_rnum->GetXaxis()->SetNdivisions(h2_EovP_rnum_bin);
+  //h2_EovP_vs_rnum->LabelsOption("v", "X");
+  h2_EovP_vs_rnum->Draw("colz");
+  h2_EovP_vs_rnum_prof->SetStats(0);
+  h2_EovP_vs_rnum_prof->SetMarkerStyle(20);
+  h2_EovP_vs_rnum_prof->SetMarkerColor(2);
+  h2_EovP_vs_rnum_prof->Draw("same");
+
+  c5->cd(2);
+  gPad->SetGridy();
+  gStyle->SetErrorX(0.0001);
+  h2_EovP_vs_rnum_calib->SetStats(0);
+  h2_EovP_vs_rnum_calib->GetXaxis()->SetNdivisions(h2_EovP_rnum_bin);
+  //h2_EovP_vs_rnum_calib->LabelsOption("v", "X");
+  h2_EovP_vs_rnum_calib->Draw("colz");
+  h2_EovP_vs_rnum_calib_prof->SetStats(0);
+  h2_EovP_vs_rnum_calib_prof->SetMarkerStyle(20);
+  h2_EovP_vs_rnum_calib_prof->SetMarkerColor(2);
+  h2_EovP_vs_rnum_calib_prof->Draw("same");
+
+  TCanvas *c6 = new TCanvas("c6","gain Coeff",1200,1000);
+  c6->Divide(2,2);
+
+  c6->cd(1); Double_t h_max;
   h_max = h_old_coeff_blk_SH->GetMaximum();
   h2_old_coeff_detView_SH->GetZaxis()->SetRangeUser(0.,h_max); h2_old_coeff_detView_SH->Draw("text col");
 
-  c5->cd(2);
+  c6->cd(2);
   h_max = h_coeff_blk_SH->GetMaximum();
   h2_coeff_detView_SH->GetZaxis()->SetRangeUser(0.,h_max); h2_coeff_detView_SH->Draw("text col");
 
-  c5->cd(3);
+  c6->cd(3);
   h_max = h_old_coeff_blk_PS->GetMaximum();
   h2_old_coeff_detView_PS->GetZaxis()->SetRangeUser(0.,h_max); h2_old_coeff_detView_PS->Draw("text col");
 
-  c5->cd(4);
+  c6->cd(4);
   h_max = h_coeff_blk_PS->GetMaximum();
   h2_coeff_detView_PS->GetZaxis()->SetRangeUser(0.,h_max); h2_coeff_detView_PS->Draw("text col");
 
+  TCanvas *c7 = new TCanvas("c7","elastic cuts",1200,1000);
+  c7->Divide(2,2);
+  
+  c7->cd(1);
+  h_dpel->Draw();
+
+  c7->cd(2);
+  h2_dxdyHCAL->Draw("colz");
+  TEllipse Ep;
+  Ep.SetFillStyle(0);
+  Ep.SetLineColor(2);
+  Ep.SetLineWidth(2);
+  Ep.DrawEllipse(pspot_dyM,pspot_dxM,pspot_ndyS*pspot_dyS,pspot_ndxS*pspot_dxS,0,360,0);
+
+  c7->cd(3);
+  h_dpel_ecut->Draw();
+  Double_t x1 = dpel_mean-dpel_sigma*dpel_nsigma;
+  Double_t x2 = dpel_mean+dpel_sigma*dpel_nsigma;
+  Double_t y1 = 0.;
+  Double_t y2 = h_dpel_ecut->GetMaximum();
+  TLine L1;
+  L1.SetLineColor(2); L1.SetLineWidth(2); L1.SetLineStyle(9);
+  L1.DrawLine(x1,y1,x1,y2);
+  TLine L2;
+  L2.SetLineColor(2); L2.SetLineWidth(2); L2.SetLineStyle(9);
+  L2.DrawLine(x2,y1,x2,y2);
+
   // let's record the summary
-  TCanvas *c6 = new TCanvas("c6","Summary");
-  c6->cd();
+  TCanvas *c8 = new TCanvas("c8","Summary");
+  c8->cd();
 
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
   pt->AddText(Form("Configfile: BBCal_replay/macros/Combined_macros/cfg/%s.cfg",cfgfilebase.Data()));
@@ -1080,7 +1472,9 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   c4->SaveAs(Form("%s",outPlot.Data()));
   c5->SaveAs(Form("%s",outPlot.Data()));
   c6->SaveAs(Form("%s",outPlot.Data()));
-  c6->SaveAs(Form("%s]",outPlot.Data()));
+  c7->SaveAs(Form("%s",outPlot.Data()));
+  c8->SaveAs(Form("%s",outPlot.Data()));
+  c8->SaveAs(Form("%s]",outPlot.Data()));
 
   cout << "List of output files:" << endl;
   cout << " --------- " << endl;
@@ -1100,16 +1494,20 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   // Write individual memories to file explicitely //
   // to be able to read them using uproot          //
   ///////////////////////////////////////////////////
-
+  
   Tout->Write();
+  //Tout_c->Write();
   c1->Write();
   c2->Write();
   c3->Write();
   c4->Write();
   c5->Write();
   c6->Write();
+  c7->Write();
+  c8->Write();
   h_W->Write();
   h_Q2->Write();
+  h_dpel->Write();
   h_EovP->Write();
   h_EovP_calib->Write();
   h_clusE->Write();
@@ -1118,11 +1516,15 @@ void bbcal_eng_calib_w_h2(const char *configfilename)
   h_SHclusE_calib->Write();
   h_PSclusE->Write();
   h_PSclusE_calib->Write();
-  h2_P_rec_vs_P_ang->Write();
+  h2_p_rec_vs_etheta->Write();
   h2_EovP_vs_P->Write();
   h2_EovP_vs_P_prof->Write();
   h2_EovP_vs_P_calib->Write();
   h2_EovP_vs_P_calib_prof->Write();
+  h2_EovP_vs_rnum->Write();
+  h2_EovP_vs_rnum_prof->Write();
+  h2_EovP_vs_rnum_calib->Write();
+  h2_EovP_vs_rnum_calib_prof->Write();
   h2_SHeng_vs_SHblk->Write();
   h2_EovP_vs_SHblk->Write();
   h2_EovP_vs_SHblk_calib->Write();
