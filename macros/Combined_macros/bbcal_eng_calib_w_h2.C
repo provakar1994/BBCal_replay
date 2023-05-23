@@ -2,7 +2,7 @@
   This script has been prepared for the energy calibration of BigBite Calorimeter (BigBite Shower
   + BigBite Preshower) detector. It does so by minimizing the chi2 of the difference between calorimeter
   cluster energy and the reconstructed electron energy. It gets the old adc gain coefficients (GeV/pC) 
-  from tree and writes the new adc gain coeffs. and ratios (New/Old) in file. One needs a configfile 
+  from tree and writes the new adc gain coeffs. and ratios (New/Old) to file. One needs a configfile 
   to execute this script [see cfg/example.cfg]. To execute, do:
   ----
   [a-onl@aonl2 macros]$ pwd
@@ -53,7 +53,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
 
   TString macros_dir;
   Int_t Nmin = 10;
-  Double_t minMBratio = 0.1;
+  Double_t minMBratio = 0.1, hit_threshold = 0.;
   Double_t E_beam = 0., sbstheta = 0., hcaldist = 0., hcalheight = -0.2897;
   Double_t psE_cut_limit = 0., clusE_cut_limit = 0., EovP_cut_limit = 0.3;
   Double_t p_rec_Offset = 1., p_min_cut = 0., p_max_cut = 0.;
@@ -94,8 +94,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   // Define a clock to check macro processing time
   TStopwatch *sw = new TStopwatch();
   TStopwatch *sw2 = new TStopwatch();
-  sw->Start();
-  sw2->Start();
+  sw->Start(); sw2->Start();
 
   // Reading config file
   ifstream configfile(configfilename);
@@ -151,6 +150,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
       if( skey == "HCAL_dist" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	hcaldist = sval.Atof();
+      }
+      if( skey == "hit_threshold" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	hit_threshold = sval.Atof();
       }
       if( skey == "Min_Event_Per_Channel" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
@@ -258,7 +261,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
 	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
 	h_EovP_max = sval2.Atof();
       }
-     if( skey == "EovP_fit_width" ){
+      if( skey == "EovP_fit_width" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	EovP_fit_width = sval.Atof();
       }
@@ -542,7 +545,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   TTree *Tout = new TTree("Tout", "");
   //
   bool WCut;            Tout->Branch("WCut", &WCut, "WCut/O");
-  bool PovPelCut;         Tout->Branch("PovPelCut", &PovPelCut, "PovPelCut/O");
+  bool PovPelCut;       Tout->Branch("PovPelCut", &PovPelCut, "PovPelCut/O");
   bool pCut;            Tout->Branch("pCut", &pCut, "pCut/O");
   bool shEdge;          Tout->Branch("shEdge", &shEdge, "shEdge/O");
   //
@@ -555,7 +558,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   Double_t T_nu;        Tout->Branch("nu", &T_nu, "nu/D");
   Double_t T_W2;        Tout->Branch("W2", &T_W2, "W2/D");
   Double_t T_Q2;        Tout->Branch("Q2", &T_Q2, "Q2/D"); 
-  Double_t T_PovPel;      Tout->Branch("PovPel", &T_PovPel, "PovPel/D");
+  Double_t T_PovPel;    Tout->Branch("PovPel", &T_PovPel, "PovPel/D");
   Double_t T_pelas;     Tout->Branch("pelas", &T_pelas, "pelas/D");
   //
   Double_t T_vz;        Tout->Branch("vz", &T_vz, "vz/D");
@@ -813,14 +816,14 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
       // Loop over all the blocks in main cluster and fill in A's
       for(Int_t blk=0; blk<shNblk; blk++){
 	Int_t blkID = int(shClBlkId[blk]);
-	A[blkID] += shClBlkE[blk];
+	if (shClBlkE[blk]>hit_threshold) A[blkID] += shClBlkE[blk];
 	nevents_per_cell[blkID]++; 
       }
     
       // ****** PreShower ******
       for(Int_t blk=0; blk<psNblk; blk++){
 	Int_t blkID = int(psClBlkId[blk]);
-	A[189+blkID] += psClBlkE[blk];
+	if (psClBlkE[blk]>hit_threshold) A[189+blkID] += psClBlkE[blk];
 	nevents_per_cell[189+blkID]++;
       }
 
@@ -1154,7 +1157,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
 	shX_calib = (shX_calib*shClusE + shClBlkX[blk]*shClBlkE[blk]) / (shClusE+shClBlkE[blk]);
 	shY_calib = (shY_calib*shClusE + shClBlkY[blk]*shClBlkE[blk]) / (shClusE+shClBlkE[blk]);
 	 
- 	shClusE += shClBlkE[blk] * newADCgratioSH[blkID];
+	Double_t shClBlkE_calib = shClBlkE[blk] * newADCgratioSH[blkID];
+ 	if (shClBlkE_calib>hit_threshold) shClusE += shClBlkE_calib;
       }
       // ****** PreShower ******
       Double_t psClusE = 0., psX_calib = 0., psY_calib = 0.;
@@ -1164,7 +1168,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
 	psX_calib = (psX_calib*psClusE + psClBlkX[blk]*psClBlkE[blk]) / (psClusE+psClBlkE[blk]);
 	psY_calib = (psY_calib*psClusE + psClBlkY[blk]*psClBlkE[blk]) / (psClusE+psClBlkE[blk]);
 
-	psClusE += psClBlkE[blk] * newADCgratioPS[blkID];
+	Double_t psClBlkE_calib = psClBlkE[blk] * newADCgratioPS[blkID];
+	if (psClBlkE_calib>hit_threshold) psClusE += psClBlkE_calib;
       }
       Double_t clusEngBBCal = shClusE + psClusE;
       Double_t xtrATsh = trX[0] + zposSH*trTh[0];
@@ -1255,10 +1260,9 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   h2_EovP_vs_SHblk_calib->GetZaxis()->SetRangeUser(0.8,1.2);
   h2_EovP_vs_PSblk_calib->GetZaxis()->SetRangeUser(0.8,1.2);
 
-  //////////////////////////////
-  // Drawing diagnostic plots //
-  //////////////////////////////
-
+  /////////////////////////////////
+  // Generating diagnostic plots //
+  /////////////////////////////////
   /**** Canvas 1 (E/p) ****/
   TCanvas *c1 = new TCanvas("c1","E/p",1500,1200);
   c1->Divide(3,2);
@@ -1419,10 +1423,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   gPad->SetGridy();
   gStyle->SetErrorX(0.0001);
   h2_EovP_vs_rnum->SetStats(0);
+  h2_EovP_vs_rnum->GetXaxis()->SetLabelSize(0.05);  
   h2_EovP_vs_rnum->GetXaxis()->SetNdivisions(h2_EovP_rnum_bin);
   for (int i=0; i<nrunana; i++) h2_EovP_vs_rnum->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
   if (nrunana>15) h2_EovP_vs_rnum->LabelsOption("v", "X"); 
-  if (nrunana<10) h2_EovP_vs_rnum->GetXaxis()->SetLabelSize(0.05);
   h2_EovP_vs_rnum->Draw("colz");
   h2_EovP_vs_rnum_prof->SetStats(0);
   h2_EovP_vs_rnum_prof->SetMarkerStyle(20);
@@ -1432,10 +1436,10 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   gPad->SetGridy();
   gStyle->SetErrorX(0.0001);
   h2_EovP_vs_rnum_calib->SetStats(0);
+  h2_EovP_vs_rnum_calib->GetXaxis()->SetLabelSize(0.05);
   h2_EovP_vs_rnum_calib->GetXaxis()->SetNdivisions(h2_EovP_rnum_bin);
   for (int i=0; i<nrunana; i++) h2_EovP_vs_rnum_calib->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
   if (nrunana>15) h2_EovP_vs_rnum_calib->LabelsOption("v", "X"); 
-  if (nrunana<10) h2_EovP_vs_rnum_calib->GetXaxis()->SetLabelSize(0.05);
   h2_EovP_vs_rnum_calib->Draw("colz");
   h2_EovP_vs_rnum_calib_prof->SetStats(0);
   h2_EovP_vs_rnum_calib_prof->SetMarkerStyle(20);
@@ -1513,7 +1517,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
     pt->AddText(" Elastic cuts: ");
     if (cut_on_W) pt->AddText(Form(" |W - %.3f| #leq %.1f*%.3f",W_mean,W_nsigma,W_sigma));
     if (cut_on_PovPel) pt->AddText(Form(" |p/p_{el}(#theta) - %.3f| #leq %.1f*%.3f",PovPel_mean,PovPel_nsigma,PovPel_sigma));
-    if (cut_on_pspot) pt->AddText(" proton spot cut definitions: ");
+    if (cut_on_pspot) pt->AddText(" proton spot cut ranges: ");
     if (cut_on_pspot) pt->AddText(Form("  #Deltax: Mean = %.4f, %.1f#sigma = %.4f",pspot_dxM,pspot_ndxS,pspot_dxS));
     if (cut_on_pspot) pt->AddText(Form("  #Deltay: Mean = %.4f, %.1f#sigma = %.4f",pspot_dyM,pspot_ndyS,pspot_dyS));
     pt->AddText(Form(" # events passed global & elastic cuts: %lld", Nelasevs));
@@ -1543,50 +1547,36 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   // Write individual memories to file explicitely //
   // to be able to read them using uproot          //
   ///////////////////////////////////////////////////
-  
   Tout->Write();
+  // kinematic
   h_W->Write();
   h_Q2->Write();
   h_PovPel->Write();
   if (cut_on_pspot) h_PovPel_pspotcut->Write();
-  h_EovP->Write();
-  h_EovP_calib->Write();
-  h_clusE->Write();
-  h_clusE_calib->Write();
-  h_SHclusE->Write();
-  h_SHclusE_calib->Write();
-  h_PSclusE->Write();
-  h_PSclusE_calib->Write();
   h2_p_rec_vs_etheta->Write();
-  h2_EovP_vs_P->Write();
-  h2_EovP_vs_P_prof->Write();
-  h2_EovP_vs_P_calib->Write();
-  h2_EovP_vs_P_calib_prof->Write();
-  h2_EovP_vs_rnum->Write();
-  h2_EovP_vs_rnum_prof->Write();
-  h2_EovP_vs_rnum_calib->Write();
-  h2_EovP_vs_rnum_calib_prof->Write();
-  h2_SHeng_vs_SHblk->Write();
-  h2_EovP_vs_SHblk->Write();
-  h2_EovP_vs_SHblk_calib->Write();
-  h2_EovP_vs_SHblk_trPOS->Write();
-  h2_PSeng_vs_PSblk->Write();
-  h2_EovP_vs_PSblk->Write();
-  h2_EovP_vs_PSblk_calib->Write();
-  h2_EovP_vs_PSblk_trPOS->Write();
-  h2_EovP_vs_trX->Write();
-  h2_EovP_vs_trX_calib->Write();
-  h2_EovP_vs_trY->Write();
-  h2_EovP_vs_trY_calib->Write();
-  h2_EovP_vs_trTh->Write();
-  h2_EovP_vs_trTh_calib->Write();
-  h2_EovP_vs_trPh->Write();
-  h2_EovP_vs_trPh_calib->Write();
-  h2_PSeng_vs_trX->Write();
-  h2_PSeng_vs_trX_calib->Write();
-  h2_PSeng_vs_trY->Write();
-  h2_PSeng_vs_trY_calib->Write();
+  // main
+  h_EovP->Write(); h_EovP_calib->Write();
+  h_clusE->Write(); h_clusE_calib->Write();
+  h_SHclusE->Write(); h_SHclusE_calib->Write();
+  h_PSclusE->Write(); h_PSclusE_calib->Write();
+  h2_SHeng_vs_SHblk->Write(); h2_PSeng_vs_PSblk->Write();
+  // various corrs. with E/p
+  h2_EovP_vs_SHblk_trPOS->Write(); h2_EovP_vs_PSblk_trPOS->Write();
+  h2_EovP_vs_P->Write(); h2_EovP_vs_P_calib->Write();
+  h2_EovP_vs_P_prof->Write(); h2_EovP_vs_P_calib_prof->Write();
+  h2_EovP_vs_rnum->Write(); h2_EovP_vs_rnum_calib->Write();
+  h2_EovP_vs_rnum_prof->Write(); h2_EovP_vs_rnum_calib_prof->Write();
+  h2_EovP_vs_SHblk->Write(); h2_EovP_vs_SHblk_calib->Write();
+  h2_EovP_vs_PSblk->Write(); h2_EovP_vs_PSblk_calib->Write();
+  h2_EovP_vs_trX->Write(); h2_EovP_vs_trX_calib->Write();
+  h2_EovP_vs_trY->Write(); h2_EovP_vs_trY_calib->Write();
+  h2_EovP_vs_trTh->Write(); h2_EovP_vs_trTh_calib->Write();
+  h2_EovP_vs_trPh->Write(); h2_EovP_vs_trPh_calib->Write();
+  h2_PSeng_vs_trX->Write(); h2_PSeng_vs_trX_calib->Write();
+  h2_PSeng_vs_trY->Write(); h2_PSeng_vs_trY_calib->Write();
+  // momentum calib. proxy
   if (mom_calib) h_thetabend->Write();
+  // gain coefficients
   h_nevent_blk_SH->Write();
   h_coeff_Ratio_SH->Write();
   h_coeff_blk_SH->Write();
@@ -1599,17 +1589,18 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   h_old_coeff_blk_PS->Write();
   h2_old_coeff_detView_PS->Write();
   h2_coeff_detView_PS->Write();
-
-  M.Clear();
-  B.Clear();
+  
+  /////////////////////////////////////
+  // Clear memories & free resources //
+  /////////////////////////////////////
   C->Delete();
   CoeffR.Clear();
+  M.Clear(); B.Clear();
   adcGainSH_outData.close();
   adcGainPS_outData.close();
   gainRatioSH_outData.close();
   gainRatioPS_outData.close();
-  sw->Delete();
-  sw2->Delete();
+  sw->Delete(); sw2->Delete();
 }
 
 // **** ========== Useful functions ========== ****  
