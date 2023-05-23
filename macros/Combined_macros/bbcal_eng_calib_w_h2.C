@@ -53,7 +53,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
 
   TString macros_dir;
   Int_t Nmin = 10;
-  Double_t minMBratio = 0.1, hit_threshold = 0.;
+  Double_t Nruns = -99., minMBratio = 0.1, hit_threshold = 0.;
   Double_t E_beam = 0., sbstheta = 0., hcaldist = 0., hcalheight = -0.2897;
   Double_t psE_cut_limit = 0., clusE_cut_limit = 0., EovP_cut_limit = 0.3;
   Double_t p_rec_Offset = 1., p_min_cut = 0., p_max_cut = 0.;
@@ -76,7 +76,6 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   Double_t h2_pang_bin = 200, h2_pang_min = 0., h2_pang_max = 5.;
   Double_t h2_p_coarse_bin = 25, h2_p_coarse_min = 0., h2_p_coarse_max = 5.;
   Double_t h2_EovP_bin = 200, h2_EovP_min = 0., h2_EovP_max = 5.;
-  Double_t h2_EovP_rnum_bin = 0, h2_EovP_rnum_min = 0., h2_EovP_rnum_max = 0.;
   //parameters to calculate calibrated momentum
   bool mom_calib = 0;
   Double_t A_fit = 0., B_fit = 0., C_fit = 0.;
@@ -106,8 +105,19 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
       ifstream run_list(runlistfile);
       while( readline.ReadLine( run_list ) && !readline.BeginsWith("endlist") ){
   	if( !readline.BeginsWith("#") ){
-  	  cout << readline << endl;
-  	  C->Add(readline);
+	  if( readline.BeginsWith("Nruns") ){ // No. of runs to analyze
+	    TObjArray *tokens = readline.Tokenize(" ");
+	    Int_t ntokens = tokens->GetEntries();
+	    if (ntokens>1) Nruns = ((TObjString*)(*tokens)[1])->GetString().Atof();
+	    if (Nruns > 0) std::cout << "\nAnalyzing " << Nruns << " run(s)..\n";
+	    else {
+	      std::cerr << "ERROR! Illegal no. of runs! Check 'Nruns' variable inside run list!";
+	      std::abort();
+	    }
+	  } else {
+	    std::cout << readline << "\n";
+	    C->Add(readline);
+	  }
   	}
       }   
     } 
@@ -321,12 +331,6 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
 	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
 	h2_EovP_max = sval2.Atof();
       }
-      if( skey == "h2_EovP_rnum" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h2_EovP_rnum_bin = sval.Atoi();
-	h2_EovP_rnum_min = 0.5;
-	h2_EovP_rnum_max = h2_EovP_rnum_bin + 0.5;
-      }
       if( skey == "p_rec_Offset" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
 	p_rec_Offset = sval.Atof();
@@ -475,13 +479,11 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
 
   // Creating output ROOT file to contain histograms
   TString outFile, outPlot;
-  if (!isdebug) {
-    outFile = Form("%s/hist/%s_bbcal_eng_calib.root", macros_dir.Data(), cfgfilebase.Data());
-    outPlot = Form("%s/plots/%s_bbcal_eng_calib.pdf", macros_dir.Data(), cfgfilebase.Data());
-  } else {
-    outFile = Form("%s/hist/%s_bbcal_eng_calib_test.root", macros_dir.Data(), cfgfilebase.Data());
-    outPlot = Form("%s/plots/%s_bbcal_eng_calib_test.pdf", macros_dir.Data(), cfgfilebase.Data());
-  }
+  char const * debug = isdebug ? "_test" : "";
+  char const * elcut = elastic_cut ? "_elcut" : "";
+  outFile = Form("%s/hist/%s_bbcal_eng_calib%s%s.root", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
+  outPlot = Form("%s/plots/%s_bbcal_eng_calib%s%s.pdf", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
+
   TFile *fout = new TFile(outFile, "RECREATE");
   fout->cd();
 
@@ -534,10 +536,13 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   TH2D *h2_PSeng_vs_trY = new TH2D("h2_PSeng_vs_trY","PS energy vs Track y",200,-0.16,0.16,200,0,4);
   TH2D *h2_PSeng_vs_trY_calib = new TH2D("h2_PSeng_vs_trY_calib","PS energy vs Track y | After Calib.",200,-0.16,0.16,200,0,4);  
 
-  TH2D *h2_EovP_vs_rnum = new TH2D("h2_EovP_vs_rnum","E/p vs Run no.",h2_EovP_rnum_bin,h2_EovP_rnum_min,h2_EovP_rnum_max,200,0,2);
-  TProfile *h2_EovP_vs_rnum_prof = new TProfile("h2_EovP_vs_rnum_prof","E/p vs Run no. (Profile)",h2_EovP_rnum_bin,h2_EovP_rnum_min,h2_EovP_rnum_max,0,2,"S");
-  TH2D *h2_EovP_vs_rnum_calib = new TH2D("h2_EovP_vs_rnum_calib","E/p vs Run no. | After Calib.",h2_EovP_rnum_bin,h2_EovP_rnum_min,h2_EovP_rnum_max,200,0,2);
-  TProfile *h2_EovP_vs_rnum_calib_prof = new TProfile("h2_EovP_vs_rnum_calib_prof","E/p vs Run no. | After Calib. (Profile)",h2_EovP_rnum_bin,h2_EovP_rnum_min,h2_EovP_rnum_max,0,2,"S");
+  TH2D *h2_PovPel_vs_rnum = new TH2D("h2_PovPel_vs_rnum","p/p_{elastic}(#theta) vs Run no.",Nruns,0.5,Nruns+0.5,200,0.8,1.2);
+  TProfile *h2_PovPel_vs_rnum_prof = new TProfile("h2_PovPel_vs_rnum_prof","p/p_{elastic}(#theta) vs Run no. (Profile)",Nruns,0.5,Nruns+0.5,0.8,1.2,"S");
+
+  TH2D *h2_EovP_vs_rnum = new TH2D("h2_EovP_vs_rnum","E/p vs Run no.",Nruns,0.5,Nruns+0.5,200,0,2);
+  TProfile *h2_EovP_vs_rnum_prof = new TProfile("h2_EovP_vs_rnum_prof","E/p vs Run no. (Profile)",Nruns,0.5,Nruns+0.5,0,2,"S");
+  TH2D *h2_EovP_vs_rnum_calib = new TH2D("h2_EovP_vs_rnum_calib","E/p vs Run no. | After Calib.",Nruns,0.5,Nruns+0.5,200,0,2);
+  TProfile *h2_EovP_vs_rnum_calib_prof = new TProfile("h2_EovP_vs_rnum_calib_prof","E/p vs Run no. | After Calib. (Profile)",Nruns,0.5,Nruns+0.5,0,2,"S");
 
   TH2D *h2_dxdyHCAL = new TH2D("h2_dxdyHCAL","p Spot cut;#Deltay (m);#Deltax (m)",200,-1,1,150,-2.5,1);
 
@@ -796,7 +801,11 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
       h_W->Fill(W);
       h_Q2->Fill(Q2);
       h_PovPel->Fill(PovPel);
-      if (pCut) h_PovPel_pspotcut->Fill(PovPel);
+      if (pCut) {
+	h_PovPel_pspotcut->Fill(PovPel);
+	h2_PovPel_vs_rnum->Fill(itrrun, PovPel);
+	h2_PovPel_vs_rnum_prof->Fill(itrrun, PovPel, 1.);
+      }
       h2_dxdyHCAL->Fill(dy,dx);
 
       /* elastic cuts */
@@ -941,13 +950,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
 
   // SH : Filling diagnostic histograms
   Int_t cell = 0;
-  if (!isdebug) {
-    adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh_calib.txt", macros_dir.Data(), cfgfilebase.Data());
-    gainRatio_SH = Form("%s/Gain/%s_gainRatio_sh_calib.txt", macros_dir.Data(), cfgfilebase.Data());
-  } else {
-    adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh_calib_test.txt", macros_dir.Data(), cfgfilebase.Data());
-    gainRatio_SH = Form("%s/Gain/%s_gainRatio_sh_calib_test.txt", macros_dir.Data(), cfgfilebase.Data());
-  }
+  adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
+  gainRatio_SH = Form("%s/Gain/%s_gainRatio_sh_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
   Double_t newADCgratioSH[kNcolsSH*kNrowsSH];
   for (int i=0; i<189; i++) { newADCgratioSH[i] = -1000; }  
   ofstream adcGainSH_outData, gainRatioSH_outData;
@@ -996,13 +1000,8 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   h_old_coeff_blk_SH->SetLineWidth(0); h_old_coeff_blk_SH->SetMarkerStyle(8);
 
   // PS : Filling diagnostic histograms
-  if (!isdebug) {
-    adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib.txt", macros_dir.Data(), cfgfilebase.Data());
-    gainRatio_PS = Form("%s/Gain/%s_gainRatio_ps_calib.txt", macros_dir.Data(), cfgfilebase.Data());
-  } else {
-    adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib_test.txt", macros_dir.Data(), cfgfilebase.Data());
-    gainRatio_PS = Form("%s/Gain/%s_gainRatio_ps_calib_test.txt", macros_dir.Data(), cfgfilebase.Data());
-  }
+  adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
+  gainRatio_PS = Form("%s/Gain/%s_gainRatio_ps_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
   Double_t newADCgratioPS[kNcolsPS*kNrowsPS];
   for (int i=0; i<52; i++) { newADCgratioPS[i] = -1000; }  
   ofstream adcGainPS_outData, gainRatioPS_outData;
@@ -1417,14 +1416,14 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   c5->Divide(1,2);
   // manipulating urnum vector
   Int_t nrunana = lrnum.size();
-  if (nrunana!=h2_EovP_rnum_bin)
-    cout << "*!*[WARNING] h2_EovP_rnum value in the cfg file doesn't match with total # runs analyzed!" << endl << endl; 
+  if (nrunana!=Nruns)
+    cout << "*!*[WARNING] 'Nruns' value in run list doesn't match with total # runs analyzed!\n\n"; 
   c5->cd(1); //
   gPad->SetGridy();
   gStyle->SetErrorX(0.0001);
   h2_EovP_vs_rnum->SetStats(0);
   h2_EovP_vs_rnum->GetXaxis()->SetLabelSize(0.05);  
-  h2_EovP_vs_rnum->GetXaxis()->SetNdivisions(h2_EovP_rnum_bin);
+  h2_EovP_vs_rnum->GetXaxis()->SetNdivisions(Nruns);
   for (int i=0; i<nrunana; i++) h2_EovP_vs_rnum->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
   if (nrunana>15) h2_EovP_vs_rnum->LabelsOption("v", "X"); 
   h2_EovP_vs_rnum->Draw("colz");
@@ -1437,7 +1436,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   gStyle->SetErrorX(0.0001);
   h2_EovP_vs_rnum_calib->SetStats(0);
   h2_EovP_vs_rnum_calib->GetXaxis()->SetLabelSize(0.05);
-  h2_EovP_vs_rnum_calib->GetXaxis()->SetNdivisions(h2_EovP_rnum_bin);
+  h2_EovP_vs_rnum_calib->GetXaxis()->SetNdivisions(Nruns);
   for (int i=0; i<nrunana; i++) h2_EovP_vs_rnum_calib->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
   if (nrunana>15) h2_EovP_vs_rnum_calib->LabelsOption("v", "X"); 
   h2_EovP_vs_rnum_calib->Draw("colz");
@@ -1469,18 +1468,14 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   /**** Canvas 7 (elastic cuts) ****/
   if (elastic_cut) {
     TCanvas *c7 = new TCanvas("c7","elastic cuts",1200,1000);
-    c7->Divide(2,2);
-    c7->cd(1); //
+    c7->Divide(1,2);
+    TPad* p7 = (TPad*)c7->GetPad(1); p7->Divide(2,1);
+    p7->cd(1); //
+    h_PovPel->SetLineColor(1);
+    h_PovPel->SetTitle("Blue: w/ p spot cut | Red: p/p_{elastic}(#theta) cut region");
     h_PovPel->Draw();
-    c7->cd(2); //
-    h2_dxdyHCAL->Draw("colz");
-    TEllipse Ep; 
-    Ep.SetFillStyle(0);
-    Ep.SetLineColor(2);
-    Ep.SetLineWidth(2);
-    Ep.DrawEllipse(pspot_dyM,pspot_dxM,pspot_ndyS*pspot_dyS,pspot_ndxS*pspot_dxS,0,360,0);
-    c7->cd(3); //
-    h_PovPel_pspotcut->Draw();
+    h_PovPel_pspotcut->SetLineColor(4);
+    h_PovPel_pspotcut->Draw("same");
     Double_t x1 = PovPel_mean-PovPel_sigma*PovPel_nsigma;
     Double_t x2 = PovPel_mean+PovPel_sigma*PovPel_nsigma;
     Double_t y1 = 0.;
@@ -1491,6 +1486,26 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
     TLine L2;
     L2.SetLineColor(2); L2.SetLineWidth(2); L2.SetLineStyle(9);
     L2.DrawLine(x2,y1,x2,y2);
+    p7->cd(2); //
+    h2_dxdyHCAL->Draw("colz");
+    TEllipse Ep; 
+    Ep.SetFillStyle(0);
+    Ep.SetLineColor(2);
+    Ep.SetLineWidth(2);
+    Ep.DrawEllipse(pspot_dyM,pspot_dxM,pspot_ndyS*pspot_dyS,pspot_ndxS*pspot_dxS,0,360,0);
+    c7->cd(2); //
+    gPad->SetGridy();
+    gStyle->SetErrorX(0.0001);
+    h2_PovPel_vs_rnum->SetStats(0);
+    h2_PovPel_vs_rnum->GetXaxis()->SetLabelSize(0.05);  
+    h2_PovPel_vs_rnum->GetXaxis()->SetNdivisions(Nruns);
+    for (int i=0; i<nrunana; i++) h2_PovPel_vs_rnum->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
+    if (nrunana>15) h2_PovPel_vs_rnum->LabelsOption("v", "X"); 
+    h2_PovPel_vs_rnum->Draw("colz");
+    h2_PovPel_vs_rnum_prof->SetStats(0);
+    h2_PovPel_vs_rnum_prof->SetMarkerStyle(20);
+    h2_PovPel_vs_rnum_prof->SetMarkerColor(2);
+    h2_PovPel_vs_rnum_prof->Draw("same");
     c7->SaveAs(Form("%s",outPlot.Data())); c7->Write();
   }
   //**** -- ***//
