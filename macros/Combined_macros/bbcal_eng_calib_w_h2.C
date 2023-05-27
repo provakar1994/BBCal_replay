@@ -42,22 +42,22 @@
 #include "TStopwatch.h"
 #include "TTreeFormula.h"
 
-const Double_t Mp = 0.938272081;  // +/- 6E-9 GeV
+Double_t const Mp = 0.938272081;  // +/- 6E-9 GeV
 
-const Int_t ncell = 241;          // 189(SH) + 52(PS), Convention: 0-188: SH; 189-240: PS.
-const Int_t kNcolsSH = 7;         // SH columns
-const Int_t kNrowsSH = 27;        // SH rows
-const Int_t kNcolsPS = 2;         // PS columns
-const Int_t kNrowsPS = 26;        // PS rows
-const Double_t zposSH = 1.901952; // m
-const Double_t zposPS = 1.695704; // m
+Int_t const ncell = 241;          // 189(SH) + 52(PS), Convention: 0-188: SH; 189-240: PS.
+Int_t const kNcolsSH = 7;         // SH columns
+Int_t const kNrowsSH = 27;        // SH rows
+Int_t const kNcolsPS = 2;         // PS columns
+Int_t const kNrowsPS = 26;        // PS rows
+Double_t const zposSH = 1.901952; // m
+Double_t const zposPS = 1.695704; // m
 
 string getDate();
 void CustProfHisto(TH1D*);
 void ReadGain(TString, Double_t*);
 TString GetOutFileBase(TString);
 
-void bbcal_eng_calib_w_h2(const char *configfilename,
+void bbcal_eng_calib_w_h2(char const *configfilename,
 			  bool isdebug=1) //0=False, 1=True
 {
   gErrorIgnoreLevel = kError; // Ignores all ROOT warnings
@@ -377,16 +377,16 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   
   // Sanity checks
   if ((cut_on_clusE&&cut_on_EovP) || (cut_on_clusE&&cut_on_pmin) || (cut_on_pmin&&cut_on_EovP)) 
-    cout << "*!*[WARNING] Chosen cut combination involving bbcalE, trP, & E/p may introduce bias in the fit" << endl;
+    std::cout << "*!*[WARNING] Chosen cut combination involving bbcalE, trP, & E/p may introduce bias in the fit\n";
   if (cut_on_W && cut_on_PovPel)
-    cout << "*!*[WARNING] Cutting on W is equivalent to cutting on PovPel! Why cutting on them simultaneously?" << endl;
+    std::cout << "*!*[WARNING] Cutting on W is equivalent to cutting on PovPel! Why cutting on them simultaneously?\n";
   bool elastic_cut = cut_on_W || cut_on_PovPel || cut_on_pspot;
 
   // Check for empty rootfiles and set tree branches
   if(C->GetEntries()==0){
-    cerr << endl << " --- No ROOT file found!! --- " << endl << endl;
+    std::cerr << "\n --- No ROOT file found!! --- \n\n";
     throw;
-  }else cout << endl << "Found " << C->GetEntries() << " events. Starting analysis.. " << endl;
+  }else std::cout << "\nFound " << C->GetEntries() << " events. Starting analysis.. \n";
 
   int maxNtr = 200;
   C->SetBranchStatus("*", 0);
@@ -462,7 +462,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   memset(badCells, 0, ncell*sizeof(bool));
   
   // Let's read in old gain coefficients for both SH and PS
-  cout << endl;
+  std::cout << std::endl;
   Double_t oldADCgainSH[kNcolsSH*kNrowsSH];
   Double_t oldADCgainPS[kNcolsPS*kNrowsPS];
   for (int i=0; i<189; i++) { oldADCgainSH[i] = -1000; }  
@@ -571,7 +571,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
   TH2D *h2_EovP_vs_rnum_calib = new TH2D("h2_EovP_vs_rnum_calib",Form("E/p vs Run no. | After Calib.%s",hecut),Nruns,0.5,Nruns+0.5,200,0,2);
   TProfile *h2_EovP_vs_rnum_calib_prof = new TProfile("h2_EovP_vs_rnum_calib_prof","E/p vs Run no. | After Calib. (Profile)",Nruns,0.5,Nruns+0.5,0,2,"S");
 
-  TH2D *h2_dxdyHCAL = new TH2D("h2_dxdyHCAL","p Spot cut%s;#Deltay (m);#Deltax (m)",200,-1,1,150,-2.5,1);
+  TH2D *h2_dxdyHCAL = new TH2D("h2_dxdyHCAL","p Spot cut;#Deltay (m);#Deltax (m)",200,-1,1,150,-2.5,1);
 
   // defining output ROOT tree (Set max size to 4GB)
   //auto Tout = std::make_unique<TTree>("Tout", cfgfilebase.Data());
@@ -1538,7 +1538,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
     for (int i=0; i<nrun; i++) h2_PovPel_vs_rnum_pspotcut->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
     if (nrun>15) h2_PovPel_vs_rnum_pspotcut->LabelsOption("v", "X"); 
     h2_PovPel_vs_rnum_pspotcut->Draw("colz");
-    h2_PovPel_vs_rnum_pspotcut_prof->Draw("same");
+    //h2_PovPel_vs_rnum_pspotcut_prof->Draw("same"); #giving misleading values
     c7->SaveAs(Form("%s",outPlot.Data())); c7->Write();
     //**** -- ***//
 
@@ -1565,7 +1565,7 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
     if (nrun>15) h2_SHclmult_vs_rnum->LabelsOption("v", "X"); 
     h2_SHclmult_vs_rnum->Draw("colz");
     h2_SHclmult_vs_rnum_prof->Draw("same");
-    c8->SaveAs(Form("%s",outPlot.Data())); c7->Write();
+    c8->SaveAs(Form("%s",outPlot.Data())); c8->Write();
   }
   //**** -- ***//
 
@@ -1597,25 +1597,26 @@ void bbcal_eng_calib_w_h2(const char *configfilename,
     pt->AddText(Form(" # events passed global & elastic cuts: %lld", Nelasevs));
     TText *t3 = pt->GetLineWith(" Elastic"); t3->SetTextColor(kBlue);
   }
+  sw->Stop(); sw2->Stop();
+  pt->AddText(Form("Macro processing time: CPU %.1fs | Real %.1fs",sw->CpuTime(),sw->RealTime()));
   TText *t1 = pt->GetLineWith("Configfile"); t1->SetTextColor(kRed);
   TText *t2 = pt->GetLineWith(" Global"); t2->SetTextColor(kBlue);
+  TText *t3 = pt->GetLineWith("Macro"); t3->SetTextColor(kGreen+3);
   pt->Draw();
   c9->SaveAs(Form("%s",outPlot.Data())); c9->SaveAs(Form("%s]",outPlot.Data())); c9->Write();  
   //**** -- ***//
 
-  cout << "List of output files:" << endl;
-  cout << " --------- " << endl;
-  cout << " 1. Summary plots : "        << outPlot << endl;
-  cout << " 2. Resulting histograms : " << outFile << endl;
-  cout << " 3. Gain ratios (new/old) for SH : " << gainRatio_SH << endl;
-  cout << " 4. Gain ratios (new/old) for PS : " << gainRatio_PS << endl;
-  cout << " 5. New ADC gain coeffs. (GeV/pC) for SH : " << adcGain_SH << endl;
-  cout << " 6. New ADC gain coeffs. (GeV/pC) for PS : " << adcGain_PS << endl;
-  cout << " --------- " << endl;
+  std::cout << "List of output files:" << "\n";
+  std::cout << " --------- " << "\n";
+  std::cout << " 1. Summary plots : "        << outPlot << "\n";
+  std::cout << " 2. Resulting histograms : " << outFile << "\n";
+  std::cout << " 3. Gain ratios (new/old) for SH : " << gainRatio_SH << "\n";
+  std::cout << " 4. Gain ratios (new/old) for PS : " << gainRatio_PS << "\n";
+  std::cout << " 5. New ADC gain coeffs. (GeV/pC) for SH : " << adcGain_SH << "\n";
+  std::cout << " 6. New ADC gain coeffs. (GeV/pC) for PS : " << adcGain_PS << "\n";
+  std::cout << " --------- " << "\n";
 
-  sw->Stop();
-  sw2->Stop();
-  cout << "CPU time elapsed = " << sw->CpuTime() << " s. Real time = " << sw->RealTime() << " s. " << endl << endl;
+  std::cout << "CPU time elapsed = " << sw->CpuTime() << " s. Real time = " << sw->RealTime() << " s.\n\n";
 
   ///////////////////////////////////////////////////
   // Write individual memories to file explicitely //
@@ -1693,7 +1694,7 @@ void ReadGain(TString adcGain_rfile, Double_t* adcGain){
   string readline;
   Int_t elemID=0;
   if(adcGain_data.is_open()){
-    cout << " Reading ADC gain from : "<< adcGain_rfile << endl;
+    std::cout << " Reading ADC gain from : "<< adcGain_rfile << "\n";
     while(getline(adcGain_data,readline)){
       istringstream tokenStream(readline);
       string token;
@@ -1705,7 +1706,7 @@ void ReadGain(TString adcGain_rfile, Double_t* adcGain){
       }
     }
   }else{
-    cerr << " **!** No file : " << adcGain_rfile << endl << endl;
+    cerr << " **!** No file : " << adcGain_rfile << "\n\n";
     throw;
   }
   adcGain_data.close();
