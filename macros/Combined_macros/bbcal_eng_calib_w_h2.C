@@ -54,8 +54,17 @@ Double_t const zposPS = 1.695704; // m
 
 string getDate();
 void CustProfHisto(TH1D*);
-void ReadGain(TString, Double_t*);
 TString GetOutFileBase(TString);
+void ReadGain(TString, Double_t*);
+void SplitString(char const delim, std::string const myStr, std::vector<std::string> &out){
+  // split a string by a delimiter
+  std::stringstream ss(myStr);
+  while (ss.good()) {
+    std::string substr;
+    std::getline(ss, substr, delim);
+    if (!substr.empty()) out.push_back(substr);
+  }
+}
 
 void bbcal_eng_calib_w_h2(char const *configfilename,
 			  bool isdebug=1) //0=False, 1=True
@@ -100,7 +109,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TVectorD B(ncell), CoeffR(ncell);
   
   Double_t E_e = 0;
-  Double_t p_rec = 0.;
+  Double_t p_rec = 0., px_rec = 0., py_rec = 0., pz_rec = 0.;
   Double_t A[ncell];
   bool badCells[ncell]; // Cells that have events less than Nmin
   Int_t nevents_per_cell[ncell];
@@ -150,6 +159,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       gcutstr += currentline;
     }    
   }
+  std::vector<std::string> gCutList; SplitString('&', gcutstr.Data(), gCutList);
   TTreeFormula *GlobalCut = new TTreeFormula("GlobalCut", globalcut, C);
   while( currentline.ReadLine( configfile ) ){
     if( currentline.BeginsWith("#") ) continue;
@@ -378,8 +388,11 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   // Sanity checks
   if ((cut_on_clusE&&cut_on_EovP) || (cut_on_clusE&&cut_on_pmin) || (cut_on_pmin&&cut_on_EovP)) 
     std::cout << "*!*[WARNING] Chosen cut combination involving bbcalE, trP, & E/p may introduce bias in the fit\n";
-  if (cut_on_W && cut_on_PovPel)
-    std::cout << "*!*[WARNING] Cutting on W is equivalent to cutting on PovPel! Why cutting on them simultaneously?\n";
+  if (cut_on_W && cut_on_PovPel) {
+    std::cerr << "*!*[ERROR] Cutting on W is equivalent to cutting on PovPel! Turn one of them off and retry!\n"; 
+    std::exit(1);
+  }
+  // defining elastic cut
   bool elastic_cut = cut_on_W || cut_on_PovPel || cut_on_pspot;
 
   // Check for empty rootfiles and set tree branches
@@ -441,6 +454,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t trVz[maxNtr];       C->SetBranchAddress("bb.tr.vz", &trVz);
   Double_t trTgth[maxNtr];     C->SetBranchAddress("bb.tr.tg_th", &trTgth);
   Double_t trTgph[maxNtr];     C->SetBranchAddress("bb.tr.tg_ph", &trTgph);
+  Double_t trRx[maxNtr];       C->SetBranchAddress("bb.tr.r_x", &trRx);
+  Double_t trRy[maxNtr];       C->SetBranchAddress("bb.tr.r_y", &trRy);
   Double_t trRth[maxNtr];      C->SetBranchAddress("bb.tr.r_th", &trRth);
   Double_t trRph[maxNtr];      C->SetBranchAddress("bb.tr.r_ph", &trRph);
   // bb.hodotdc branches
@@ -506,9 +521,10 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   // Physics histograms
   char const * hecut = elastic_cut ? " (el. cut)" : "";
   TH1D *h_W = new TH1D("h_W", "W distribution", h_W_bin, h_W_min, h_W_max);
+  TH1D *h_W_pspotcut = new TH1D("h_W_pspotcut", "W distribution w/ pspotcut", h_W_bin, h_W_min, h_W_max);
   TH1D *h_Q2 = new TH1D("h_Q2", "Q2 distribution", h_Q2_bin, h_Q2_min, h_Q2_max);
   TH1D *h_PovPel = new TH1D("h_PovPel", ";p/p_{elastic}(#theta)", h_PovPel_bin, h_PovPel_min, h_PovPel_max);
-  TH1D *h_PovPel_pspotcut = new TH1D("h_PovPel_pspotcut", "PovPel cut region;p/p_{elastic}(#theta) (w/ p spot cut)", h_PovPel_bin, h_PovPel_min, h_PovPel_max);
+  TH1D *h_PovPel_pspotcut = new TH1D("h_PovPel_pspotcut", "p/p_{elastic}(#theta) w/ p spot cut;p/p_{elastic}(#theta) (w/ p spot cut)", h_PovPel_bin, h_PovPel_min, h_PovPel_max);
   TH1D *h_EovP = new TH1D("h_EovP", Form("E/p (Before Calib.)%s",hecut), h_EovP_bin, h_EovP_min, h_EovP_max);
   TH1D *h_EovP_calib = new TH1D("h_EovP_calib", Form("E/p%s",hecut), h_EovP_bin, h_EovP_min, h_EovP_max);
   TH1D *h_clusE = new TH1D("h_clusE", Form("Best SH+PS cl. eng.%s",hecut), h_clusE_bin, h_clusE_min, h_clusE_max);
@@ -685,6 +701,10 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       memset(A, 0, ncell*sizeof(double));
 
       p_rec = trP[0] * p_rec_Offset; 
+      px_rec = trPx[0] * p_rec_Offset; 
+      py_rec = trPy[0] * p_rec_Offset; 
+      pz_rec = trPz[0] * p_rec_Offset; 
+      
       E_e = p_rec; // Neglecting e- mass. 
 
       // *---- calculating calibrated momentum (Helps avoiding replay)
@@ -711,16 +731,16 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	 Conservation: Pe + Peprime = Pp + Ppprime */
       TVector3 vertex(0,0,trVz[0]);
       TLorentzVector Pe(0,0,E_beam,E_beam);           // incoming e- 4-vector
-      TLorentzVector Peprime(trPx[0] * (p_rec/trP[0]),// scattered e- 4-vector
-			     trPy[0] * (p_rec/trP[0]),
-			     trPz[0] * (p_rec/trP[0]),
+      TLorentzVector Peprime(px_rec,                  // scattered e- 4-vector
+			     py_rec,
+			     pz_rec,
 			     p_rec);                 
       TLorentzVector Pp(0,0,0,Mp);                    // target nucleon 4-vector
       TLorentzVector Ppprime;                         // Recoil nucleon 4-vector
       TLorentzVector q = Pe - Peprime;                // 4-momentum of virtual photon
       // scattered e-
-      Double_t etheta = TMath::ACos(trPz[0]/p_rec);
-      Double_t ephi = atan2(trPy[0],trPx[0]);
+      Double_t etheta = TMath::ACos(pz_rec / p_rec);
+      Double_t ephi = atan2(py_rec,px_rec);
       Double_t pelas = E_beam/(1. + (E_beam/Mp)*(1.0-cos(etheta)));
       // struck nucleon
       Double_t nu = q.E();
@@ -738,9 +758,6 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       Double_t hcalY_exp = (HCAL_intersect - HCAL_origin).Dot(HCAL_yaxis);
       Double_t dx = hcalX - hcalX_exp;
       Double_t dy = hcalY - hcalY_exp;
-
-      // storing good event numbers for 2nd loop
-      //goodevents.push_back(nevent);
 
       // bbcal energy and position projections
       Double_t clusEngBBCal = (shE + psE) * Corr_Factor_Enrg_Calib_w_Cosmic;
@@ -831,6 +848,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h_Q2->Fill(Q2);
       h_PovPel->Fill(PovPel);
       if (pCut) {
+	h_W_pspotcut->Fill(W);
 	h_PovPel_pspotcut->Fill(PovPel);
 	h2_PovPel_vs_rnum_pspotcut->Fill(itrrun, PovPel);
 	h2_PovPel_vs_rnum_pspotcut_prof->Fill(itrrun, PovPel, 1.);
@@ -1143,6 +1161,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     if (passedgCut) {
 
       p_rec = trP[0] * p_rec_Offset; 
+      px_rec = trPx[0] * p_rec_Offset; 
+      py_rec = trPy[0] * p_rec_Offset; 
+      pz_rec = trPz[0] * p_rec_Offset; 
 
       // *---- calculating calibrated momentum (Helps avoiding replay)
       if(mom_calib){
@@ -1167,16 +1188,16 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	 Conservation: Pe + Peprime = Pp + Ppprime */
       TVector3 vertex(0,0,trVz[0]);
       TLorentzVector Pe(0,0,E_beam,E_beam);           // incoming e- 4-vector
-      TLorentzVector Peprime(trPx[0] * (p_rec/trP[0]),// scattered e- 4-vector
-			     trPy[0] * (p_rec/trP[0]),
-			     trPz[0] * (p_rec/trP[0]),
+      TLorentzVector Peprime(px_rec,                  // scattered e- 4-vector
+			     py_rec,
+			     pz_rec,
 			     p_rec);                 
       TLorentzVector Pp(0,0,0,Mp);                    // target nucleon 4-vector
       TLorentzVector Ppprime;                         // Recoil nucleon 4-vector
       TLorentzVector q = Pe - Peprime;                // 4-momentum of virtual photon
       // scattered e-
-      Double_t etheta = TMath::ACos(trPz[0]/p_rec);
-      Double_t ephi = atan2(trPy[0],trPx[0]);
+      Double_t etheta = TMath::ACos(pz_rec / p_rec);
+      Double_t ephi = atan2(py_rec,px_rec);
       Double_t pelas = E_beam/(1. + (E_beam/Mp)*(1.0-cos(etheta)));
       // struck nucleon
       Double_t nu = q.E();
@@ -1507,21 +1528,39 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     c7->Divide(1,2);
     TPad* p7 = (TPad*)c7->GetPad(1); p7->Divide(2,1);
     p7->cd(1); //
-    h_PovPel->SetLineColor(1);
-    h_PovPel->SetTitle("Blue: w/ p spot cut | Red: p/p_{elastic}(#theta) cut region");
-    h_PovPel->Draw();
-    h_PovPel_pspotcut->SetLineColor(4);
-    h_PovPel_pspotcut->Draw("same");
-    Double_t x1 = PovPel_mean-PovPel_sigma*PovPel_nsigma;
-    Double_t x2 = PovPel_mean+PovPel_sigma*PovPel_nsigma;
-    Double_t y1 = 0.;
-    Double_t y2 = h_PovPel_pspotcut->GetMaximum();
-    TLine L1;
-    L1.SetLineColor(2); L1.SetLineWidth(2); L1.SetLineStyle(9);
-    L1.DrawLine(x1,y1,x1,y2);
-    TLine L2;
-    L2.SetLineColor(2); L2.SetLineWidth(2); L2.SetLineStyle(9);
-    L2.DrawLine(x2,y1,x2,y2);
+    if (cut_on_PovPel) {
+      h_PovPel->SetLineColor(1);
+      h_PovPel->SetTitle("Blue: w/ p spot cut | Red: p/p_{elastic}(#theta) cut region");
+      h_PovPel->Draw();
+      h_PovPel_pspotcut->SetLineColor(4);
+      h_PovPel_pspotcut->Draw("same");
+      Double_t x1 = PovPel_mean-PovPel_sigma*PovPel_nsigma;
+      Double_t x2 = PovPel_mean+PovPel_sigma*PovPel_nsigma;
+      Double_t y1 = 0.;
+      Double_t y2 = h_PovPel_pspotcut->GetMaximum();
+      TLine L1;
+      L1.SetLineColor(2); L1.SetLineWidth(2); L1.SetLineStyle(9);
+      L1.DrawLine(x1,y1,x1,y2);
+      TLine L2;
+      L2.SetLineColor(2); L2.SetLineWidth(2); L2.SetLineStyle(9);
+      L2.DrawLine(x2,y1,x2,y2);
+    } else if (cut_on_W) {
+      h_W->SetLineColor(1);
+      h_W->SetTitle("Blue: w/ p spot cut | Red: W cut region");
+      h_W->Draw();
+      h_W_pspotcut->SetLineColor(4);
+      h_W_pspotcut->Draw("same");
+      Double_t x1 = W_mean-W_sigma*W_nsigma;
+      Double_t x2 = W_mean+W_sigma*W_nsigma;
+      Double_t y1 = 0.;
+      Double_t y2 = h_W_pspotcut->GetMaximum();
+      TLine L1;
+      L1.SetLineColor(2); L1.SetLineWidth(2); L1.SetLineStyle(9);
+      L1.DrawLine(x1,y1,x1,y2);
+      TLine L2;
+      L2.SetLineColor(2); L2.SetLineWidth(2); L2.SetLineStyle(9);
+      L2.DrawLine(x2,y1,x2,y2);
+    }
     p7->cd(2); //
     h2_dxdyHCAL->Draw("colz");
     TEllipse Ep; 
@@ -1569,9 +1608,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   }
   //**** -- ***//
 
-  /**** Canvas 9 (summary) ****/
-  TCanvas *c9 = new TCanvas("c9","Summary");
-  c9->cd();
+  /**** Summary Canvas ****/
+  TCanvas *cSummary = new TCanvas("cSummary","Summary");
+  cSummary->cd();
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
   pt->AddText(Form("Configfile: BBCal_replay/macros/Combined_macros/cfg/%s.cfg",cfgfilebase.Data()));
   pt->AddText(Form(" Date of creation: %s", getDate().c_str()));
@@ -1579,9 +1618,14 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   pt->AddText(Form(" E/p  (before calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
   pt->AddText(Form(" E/p (after calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100));
   pt->AddText(" Global cuts: ");
-  pt->AddText(Form(" %s",gcutstr.Data()));
-  if (cut_on_psE) pt->AddText(Form(" PS cluster energy > %.1f",psE_cut_limit));
-  if (cut_on_clusE) pt->AddText(Form(" BBCAL cluster energy < %.1f",clusE_cut_limit));
+  std::string tmpstr = "";
+  for (std::size_t i=0; i<gCutList.size(); i++) {
+    if (i>0 && i%3==0) {pt->AddText(Form(" %s",tmpstr.c_str())); tmpstr="";}
+    tmpstr += gCutList[i] + ", "; 
+  }
+  if (!tmpstr.empty()) pt->AddText(Form(" %s",tmpstr.c_str()));
+  if (cut_on_psE) pt->AddText(Form(" PS cluster energy > %.1f GeV",psE_cut_limit));
+  if (cut_on_clusE) pt->AddText(Form(" BBCAL cluster energy < %.1f GeV",clusE_cut_limit));
   if (cut_on_EovP) pt->AddText(Form(" |E/p - 1| < %.1f",EovP_cut_limit));
   if (cut_on_pmin && cut_on_pmax) pt->AddText(Form(" %.1f < p_recon < %.1f GeV/c",p_min_cut,p_max_cut));
   else if (cut_on_pmin) pt->AddText(Form(" p_recon > %.1f GeV/c",p_min_cut));
@@ -1592,18 +1636,24 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     if (cut_on_W) pt->AddText(Form(" |W - %.3f| #leq %.1f*%.3f",W_mean,W_nsigma,W_sigma));
     if (cut_on_PovPel) pt->AddText(Form(" |p/p_{el}(#theta) - %.3f| #leq %.1f*%.3f",PovPel_mean,PovPel_nsigma,PovPel_sigma));
     if (cut_on_pspot) pt->AddText(" proton spot cut ranges: ");
-    if (cut_on_pspot) pt->AddText(Form("  #Deltax: Mean = %.4f, %.1f#sigma = %.4f",pspot_dxM,pspot_ndxS,pspot_dxS));
-    if (cut_on_pspot) pt->AddText(Form("  #Deltay: Mean = %.4f, %.1f#sigma = %.4f",pspot_dyM,pspot_ndyS,pspot_dyS));
+    if (cut_on_pspot) pt->AddText(Form("  #Deltax (m): Mean = %.4f, %.1f#sigma = %.4f",pspot_dxM,pspot_ndxS,pspot_dxS));
+    if (cut_on_pspot) pt->AddText(Form("  #Deltay (m): Mean = %.4f, %.1f#sigma = %.4f",pspot_dyM,pspot_ndyS,pspot_dyS));
     pt->AddText(Form(" # events passed global & elastic cuts: %lld", Nelasevs));
-    TText *t3 = pt->GetLineWith(" Elastic"); t3->SetTextColor(kBlue);
+    TText *tel = pt->GetLineWith(" Elastic"); tel->SetTextColor(kBlue);
   }
+  pt->AddText(" Other cuts: ");
+  pt->AddText(Form(" Minimum # events per block: %d, (Cluster) hit threshold: %.2f GeV",Nmin,hit_threshold));
+  pt->AddText(" Various offsets: ");
+  pt->AddText(Form(" Momentum fudge factor: %.2f, BBCAL cluster energy scale factor: %.2f",p_rec_Offset,cF));
   sw->Stop(); sw2->Stop();
   pt->AddText(Form("Macro processing time: CPU %.1fs | Real %.1fs",sw->CpuTime(),sw->RealTime()));
   TText *t1 = pt->GetLineWith("Configfile"); t1->SetTextColor(kRed);
   TText *t2 = pt->GetLineWith(" Global"); t2->SetTextColor(kBlue);
-  TText *t3 = pt->GetLineWith("Macro"); t3->SetTextColor(kGreen+3);
+  TText *t3 = pt->GetLineWith(" Other"); t3->SetTextColor(kBlue);
+  TText *t4 = pt->GetLineWith(" Various"); t4->SetTextColor(kBlue);
+  TText *t5 = pt->GetLineWith("Macro"); t5->SetTextColor(kGreen+3);
   pt->Draw();
-  c9->SaveAs(Form("%s",outPlot.Data())); c9->SaveAs(Form("%s]",outPlot.Data())); c9->Write();  
+  cSummary->SaveAs(Form("%s",outPlot.Data())); cSummary->SaveAs(Form("%s]",outPlot.Data())); cSummary->Write();  
   //**** -- ***//
 
   std::cout << "List of output files:" << "\n";
@@ -1624,14 +1674,11 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   ///////////////////////////////////////////////////
   Tout->Write("", TObject::kOverwrite);
   // kinematic
-  h_W->Write();
   h_Q2->Write();
-  h_PovPel->Write();
-  if (cut_on_pspot) {
-    h_PovPel_pspotcut->Write();
-    h2_PovPel_vs_rnum_pspotcut->Write();
-    h2_PovPel_vs_rnum_pspotcut_prof->Write();
-  }
+  h_W->Write(); h_W_pspotcut->Write();
+  h_PovPel->Write(); h_PovPel_pspotcut->Write();
+  h2_PovPel_vs_rnum_pspotcut->Write();
+  //h2_PovPel_vs_rnum_pspotcut_prof->Write();
   h2_p_rec_vs_etheta->Write();
   // main
   h_EovP->Write(); h_EovP_calib->Write();
@@ -1688,7 +1735,19 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 }
 
 // **** ========== Useful functions ========== ****  
+string getDate(){
+  // returns today's date
+  time_t now = time(0);
+  tm ltm = *localtime(&now);
+  string yyyy = to_string(1900 + ltm.tm_year);
+  string mm = to_string(1 + ltm.tm_mon);
+  string dd = to_string(ltm.tm_mday);
+  string date = mm + '/' + dd + '/' + yyyy;
+  return date;
+}
+
 void ReadGain(TString adcGain_rfile, Double_t* adcGain){
+  // reads old ADC gain coefficients from TXT files
   ifstream adcGain_data;
   adcGain_data.open(adcGain_rfile);
   string readline;
@@ -1706,14 +1765,14 @@ void ReadGain(TString adcGain_rfile, Double_t* adcGain){
       }
     }
   }else{
-    cerr << " **!** No file : " << adcGain_rfile << "\n\n";
-    throw;
+    std::cerr << " **!** No file : " << adcGain_rfile << "\n\n";
+    std::exit(1);
   }
   adcGain_data.close();
 }
 
 TString GetOutFileBase(TString configfilename) {
-  //Returns output file base from configfilename
+  // returns output file base from configfilename
   std::stringstream ss(configfilename.Data());
   std::vector<std::string> result;
   while( ss.good() ){
@@ -1725,24 +1784,11 @@ TString GetOutFileBase(TString configfilename) {
   return temp.ReplaceAll(".cfg", "");
 }
 
-// ---------- Customize profile histograms ----------
 void CustProfHisto(TH1D* hprof) {
+  // customizes profile histograms
   hprof->SetStats(0);
   hprof->SetMarkerStyle(20);
   hprof->SetMarkerColor(2);
-}
-
-// ---------------- Get today's date ----------------
-string getDate(){
-  time_t now = time(0);
-  tm ltm = *localtime(&now);
-
-  string yyyy = to_string(1900 + ltm.tm_year);
-  string mm = to_string(1 + ltm.tm_mon);
-  string dd = to_string(ltm.tm_mday);
-  string date = mm + '/' + dd + '/' + yyyy;
-
-  return date;
 }
 
 /*
