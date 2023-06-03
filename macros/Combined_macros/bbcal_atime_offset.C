@@ -29,6 +29,8 @@ const Int_t kNrowsSH = 27; // SH rows
 const Int_t kNcolsPS = 2;  // PS columns
 const Int_t kNrowsPS = 26; // PS rows
 
+void Custm1DHisto(TH1F*);
+void Custm2DHisto(TH2F*);
 TH1F* MakeHisto(Int_t, Int_t, Int_t, Double_t, Double_t);
 TH1F *h_atime_sh[kNrowsSH][kNcolsSH];
 TH1F *h_atime_ps[kNrowsPS][kNcolsPS];
@@ -42,8 +44,6 @@ namespace shgui {
   TGLayoutHints *fL3;
   TGCompositeFrame *tf;
   TGTextButton *exitButton;
-  // TGTextButton *displayEntryButton;
-  // TGTextButton *displayNextButton;
   TGNumberEntry *entryInput;
   TGLabel *runLabel;
 
@@ -56,11 +56,6 @@ namespace shgui {
     TGLayoutHints *fL4 = new TGLayoutHints(kLHintsTop | kLHintsLeft | kLHintsExpandX |
 					   kLHintsExpandY, 5, 5, 5, 5);
     TRootEmbeddedCanvas *fEc1 = new TRootEmbeddedCanvas(Form("shSubCanv%d",sub), fF5, 6*kCanvSize,8*kCanvSize);
-    //TRootEmbeddedCanvas *fEc1 = new TRootEmbeddedCanvas(0, fF5, 600, 600);
-    //Int_t wid = fEc1->GetCanvasWindowId();
-    //subCanv[sub] = new TCanvas(Form("subCanv%d",sub),10,10,wid);
-    //subCanv[sub]->Divide(12,6);
-    //fEc1->AdoptCanvas(subCanv[sub]);
     canv[sub] = fEc1;
     fF5->AddFrame(fEc1,fL4);
     tf->AddFrame(fF5,fL4);
@@ -72,19 +67,12 @@ namespace shgui {
       main = new TGMainFrame(gClient->GetRoot(), 1200, 1100);
       frame1 = new TGHorizontalFrame(main, 150, 20, kFixedWidth);
       runLabel = new TGLabel(frame1,"Run ");
-      //displayEntryButton = new TGTextButton(frame1,"&Display Entry","clicked_displayEntryButton()");
-      //entryInput = new TGNumberEntry(frame1,0,5,-1,TGNumberFormat::kNESInteger);
-      //displayNextButton = new TGTextButton(frame1,"&Next Entry","clicked_displayNextButton()");
       exitButton = new TGTextButton(frame1, "&Exit", 
 				    "gApplication->Terminate(0)");
       TGLayoutHints *frame1LH = new TGLayoutHints(kLHintsTop|kLHintsLeft|
 						  kLHintsExpandX,2,2,2,2);
       frame1->AddFrame(runLabel,frame1LH);
-      //frame1->AddFrame(displayEntryButton,frame1LH);
-      //frame1->AddFrame(entryInput,frame1LH);
-      //frame1->AddFrame(displayNextButton,frame1LH);
       frame1->AddFrame(exitButton,frame1LH);
-      //frame1->Resize(800, displayNextButton->GetDefaultHeight());
       main->AddFrame(frame1, new TGLayoutHints(kLHintsBottom | 
 					       kLHintsRight, 2, 2, 5, 1));
 
@@ -126,8 +114,6 @@ void bbcal_atime_offset( const char *configfilename ){
 
   //gui setup
   shgui::SetupGUI();
-  gStyle->SetLabelSize(0.08,"XY");
-  gStyle->SetTitleFontSize(0.08);
 
   TChain *C = new TChain("T");
   Int_t SBSconf = 0;   // SBS configuration
@@ -187,67 +173,47 @@ void bbcal_atime_offset( const char *configfilename ){
 
   // Setting useful ROOT tree branch addresses
   Int_t maxtr=1000, hodo_trindex=0;
-  Double_t sh_nclus, sh_e, sh_rowblk, sh_colblk, sh_nblk, sh_atimeblk;
+  Double_t sh_nclus, sh_idblk, sh_e, sh_rowblk, sh_colblk, sh_nblk, sh_atimeblk;
   Double_t ps_nclus, ps_idblk, ps_e, ps_rowblk, ps_colblk, ps_atimeblk;
   Double_t hodo_nclus;
   Double_t sh_clblk_atime[maxtr], sh_clblk_e[maxtr];
   Double_t ps_clblk_atime[maxtr];
   Double_t p[maxtr], pz[maxtr], tg_th[maxtr], tg_ph[maxtr];
   Double_t hodo_tmean[maxtr], hodo_trIndex[maxtr];
-
   C->SetBranchStatus("*",0);
   //shower
-  C->SetBranchStatus("bb.sh.nclus",1);
-  C->SetBranchAddress("bb.sh.nclus",&sh_nclus);
-  C->SetBranchStatus("bb.sh.e",1);
-  C->SetBranchAddress("bb.sh.e",&sh_e);
-  C->SetBranchStatus("bb.sh.rowblk",1);
-  C->SetBranchAddress("bb.sh.rowblk",&sh_rowblk);
-  C->SetBranchStatus("bb.sh.colblk",1);
-  C->SetBranchAddress("bb.sh.colblk",&sh_colblk);
-  C->SetBranchStatus("bb.sh.atimeblk",1);
-  C->SetBranchAddress("bb.sh.atimeblk",&sh_atimeblk);
-  C->SetBranchStatus("bb.sh.nblk",1);
-  C->SetBranchAddress("bb.sh.nblk",&sh_nblk);
-  C->SetBranchStatus("bb.sh.clus_blk.e",1);
-  C->SetBranchAddress("bb.sh.clus_blk.e",&sh_clblk_e);
-  C->SetBranchStatus("bb.sh.clus_blk.atime",1);
-  C->SetBranchAddress("bb.sh.clus_blk.atime",&sh_clblk_atime);
+  C->SetBranchStatus("bb.sh.nclus",1); C->SetBranchAddress("bb.sh.nclus",&sh_nclus);
+  C->SetBranchStatus("bb.sh.e",1); C->SetBranchAddress("bb.sh.e",&sh_e);
+  C->SetBranchStatus("bb.sh.rowblk",1); C->SetBranchAddress("bb.sh.rowblk",&sh_rowblk);
+  C->SetBranchStatus("bb.sh.colblk",1); C->SetBranchAddress("bb.sh.colblk",&sh_colblk);
+  C->SetBranchStatus("bb.sh.atimeblk",1); C->SetBranchAddress("bb.sh.atimeblk",&sh_atimeblk);
+  C->SetBranchStatus("bb.sh.nblk",1); C->SetBranchAddress("bb.sh.nblk",&sh_nblk);
+  C->SetBranchStatus("bb.sh.clus_blk.e",1); C->SetBranchAddress("bb.sh.clus_blk.e",&sh_clblk_e);
+  C->SetBranchStatus("bb.sh.idblk",1); C->SetBranchAddress("bb.sh.idblk",&sh_idblk);
+  C->SetBranchStatus("bb.sh.clus_blk.atime",1); C->SetBranchAddress("bb.sh.clus_blk.atime",&sh_clblk_atime);
   //preshower
-  C->SetBranchStatus("bb.ps.nclus",1);
-  C->SetBranchAddress("bb.ps.nclus",&ps_nclus);
-  C->SetBranchStatus("bb.ps.e",1);
-  C->SetBranchAddress("bb.ps.e",&ps_e);
-  C->SetBranchStatus("bb.ps.rowblk",1);
-  C->SetBranchAddress("bb.ps.rowblk",&ps_rowblk);
-  C->SetBranchStatus("bb.ps.colblk",1);
-  C->SetBranchAddress("bb.ps.colblk",&ps_colblk);
-  C->SetBranchStatus("bb.ps.atimeblk",1);
-  C->SetBranchAddress("bb.ps.atimeblk",&ps_atimeblk);
-  C->SetBranchStatus("bb.ps.idblk",1);
-  C->SetBranchAddress("bb.ps.idblk",&ps_idblk);
-  C->SetBranchStatus("bb.ps.clus_blk.atime",1);
-  C->SetBranchAddress("bb.ps.clus_blk.atime",&ps_clblk_atime);
+  C->SetBranchStatus("bb.ps.nclus",1); C->SetBranchAddress("bb.ps.nclus",&ps_nclus);
+  C->SetBranchStatus("bb.ps.e",1); C->SetBranchAddress("bb.ps.e",&ps_e);
+  C->SetBranchStatus("bb.ps.rowblk",1); C->SetBranchAddress("bb.ps.rowblk",&ps_rowblk);
+  C->SetBranchStatus("bb.ps.colblk",1); C->SetBranchAddress("bb.ps.colblk",&ps_colblk);
+  C->SetBranchStatus("bb.ps.atimeblk",1); C->SetBranchAddress("bb.ps.atimeblk",&ps_atimeblk);
+  C->SetBranchStatus("bb.ps.idblk",1); C->SetBranchAddress("bb.ps.idblk",&ps_idblk);
+  C->SetBranchStatus("bb.ps.clus_blk.atime",1); C->SetBranchAddress("bb.ps.clus_blk.atime",&ps_clblk_atime);
   //gem
-  C->SetBranchStatus("bb.tr.p",1);
-  C->SetBranchAddress("bb.tr.p",&p);
-  C->SetBranchStatus("bb.tr.pz",1);
-  C->SetBranchAddress("bb.tr.pz",&pz);
-  C->SetBranchStatus("bb.tr.tg_th",1);
-  C->SetBranchAddress("bb.tr.tg_th",&tg_th);
-  C->SetBranchStatus("bb.tr.tg_ph",1);
-  C->SetBranchAddress("bb.tr.tg_ph",&tg_ph);
+  C->SetBranchStatus("bb.tr.p",1); C->SetBranchAddress("bb.tr.p",&p);
+  C->SetBranchStatus("bb.tr.pz",1); C->SetBranchAddress("bb.tr.pz",&pz);
+  C->SetBranchStatus("bb.tr.tg_th",1); C->SetBranchAddress("bb.tr.tg_th",&tg_th);
+  C->SetBranchStatus("bb.tr.tg_ph",1); C->SetBranchAddress("bb.tr.tg_ph",&tg_ph);
   //hodo
-  C->SetBranchStatus("bb.hodotdc.nclus",1);
-  C->SetBranchAddress("bb.hodotdc.nclus",&hodo_nclus);
-  C->SetBranchStatus("bb.hodotdc.clus.tmean",1);
-  C->SetBranchAddress("bb.hodotdc.clus.tmean",&hodo_tmean);
-  C->SetBranchStatus("bb.hodotdc.clus.trackindex",1);
-  C->SetBranchAddress("bb.hodotdc.clus.trackindex",&hodo_trIndex);
+  C->SetBranchStatus("bb.hodotdc.nclus",1); C->SetBranchAddress("bb.hodotdc.nclus",&hodo_nclus);
+  C->SetBranchStatus("bb.hodotdc.clus.tmean",1); C->SetBranchAddress("bb.hodotdc.clus.tmean",&hodo_tmean);
+  C->SetBranchStatus("bb.hodotdc.clus.trackindex",1); C->SetBranchAddress("bb.hodotdc.clus.trackindex",&hodo_trIndex);
   // turning on additional branches for the global cut
+  C->SetBranchStatus("e.kine.W2", 1);
   C->SetBranchStatus("bb.tr.n", 1);
   C->SetBranchStatus("bb.tr.vz", 1);
   C->SetBranchStatus("bb.gem.track.nhits", 1);
+  C->SetMakeClass(1); C->SetBranchStatus("fEvtHdr.fTrigBits", 1);
 
   //defining atime histograms
   for(int r = 0; r < kNrowsSH; r++) {
@@ -275,18 +241,23 @@ void bbcal_atime_offset( const char *configfilename ){
 
   TH1F *h_W = new TH1F("h_W","W distribution",200,0.,5.);
   TH1F *h_Q2 = new TH1F("h_Q2","Q2 distribution",300,1.,15.);
-  TH1F *h_atime_offset_sh = new TH1F("h_atime_offset_sh","SH ADCtime offset w.r.t. BBHodo time",189,0.,189.);
-  //h_atime_offset_sh->GetYaxis()->SetRangeUser(-100.,0.);
-  h_atime_offset_sh->GetYaxis()->SetLabelSize(0.045);
-  h_atime_offset_sh->GetXaxis()->SetLabelSize(0.045);
-  h_atime_offset_sh->SetLineWidth(0);
-  h_atime_offset_sh->SetMarkerStyle(kFullCircle);
-  TH1F *h_atime_offset_ps = new TH1F("h_atime_offset_ps","PS ADCtime offset w.r.t. BBHodo time",52,0.,52.);
-  //h_atime_offset_ps->GetYaxis()->SetRangeUser(-100.,0.);
-  h_atime_offset_ps->GetYaxis()->SetLabelSize(0.045);
-  h_atime_offset_ps->GetXaxis()->SetLabelSize(0.045);
-  h_atime_offset_ps->SetLineWidth(0);
-  h_atime_offset_ps->SetMarkerStyle(kFullCircle);
+  TH1F *h_atimeOffSH = new TH1F("h_atimeOffSH","Peak pos. of (SH ADCtime - TH ClusTmean) dist. (w/ fit error)",189,0.,189.);
+  Custm1DHisto(h_atimeOffSH);
+  TH1F *h_atimeOffPS = new TH1F("h_atimeOffPS","Peak pos. of (PS ADCtime - TH ClusTmean) dist. (w/ fit error)",52,0.,52.);
+  Custm1DHisto(h_atimeOffPS);
+  TH1F *h_atimeRMSSH = new TH1F("h_atimeRMSSH","Peak RMS of (SH ADCtime - TH ClusTmean) dist. (w/ fit error)",189,0.,189.);
+  Custm1DHisto(h_atimeRMSSH);
+  TH1F *h_atimeRMSPS = new TH1F("h_atimeRMSPS","Peak RMS of (PS ADCtime - TH ClusTmean) dist. (w/ fit error)",52,0.,52.);
+  Custm1DHisto(h_atimeRMSPS);
+  TH1F *h_atimeOffnRMSSH = new TH1F("h_atimeOffnRMSSH","Peak pos. of (SH ADCtime - TH ClusTmean) dist. (error bar rep. fit RMS)",189,0.,189.);
+  Custm1DHisto(h_atimeOffnRMSSH);
+  TH1F *h_atimeOffnRMSPS = new TH1F("h_atimeOffnRMSPS","Peak pos. of (PS ADCtime - TH ClusTmean) dist. (error bar rep. fit RMS)",52,0.,52.);
+  Custm1DHisto(h_atimeOffnRMSPS);
+
+  TH2F *h2_atimeOffSH_vs_blk = new TH2F("h2_atimeOffSH_vs_blk","Before offset correction (SH);SH block id;SH ADCtime - TH ClusTmean (ns)",189,0,189,240,-40,40); 
+  Custm2DHisto(h2_atimeOffSH_vs_blk);
+  TH2F *h2_atimeOffPS_vs_blk = new TH2F("h2_atimeOffPS_vs_blk","Before offset correction (PS);PS block id;PS ADCtime - TH ClusTmean (ns)",52,0,52,240,-40,40);
+  Custm2DHisto(h2_atimeOffPS_vs_blk);
 
   ///////////////////////////////////////////
   // 1st Loop over all events to calibrate //
@@ -347,16 +318,20 @@ void bbcal_atime_offset( const char *configfilename ){
       h_atime_sh[(int)sh_rowblk][(int)sh_colblk]->Fill(hodo_tmean[0] - sh_clblk_atime[0]); //- sh_atimeblk);
       h_atime_ps[(int)ps_rowblk][(int)ps_colblk]->Fill(hodo_tmean[0] - ps_clblk_atime[0]); //- ps_atimeblk);
 
+      h2_atimeOffSH_vs_blk->Fill(sh_idblk, hodo_tmean[0]-sh_clblk_atime[0]);
+      h2_atimeOffPS_vs_blk->Fill(ps_idblk, hodo_tmean[0]-ps_clblk_atime[0]);
+
       // h_atime_sh[(int)sh_rowblk][(int)sh_colblk]->Fill(sh_atimeblk);
       // h_atime_ps[(int)ps_rowblk][(int)ps_colblk]->Fill(ps_atimeblk);
 
     } //global cut
   } //while
-  cout << endl; 
+  cout << endl << endl; 
 
   // Let's fit the histograms with Gaussian function 
   TF1 *fgaus = new TF1("fgaus","gaus");
 
+  // fitting SH histograms
   int sub = 0;
   for(int r=0; r<kNrowsSH; r++){
     for(int c=0; c<kNcolsSH; c++){
@@ -368,8 +343,8 @@ void bbcal_atime_offset( const char *configfilename ){
       double maxCount = h_atime_sh[r][c]->GetMaximum();
       double binWidth = h_atime_sh[r][c]->GetBinWidth(maxBin);
       double stdDev = h_atime_sh[r][c]->GetStdDev();
-      int lofitlim = h_atime_min + (maxBin)*binWidth - (1.3*stdDev);
-      int hifitlim = h_atime_min + (maxBin)*binWidth + (0.8*stdDev);
+      double lofitlim = h_atime_min + (maxBin)*binWidth - (1.3*stdDev);
+      double hifitlim = h_atime_min + (maxBin)*binWidth + (0.8*stdDev);
 
       if( h_atime_sh[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
@@ -396,8 +371,14 @@ void bbcal_atime_offset( const char *configfilename ){
 	h_atime_sh[r][c]->Fit(fgaus,"+RQ");
 	
 	toffset_shdata << fgaus->GetParameter(1) << " "; 
-	h_atime_offset_sh->Fill( r*kNcolsSH+c, fgaus->GetParameter(1) );
+	h_atimeOffSH->Fill(r*kNcolsSH+c, fgaus->GetParameter(1));
+	h_atimeOffSH->SetBinError(r*kNcolsSH+c, fgaus->GetParError(1));
 
+	h_atimeRMSSH->Fill(r*kNcolsSH+c, fgaus->GetParameter(2));
+	h_atimeRMSSH->SetBinError(r*kNcolsSH+c, fgaus->GetParError(2));
+
+	h_atimeOffnRMSSH->Fill(r*kNcolsSH+c, fgaus->GetParameter(1));
+	h_atimeOffnRMSSH->SetBinError(r*kNcolsSH+c, fgaus->GetParameter(2));
       }else{
 	toffset_shdata << 0. << " "; 
       }
@@ -420,8 +401,8 @@ void bbcal_atime_offset( const char *configfilename ){
       double maxCount = h_atime_ps[r][c]->GetMaximum();
       double binWidth = h_atime_ps[r][c]->GetBinWidth(maxBin);
       double stdDev = h_atime_ps[r][c]->GetStdDev();
-      int lofitlim = h_atime_min + (maxBin)*binWidth - (1.2*stdDev);
-      int hifitlim = h_atime_min + (maxBin)*binWidth + (0.5*stdDev);
+      double lofitlim = h_atime_min + (maxBin)*binWidth - (1.2*stdDev);
+      double hifitlim = h_atime_min + (maxBin)*binWidth + (0.5*stdDev);
 
       if( h_atime_ps[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
@@ -448,8 +429,14 @@ void bbcal_atime_offset( const char *configfilename ){
 	h_atime_ps[r][c]->Fit(fgaus,"+RQ");
 
 	toffset_psdata << fgaus->GetParameter(1) << " "; 
-	h_atime_offset_ps->Fill( r*kNcolsPS+c, fgaus->GetParameter(1) );
+	h_atimeOffPS->Fill(r*kNcolsPS+c, fgaus->GetParameter(1));
+	h_atimeOffPS->SetBinError(r*kNcolsPS+c, fgaus->GetParError(1));
 
+	h_atimeRMSPS->Fill(r*kNcolsPS+c, fgaus->GetParameter(2));
+	h_atimeRMSPS->SetBinError(r*kNcolsPS+c, fgaus->GetParError(2));
+
+	h_atimeOffnRMSPS->Fill(r*kNcolsPS+c, fgaus->GetParameter(1));
+	h_atimeOffnRMSPS->SetBinError(r*kNcolsPS+c, fgaus->GetParameter(2));
       }else{
 	toffset_psdata << 0. << " "; 
       }
@@ -460,13 +447,28 @@ void bbcal_atime_offset( const char *configfilename ){
     toffset_psdata << endl;
   }
 
-  subCanv[0]->SaveAs(Form("%s[",outPeaks.Data()));
-  for( int canC=0; canC<8; canC++ ) subCanv[canC]->SaveAs(Form("%s",outPeaks.Data()));
+  TCanvas *c1 = new TCanvas("c1","c1",1200,800);
+  c1->Divide(1,2);
+  c1->cd(1); //
+  h2_atimeOffPS_vs_blk->SetStats(0);
+  h2_atimeOffPS_vs_blk->Draw("colz");
+  h_atimeOffnRMSPS->Draw("same");
+  c1->cd(2); //
+  h2_atimeOffSH_vs_blk->SetStats(0);
+  h2_atimeOffSH_vs_blk->Draw("colz");
+  h_atimeOffnRMSSH->Draw("same");
+  c1->Write();
+
+  c1->SaveAs(Form("%s[",outPeaks.Data()));
+  c1->SaveAs(Form("%s",outPeaks.Data()));
+  //subCanv[0]->SaveAs(Form("%s[",outPeaks.Data()));
+  for(int canC=0; canC<8; canC++) {subCanv[canC]->SaveAs(Form("%s",outPeaks.Data())); subCanv[canC]->Write();}
   subCanv[7]->SaveAs(Form("%s]",outPeaks.Data()));
 
+
   fout->Write();
-  fout->Close();
-  fout->Delete();
+  //fout->Close();
+  //fout->Delete();
  
   cout << "Finishing analysis .." << endl;
   cout << " --------- " << endl;
@@ -495,4 +497,23 @@ TH1F* MakeHisto(Int_t row, Int_t col, Int_t bins, Double_t min=0., Double_t max=
   h->GetYaxis()->SetMaxDigits(3);
   h->GetYaxis()->SetNdivisions(5);
   return h;
+}
+
+// Customizes 1D histos
+void Custm1DHisto(TH1F* h)
+{
+  h->GetYaxis()->SetLabelSize(0.045);
+  h->GetXaxis()->SetLabelSize(0.045);
+  h->SetLineWidth(1);
+  h->SetLineColor(kBlack);
+  h->SetMarkerSize(0.9);
+  h->SetMarkerColor(kRed);
+  h->SetMarkerStyle(kFullCircle);
+}
+
+// Customizes 2D histos
+void Custm2DHisto(TH2F* h)
+{
+  h->GetYaxis()->SetLabelSize(0.045);
+  h->GetXaxis()->SetLabelSize(0.045);
 }
