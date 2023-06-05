@@ -10,30 +10,41 @@
   ----
   P. Datta  <pdbforce@jlab.org>  Created  16 Feb 2022
 */
+
+#include <ctime>
+#include <vector>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+
 #include <TH2F.h>
+#include <TGraph.h>
 #include <TChain.h>
 #include <TCanvas.h>
 #include <TSystem.h>
 #include <TStopwatch.h>
-#include <TGraph.h>
-#include <vector>
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include <ctime>
 
 const Double_t Mp = 0.938272081;  // +/- 6E-9 GeV
 
-const Int_t kNcolsSH = 7;  // SH columns
-const Int_t kNrowsSH = 27; // SH rows
-const Int_t kNcolsPS = 2;  // PS columns
-const Int_t kNrowsPS = 26; // PS rows
+const Int_t kNcolsSH = 7;   // SH columns
+const Int_t kNrowsSH = 27;  // SH rows
+const Int_t kNblksSH = 189; // Total # SH blocks/PMTs
+const Int_t kNcolsPS = 2;   // PS columns
+const Int_t kNrowsPS = 26;  // PS rows
+const Int_t kNblksPS = 52;  // Total # PS blocks/PMTs
 
 void Custm1DHisto(TH1F*);
 void Custm2DHisto(TH2F*);
-TH1F* MakeHisto(Int_t, Int_t, Int_t, Double_t, Double_t);
+TH1F* MakeHisto(Int_t, Int_t, char const *, Int_t, Double_t, Double_t);
+
 TH1F *h_atime_sh[kNrowsSH][kNcolsSH];
+TH1F *h_atime_sh_corr[kNrowsSH][kNcolsSH];
 TH1F *h_atime_ps[kNrowsPS][kNcolsPS];
+TH1F *h_atime_ps_corr[kNrowsPS][kNcolsPS];
+
+vector<Long64_t> goodevents;
+Double_t ash_atimeOffs[kNblksSH];
+Double_t aps_atimeOffs[kNblksPS];
 
 TCanvas *subCanv[8];
 const Int_t kCanvSize = 100;
@@ -109,8 +120,7 @@ void bbcal_atime_offset( const char *configfilename ){
   // Define a clock to check macro processing time
   TStopwatch *sw = new TStopwatch();
   TStopwatch *sw2 = new TStopwatch();
-  sw->Start();
-  sw2->Start();
+  sw->Start(); sw2->Start();
 
   //gui setup
   shgui::SetupGUI();
@@ -166,66 +176,69 @@ void bbcal_atime_offset( const char *configfilename ){
   }
 
   // Check for empty rootfiles and set tree branches
-  if(C->GetEntries()==0){
-    cerr << endl << " --- No ROOT file found!! --- " << endl << endl;
-    throw;
-  }else cout << endl << "Found " << C->GetEntries() << " events. Starting analysis.. " << endl;
-
+  if(C->GetEntries()==0) {cerr << endl << " --- No ROOT file found!! --- " << endl << endl; exit(1);}
+  else cout << endl << "Found " << C->GetEntries() << " events. Starting analysis.. " << endl;
+ 
   // Setting useful ROOT tree branch addresses
-  Int_t maxtr=1000, hodo_trindex=0;
-  Double_t sh_nclus, sh_idblk, sh_e, sh_rowblk, sh_colblk, sh_nblk, sh_atimeblk;
-  Double_t ps_nclus, ps_idblk, ps_e, ps_rowblk, ps_colblk, ps_atimeblk;
-  Double_t hodo_nclus;
-  Double_t sh_clblk_atime[maxtr], sh_clblk_e[maxtr];
-  Double_t ps_clblk_atime[maxtr];
-  Double_t p[maxtr], pz[maxtr], tg_th[maxtr], tg_ph[maxtr];
-  Double_t hodo_tmean[maxtr], hodo_trIndex[maxtr];
   C->SetBranchStatus("*",0);
+  Int_t maxtr=500;
   //shower
-  C->SetBranchStatus("bb.sh.nclus",1); C->SetBranchAddress("bb.sh.nclus",&sh_nclus);
-  C->SetBranchStatus("bb.sh.e",1); C->SetBranchAddress("bb.sh.e",&sh_e);
-  C->SetBranchStatus("bb.sh.rowblk",1); C->SetBranchAddress("bb.sh.rowblk",&sh_rowblk);
-  C->SetBranchStatus("bb.sh.colblk",1); C->SetBranchAddress("bb.sh.colblk",&sh_colblk);
-  C->SetBranchStatus("bb.sh.atimeblk",1); C->SetBranchAddress("bb.sh.atimeblk",&sh_atimeblk);
-  C->SetBranchStatus("bb.sh.nblk",1); C->SetBranchAddress("bb.sh.nblk",&sh_nblk);
-  C->SetBranchStatus("bb.sh.clus_blk.e",1); C->SetBranchAddress("bb.sh.clus_blk.e",&sh_clblk_e);
-  C->SetBranchStatus("bb.sh.idblk",1); C->SetBranchAddress("bb.sh.idblk",&sh_idblk);
-  C->SetBranchStatus("bb.sh.clus_blk.atime",1); C->SetBranchAddress("bb.sh.clus_blk.atime",&sh_clblk_atime);
+  Double_t sh_nclus;     C->SetBranchStatus("bb.sh.nclus",1); C->SetBranchAddress("bb.sh.nclus",&sh_nclus);
+  Double_t sh_e;         C->SetBranchStatus("bb.sh.e",1); C->SetBranchAddress("bb.sh.e",&sh_e);
+  Double_t sh_rowblk;    C->SetBranchStatus("bb.sh.rowblk",1); C->SetBranchAddress("bb.sh.rowblk",&sh_rowblk);
+  Double_t sh_colblk;    C->SetBranchStatus("bb.sh.colblk",1); C->SetBranchAddress("bb.sh.colblk",&sh_colblk);
+  Double_t sh_atimeblk;  C->SetBranchStatus("bb.sh.atimeblk",1); C->SetBranchAddress("bb.sh.atimeblk",&sh_atimeblk);
+  Double_t sh_nblk;      C->SetBranchStatus("bb.sh.nblk",1); C->SetBranchAddress("bb.sh.nblk",&sh_nblk);
+  Double_t sh_clblk_e;   C->SetBranchStatus("bb.sh.clus_blk.e",1); C->SetBranchAddress("bb.sh.clus_blk.e",&sh_clblk_e);
+  Double_t sh_idblk;     C->SetBranchStatus("bb.sh.idblk",1); C->SetBranchAddress("bb.sh.idblk",&sh_idblk);
+  Double_t sh_clblk_atime[maxtr]; C->SetBranchStatus("bb.sh.clus_blk.atime",1); C->SetBranchAddress("bb.sh.clus_blk.atime",&sh_clblk_atime);
   //preshower
-  C->SetBranchStatus("bb.ps.nclus",1); C->SetBranchAddress("bb.ps.nclus",&ps_nclus);
-  C->SetBranchStatus("bb.ps.e",1); C->SetBranchAddress("bb.ps.e",&ps_e);
-  C->SetBranchStatus("bb.ps.rowblk",1); C->SetBranchAddress("bb.ps.rowblk",&ps_rowblk);
-  C->SetBranchStatus("bb.ps.colblk",1); C->SetBranchAddress("bb.ps.colblk",&ps_colblk);
-  C->SetBranchStatus("bb.ps.atimeblk",1); C->SetBranchAddress("bb.ps.atimeblk",&ps_atimeblk);
-  C->SetBranchStatus("bb.ps.idblk",1); C->SetBranchAddress("bb.ps.idblk",&ps_idblk);
-  C->SetBranchStatus("bb.ps.clus_blk.atime",1); C->SetBranchAddress("bb.ps.clus_blk.atime",&ps_clblk_atime);
+  Double_t ps_nclus;     C->SetBranchStatus("bb.ps.nclus",1); C->SetBranchAddress("bb.ps.nclus",&ps_nclus);
+  Double_t ps_e;         C->SetBranchStatus("bb.ps.e",1); C->SetBranchAddress("bb.ps.e",&ps_e);
+  Double_t ps_rowblk;    C->SetBranchStatus("bb.ps.rowblk",1); C->SetBranchAddress("bb.ps.rowblk",&ps_rowblk);
+  Double_t ps_colblk;    C->SetBranchStatus("bb.ps.colblk",1); C->SetBranchAddress("bb.ps.colblk",&ps_colblk);
+  Double_t ps_atimeblk;  C->SetBranchStatus("bb.ps.atimeblk",1); C->SetBranchAddress("bb.ps.atimeblk",&ps_atimeblk);
+  Double_t ps_idblk;     C->SetBranchStatus("bb.ps.idblk",1); C->SetBranchAddress("bb.ps.idblk",&ps_idblk);
+  Double_t ps_clblk_atime[maxtr]; C->SetBranchStatus("bb.ps.clus_blk.atime",1); C->SetBranchAddress("bb.ps.clus_blk.atime",&ps_clblk_atime);
   //gem
-  C->SetBranchStatus("bb.tr.p",1); C->SetBranchAddress("bb.tr.p",&p);
-  C->SetBranchStatus("bb.tr.pz",1); C->SetBranchAddress("bb.tr.pz",&pz);
-  C->SetBranchStatus("bb.tr.tg_th",1); C->SetBranchAddress("bb.tr.tg_th",&tg_th);
-  C->SetBranchStatus("bb.tr.tg_ph",1); C->SetBranchAddress("bb.tr.tg_ph",&tg_ph);
+  Double_t p[maxtr];     C->SetBranchStatus("bb.tr.p",1); C->SetBranchAddress("bb.tr.p",&p);
+  Double_t pz[maxtr];    C->SetBranchStatus("bb.tr.pz",1); C->SetBranchAddress("bb.tr.pz",&pz);
+  Double_t tg_th[maxtr]; C->SetBranchStatus("bb.tr.tg_th",1); C->SetBranchAddress("bb.tr.tg_th",&tg_th);
+  Double_t tg_ph[maxtr]; C->SetBranchStatus("bb.tr.tg_ph",1); C->SetBranchAddress("bb.tr.tg_ph",&tg_ph);
   //hodo
-  C->SetBranchStatus("bb.hodotdc.nclus",1); C->SetBranchAddress("bb.hodotdc.nclus",&hodo_nclus);
-  C->SetBranchStatus("bb.hodotdc.clus.tmean",1); C->SetBranchAddress("bb.hodotdc.clus.tmean",&hodo_tmean);
-  C->SetBranchStatus("bb.hodotdc.clus.trackindex",1); C->SetBranchAddress("bb.hodotdc.clus.trackindex",&hodo_trIndex);
+  Double_t hodo_nclus;   C->SetBranchStatus("bb.hodotdc.nclus",1); C->SetBranchAddress("bb.hodotdc.nclus",&hodo_nclus);
+  Double_t hodo_tmean[maxtr];   C->SetBranchStatus("bb.hodotdc.clus.tmean",1); C->SetBranchAddress("bb.hodotdc.clus.tmean",&hodo_tmean);
+  Double_t hodo_trIndex[maxtr]; C->SetBranchStatus("bb.hodotdc.clus.trackindex",1); C->SetBranchAddress("bb.hodotdc.clus.trackindex",&hodo_trIndex);
   // turning on additional branches for the global cut
   C->SetBranchStatus("e.kine.W2", 1);
   C->SetBranchStatus("bb.tr.n", 1);
   C->SetBranchStatus("bb.tr.vz", 1);
   C->SetBranchStatus("bb.gem.track.nhits", 1);
-  C->SetMakeClass(1); C->SetBranchStatus("fEvtHdr.fTrigBits", 1);
+  C->SetBranchStatus("g.trigbits", 1);
 
-  //defining atime histograms
+  // creating atimeOff histograms per BBCal block
   for(int r = 0; r < kNrowsSH; r++) {
     for(int c = 0; c < kNcolsSH; c++) {
-      h_atime_sh[r][c] = MakeHisto(r, c, h_atime_bin, h_atime_min, h_atime_max);
+      int blkid = r*kNcolsSH+c;
+      ash_atimeOffs[blkid] = -1000;
+      h_atime_sh[r][c] = MakeHisto(r, c, "", h_atime_bin, h_atime_min, h_atime_max);
+      h_atime_sh_corr[r][c] = MakeHisto(r, c, "_corr", h_atime_bin, h_atime_min, h_atime_max);
     }
   }
   for(int r = 0; r < kNrowsPS; r++) {
     for(int c = 0; c < kNcolsPS; c++) {
-      h_atime_ps[r][c] = MakeHisto(r, c, h_atime_bin, h_atime_min, h_atime_max);
+      int blkid = r*kNcolsPS+c;
+      aps_atimeOffs[blkid] = -1000;
+      h_atime_ps[r][c] = MakeHisto(r, c, "", h_atime_bin, h_atime_min, h_atime_max);
+      h_atime_ps_corr[r][c] = MakeHisto(r, c, "_corr", h_atime_bin, h_atime_min, h_atime_max);
     }
   }
+
+  // defining raw histograms (we don't wanna write them to file)
+  TH2F *h2_atimeOffSH_detview_raw = new TH2F("h2_atimeOffSH_detview_raw","Before offset correction (SH);SH block id;SH ADCtime - TH ClusTmean (ns)",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH); 
+  TH2F *h2_atimeOffSH_detview_raw_corr = new TH2F("h2_atimeOffSH_detview_raw_corr","After offset correction (SH);SH block id;SH ADCtime - TH ClusTmean (ns)",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH); 
+  TH2F *h2_atimeOffPS_detview_raw = new TH2F("h2_atimeOffPS_detview_raw","Before offset correction (PS);PS block id;PS ADCtime - TH ClusTmean (ns)",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);   
+  TH2F *h2_atimeOffPS_detview_raw_corr = new TH2F("h2_atimeOffPS_detview_raw_corr","After offset correction (PS);PS block id;PS ADCtime - TH ClusTmean (ns)",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);   
 
   // define output files
   TString outFile, outPeaks, toffset_ps, toffset_sh;
@@ -239,25 +252,43 @@ void bbcal_atime_offset( const char *configfilename ){
   TFile *fout = new TFile(outFile,"RECREATE");
   fout->cd();
 
+  // defining important histograms
   TH1F *h_W = new TH1F("h_W","W distribution",200,0.,5.);
   TH1F *h_Q2 = new TH1F("h_Q2","Q2 distribution",300,1.,15.);
-  TH1F *h_atimeOffSH = new TH1F("h_atimeOffSH","Peak pos. of (SH ADCtime - TH ClusTmean) dist. (w/ fit error)",189,0.,189.);
-  Custm1DHisto(h_atimeOffSH);
-  TH1F *h_atimeOffPS = new TH1F("h_atimeOffPS","Peak pos. of (PS ADCtime - TH ClusTmean) dist. (w/ fit error)",52,0.,52.);
-  Custm1DHisto(h_atimeOffPS);
-  TH1F *h_atimeRMSSH = new TH1F("h_atimeRMSSH","Peak RMS of (SH ADCtime - TH ClusTmean) dist. (w/ fit error)",189,0.,189.);
-  Custm1DHisto(h_atimeRMSSH);
-  TH1F *h_atimeRMSPS = new TH1F("h_atimeRMSPS","Peak RMS of (PS ADCtime - TH ClusTmean) dist. (w/ fit error)",52,0.,52.);
-  Custm1DHisto(h_atimeRMSPS);
-  TH1F *h_atimeOffnRMSSH = new TH1F("h_atimeOffnRMSSH","Peak pos. of (SH ADCtime - TH ClusTmean) dist. (error bar rep. fit RMS)",189,0.,189.);
-  Custm1DHisto(h_atimeOffnRMSSH);
-  TH1F *h_atimeOffnRMSPS = new TH1F("h_atimeOffnRMSPS","Peak pos. of (PS ADCtime - TH ClusTmean) dist. (error bar rep. fit RMS)",52,0.,52.);
-  Custm1DHisto(h_atimeOffnRMSPS);
 
-  TH2F *h2_atimeOffSH_vs_blk = new TH2F("h2_atimeOffSH_vs_blk","Before offset correction (SH);SH block id;SH ADCtime - TH ClusTmean (ns)",189,0,189,240,-40,40); 
-  Custm2DHisto(h2_atimeOffSH_vs_blk);
-  TH2F *h2_atimeOffPS_vs_blk = new TH2F("h2_atimeOffPS_vs_blk","Before offset correction (PS);PS block id;PS ADCtime - TH ClusTmean (ns)",52,0,52,240,-40,40);
-  Custm2DHisto(h2_atimeOffPS_vs_blk);
+  TH1F *h_atimeOffSH = new TH1F("h_atimeOffSH","Peak pos. of (SH ADCtime - TH ClusTmean) dist. (w/ fit error) | Before corr.",kNblksSH,0,kNblksSH);
+  TH1F *h_atimeOffSH_corr = new TH1F("h_atimeOffSH_corr","Peak pos. of (SH ADCtime - TH ClusTmean) dist. (w/ fit error) | After corr.",kNblksSH,0,kNblksSH);
+  TH1F *h_atimeOffPS = new TH1F("h_atimeOffPS","Peak pos. of (PS ADCtime - TH ClusTmean) dist. (w/ fit error) | Before corr.",kNblksPS,0,kNblksPS);
+  TH1F *h_atimeOffPS_corr = new TH1F("h_atimeOffPS_corr","Peak pos. of (PS ADCtime - TH ClusTmean) dist. (w/ fit error) | After corr.",kNblksPS,0,kNblksPS);
+  Custm1DHisto(h_atimeOffSH); Custm1DHisto(h_atimeOffSH_corr); 
+  Custm1DHisto(h_atimeOffPS); Custm1DHisto(h_atimeOffPS_corr);
+
+  TH1F *h_atimeRMSSH = new TH1F("h_atimeRMSSH","Peak RMS of (SH ADCtime - TH ClusTmean) dist. (w/ fit error) | Before corr.",kNblksSH,0,kNblksSH);
+  TH1F *h_atimeRMSSH_corr = new TH1F("h_atimeRMSSH_corr","Peak RMS of (SH ADCtime - TH ClusTmean) dist. (w/ fit error) | After corr.",kNblksSH,0,kNblksSH);
+  TH1F *h_atimeRMSPS = new TH1F("h_atimeRMSPS","Peak RMS of (PS ADCtime - TH ClusTmean) dist. (w/ fit error) | Before corr.",kNblksPS,0,kNblksPS);
+  TH1F *h_atimeRMSPS_corr = new TH1F("h_atimeRMSPS_corr","Peak RMS of (PS ADCtime - TH ClusTmean) dist. (w/ fit error) | After corr.",kNblksPS,0,kNblksPS);
+  Custm1DHisto(h_atimeRMSSH); Custm1DHisto(h_atimeRMSSH_corr); 
+  Custm1DHisto(h_atimeRMSPS); Custm1DHisto(h_atimeRMSPS_corr);
+
+  TH1F *h_atimeOffnRMSSH = new TH1F("h_atimeOffnRMSSH","Peak pos. of (SH ADCtime - TH ClusTmean) dist. (error bar rep. fit RMS) | Before corr.",kNblksSH,0,kNblksSH);
+  TH1F *h_atimeOffnRMSSH_corr = new TH1F("h_atimeOffnRMSSH_corr","Peak pos. of (SH ADCtime - TH ClusTmean) dist. (error bar rep. fit RMS) | After corr.",kNblksSH,0,kNblksSH);
+  TH1F *h_atimeOffnRMSPS = new TH1F("h_atimeOffnRMSPS","Peak pos. of (PS ADCtime - TH ClusTmean) dist. (error bar rep. fit RMS) | Before corr.",kNblksPS,0,kNblksPS);
+  TH1F *h_atimeOffnRMSPS_corr = new TH1F("h_atimeOffnRMSPS_corr","Peak pos. of (PS ADCtime - TH ClusTmean) dist. (error bar rep. fit RMS) | After corr.",kNblksPS,0,kNblksPS);
+  Custm1DHisto(h_atimeOffnRMSSH); Custm1DHisto(h_atimeOffnRMSSH_corr); 
+  Custm1DHisto(h_atimeOffnRMSPS); Custm1DHisto(h_atimeOffnRMSPS_corr);
+
+  TH2F *h2_count_SH = new TH2F("h2_count_SH","# events per SH block;SH columns;SH rows",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH); 
+  TH2F *h2_count_PS = new TH2F("h2_count_PS","# events per PS block;PS columns;PS rows",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS); 
+
+  TH2F *h2_atimeOffSH_detview = new TH2F("h2_atimeOffSH_detview","SH ADCtime - TH ClusTmean (ns) | Before corr.;SH columns;SH rows",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH); 
+  TH2F *h2_atimeOffSH_detview_corr = new TH2F("h2_atimeOffSH_detview_corr","SH ADCtime - TH ClusTmean (ns) | After corr.;SH columns;SH rows",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH); 
+  TH2F *h2_atimeOffPS_detview = new TH2F("h2_atimeOffPS_detview","PS ADCtime - TH ClusTmean (ns) | Before corr.;PS columns;PS rows",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS); 
+  TH2F *h2_atimeOffPS_detview_corr = new TH2F("h2_atimeOffPS_detview_corr","PS ADCtime - TH ClusTmean (ns) | After corr.;PS columns;PS rows",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS); 
+
+  TH2F *h2_atimeOffSH_vs_blk = new TH2F("h2_atimeOffSH_vs_blk","Before offset correction (SH);SH block id;SH ADCtime - TH ClusTmean (ns)",kNblksSH,0,kNblksSH,240,-40,40); 
+  TH2F *h2_atimeOffSH_vs_blk_corr = new TH2F("h2_atimeOffSH_vs_blk_corr","After offset correction (SH);SH block id;SH ADCtime - TH ClusTmean (ns)",kNblksSH,0,kNblksSH,240,-40,40); 
+  TH2F *h2_atimeOffPS_vs_blk = new TH2F("h2_atimeOffPS_vs_blk","Before offset correction (PS);PS block id;PS ADCtime - TH ClusTmean (ns)",kNblksPS,0,kNblksPS,240,-40,40);
+  TH2F *h2_atimeOffPS_vs_blk_corr = new TH2F("h2_atimeOffPS_vs_blk_corr","Before offset correction (PS);PS block id;PS ADCtime - TH ClusTmean (ns)",kNblksPS,0,kNblksPS,240,-40,40);
 
   ///////////////////////////////////////////
   // 1st Loop over all events to calibrate //
@@ -267,7 +298,6 @@ void bbcal_atime_offset( const char *configfilename ){
   Long64_t nevent=0, nevents=C->GetEntries();
   Double_t timekeeper = 0., timeremains = 0.;
   int treenum = 0, currenttreenum = 0;
-  vector<Long64_t> goodevents; // list of good events passed all the cuts
   while( C->GetEntry( nevent++ ) ){
     // Calculating remaining time 
     sw2->Stop();
@@ -315,11 +345,19 @@ void bbcal_atime_offset( const char *configfilename ){
       // storing good event numbers for 2nd loop
       goodevents.push_back(nevent);
 
-      h_atime_sh[(int)sh_rowblk][(int)sh_colblk]->Fill(hodo_tmean[0] - sh_clblk_atime[0]); //- sh_atimeblk);
-      h_atime_ps[(int)ps_rowblk][(int)ps_colblk]->Fill(hodo_tmean[0] - ps_clblk_atime[0]); //- ps_atimeblk);
+      double sh_atimeOff = hodo_tmean[0] - sh_clblk_atime[0]; //- sh_atimeblk);
+      double ps_atimeOff = hodo_tmean[0] - ps_clblk_atime[0]; //- ps_atimeblk);
 
-      h2_atimeOffSH_vs_blk->Fill(sh_idblk, hodo_tmean[0]-sh_clblk_atime[0]);
-      h2_atimeOffPS_vs_blk->Fill(ps_idblk, hodo_tmean[0]-ps_clblk_atime[0]);
+      h_atime_sh[(int)sh_rowblk][(int)sh_colblk]->Fill(sh_atimeOff);
+      h_atime_ps[(int)ps_rowblk][(int)ps_colblk]->Fill(ps_atimeOff);
+
+      h2_count_SH->Fill(sh_colblk, sh_rowblk, 1.);
+      h2_atimeOffSH_detview_raw->Fill(sh_colblk, sh_rowblk, sh_atimeOff);
+      h2_count_PS->Fill(ps_colblk, ps_rowblk, 1.);
+      h2_atimeOffPS_detview_raw->Fill(ps_colblk, ps_rowblk, ps_atimeOff);
+
+      h2_atimeOffSH_vs_blk->Fill(sh_idblk, sh_atimeOff);
+      h2_atimeOffPS_vs_blk->Fill(ps_idblk, ps_atimeOff);
 
       // h_atime_sh[(int)sh_rowblk][(int)sh_colblk]->Fill(sh_atimeblk);
       // h_atime_ps[(int)ps_rowblk][(int)ps_colblk]->Fill(ps_atimeblk);
@@ -328,13 +366,23 @@ void bbcal_atime_offset( const char *configfilename ){
   } //while
   cout << endl << endl; 
 
+  h2_atimeOffSH_detview->Divide(h2_atimeOffSH_detview_raw, h2_count_SH); h2_atimeOffSH_detview->GetZaxis()->SetRangeUser(-10,10);
+  h2_atimeOffPS_detview->Divide(h2_atimeOffPS_detview_raw, h2_count_PS); h2_atimeOffPS_detview->GetZaxis()->SetRangeUser(-10,10);
+
+  ///////////////////////////////////////////////////
+  // Time to calculate and report ADC time offsets //
+  ///////////////////////////////////////////////////
+
   // Let's fit the histograms with Gaussian function 
   TF1 *fgaus = new TF1("fgaus","gaus");
 
   // fitting SH histograms
+  cout << "Fitting SH histograms to calculate offsets..\n";
   int sub = 0;
   for(int r=0; r<kNrowsSH; r++){
     for(int c=0; c<kNcolsSH; c++){
+      int blkid = r*kNcolsSH+c;
+
       sub = r/7;
       subCanv[sub]->cd((r%7)*kNcolsSH + c + 1);
 
@@ -370,7 +418,6 @@ void bbcal_atime_offset( const char *configfilename ){
 	fgaus->SetRange( lofitlim, hifitlim );
 	h_atime_sh[r][c]->Fit(fgaus,"+RQ");
 	
-	toffset_shdata << fgaus->GetParameter(1) << " "; 
 	h_atimeOffSH->Fill(r*kNcolsSH+c, fgaus->GetParameter(1));
 	h_atimeOffSH->SetBinError(r*kNcolsSH+c, fgaus->GetParError(1));
 
@@ -379,8 +426,12 @@ void bbcal_atime_offset( const char *configfilename ){
 
 	h_atimeOffnRMSSH->Fill(r*kNcolsSH+c, fgaus->GetParameter(1));
 	h_atimeOffnRMSSH->SetBinError(r*kNcolsSH+c, fgaus->GetParameter(2));
+
+	toffset_shdata << fgaus->GetParameter(1) << " "; 
+	ash_atimeOffs[blkid] = fgaus->GetParameter(1);
       }else{
-	toffset_shdata << 0. << " "; 
+	toffset_shdata << 0. << " ";
+	ash_atimeOffs[blkid] = 0.; 
       }
 
       h_atime_sh[r][c]->SetTitle(Form("Time Offset | SH%d-%d",r+1,c+1));
@@ -390,9 +441,12 @@ void bbcal_atime_offset( const char *configfilename ){
   }
 
   //fitting PS histograms
+  cout << "Fitting PS histograms to calculate offsets..\n";
   sub = 0;
   for(int r=0; r<kNrowsPS; r++){
     for(int c=0; c<kNcolsPS; c++){
+      int blkid = r*kNcolsPS+c;
+
       sub = r/7 + 4;
       subCanv[sub]->cd((r%7)*kNcolsPS + c + 1);
 
@@ -428,7 +482,6 @@ void bbcal_atime_offset( const char *configfilename ){
 	fgaus->SetRange( lofitlim, hifitlim );
 	h_atime_ps[r][c]->Fit(fgaus,"+RQ");
 
-	toffset_psdata << fgaus->GetParameter(1) << " "; 
 	h_atimeOffPS->Fill(r*kNcolsPS+c, fgaus->GetParameter(1));
 	h_atimeOffPS->SetBinError(r*kNcolsPS+c, fgaus->GetParError(1));
 
@@ -437,8 +490,12 @@ void bbcal_atime_offset( const char *configfilename ){
 
 	h_atimeOffnRMSPS->Fill(r*kNcolsPS+c, fgaus->GetParameter(1));
 	h_atimeOffnRMSPS->SetBinError(r*kNcolsPS+c, fgaus->GetParameter(2));
+
+	toffset_psdata << fgaus->GetParameter(1) << " "; 
+	aps_atimeOffs[blkid] = fgaus->GetParameter(1);
       }else{
 	toffset_psdata << 0. << " "; 
+	aps_atimeOffs[blkid] = 0.;
       }
 
       h_atime_ps[r][c]->SetTitle(Form("Time Offset | PS%d-%d",r+1,c+1));
@@ -447,24 +504,74 @@ void bbcal_atime_offset( const char *configfilename ){
     toffset_psdata << endl;
   }
 
+  /////////////////////////////////////////////////////////////////////
+  // 2nd Loop over all events to check the performance of correction //
+  /////////////////////////////////////////////////////////////////////
+
+  nevent = 0;
+  Long64_t itr = 0; 
+  cout << "\nLooping over events again to check corrections..\n" << endl; 
+  while(C->GetEntry(nevent++)) {
+    // reporting progress
+    if (nevent % 100 == 0) cout << nevent << "/" << nevents  << "\r";;
+    cout.flush();
+
+    if (nevent == goodevents[itr]) { // choosing good events
+      itr++;
+
+      double sh_atimeOff_corr = hodo_tmean[0] - sh_clblk_atime[0] + ash_atimeOffs[(int)sh_idblk];
+      double ps_atimeOff_corr = hodo_tmean[0] - ps_clblk_atime[0] + aps_atimeOffs[(int)ps_idblk];
+
+      h_atime_sh_corr[(int)sh_rowblk][(int)sh_colblk]->Fill(sh_atimeOff_corr);
+      h_atime_ps_corr[(int)ps_rowblk][(int)ps_colblk]->Fill(ps_atimeOff_corr);
+
+      h2_atimeOffSH_detview_raw_corr->Fill(sh_colblk, sh_rowblk, sh_atimeOff_corr);
+      h2_atimeOffPS_detview_raw_corr->Fill(ps_colblk, ps_rowblk, ps_atimeOff_corr);
+
+      h2_atimeOffSH_vs_blk_corr->Fill(sh_idblk, sh_atimeOff_corr);
+      h2_atimeOffPS_vs_blk_corr->Fill(ps_idblk, ps_atimeOff_corr);      
+    }//global cut
+  } //while
+  cout << endl << endl;
+
+  h2_atimeOffSH_detview_corr->Divide(h2_atimeOffSH_detview_raw_corr, h2_count_SH); h2_atimeOffSH_detview_corr->GetZaxis()->SetRangeUser(-10,10);
+  h2_atimeOffPS_detview_corr->Divide(h2_atimeOffPS_detview_raw_corr, h2_count_PS); h2_atimeOffPS_detview_corr->GetZaxis()->SetRangeUser(-10,10);
+
+  
+
   TCanvas *c1 = new TCanvas("c1","c1",1200,800);
-  c1->Divide(1,2);
+  c1->Divide(2,2);
   c1->cd(1); //
+  h2_atimeOffPS_detview->SetStats(0);
+  h2_atimeOffPS_detview->Draw("colz text");
+  c1->cd(2); //
+  h2_atimeOffPS_detview_corr->SetStats(0);
+  h2_atimeOffPS_detview_corr->Draw("colz text");
+  c1->cd(3); //
+  h2_atimeOffSH_detview->SetStats(0);
+  h2_atimeOffSH_detview->Draw("colz text");
+  c1->cd(4); //
+  h2_atimeOffSH_detview_corr->SetStats(0);
+  h2_atimeOffSH_detview_corr->Draw("colz text");
+  c1->SaveAs(Form("%s[",outPeaks.Data())); c1->SaveAs(Form("%s",outPeaks.Data())); c1->Write();
+
+  TCanvas *c2 = new TCanvas("c2","c2",1200,800);
+  c2->Divide(1,2);
+  c2->cd(1); //
+  gPad->SetGridy();
   h2_atimeOffPS_vs_blk->SetStats(0);
   h2_atimeOffPS_vs_blk->Draw("colz");
   h_atimeOffnRMSPS->Draw("same");
-  c1->cd(2); //
+  c2->cd(2); //
+  gPad->SetGridy();
   h2_atimeOffSH_vs_blk->SetStats(0);
   h2_atimeOffSH_vs_blk->Draw("colz");
   h_atimeOffnRMSSH->Draw("same");
-  c1->Write();
+  c2->SaveAs(Form("%s",outPeaks.Data())); c2->Write();
 
-  c1->SaveAs(Form("%s[",outPeaks.Data()));
-  c1->SaveAs(Form("%s",outPeaks.Data()));
   //subCanv[0]->SaveAs(Form("%s[",outPeaks.Data()));
   for(int canC=0; canC<8; canC++) {subCanv[canC]->SaveAs(Form("%s",outPeaks.Data())); subCanv[canC]->Write();}
   subCanv[7]->SaveAs(Form("%s]",outPeaks.Data()));
-
 
   fout->Write();
   //fout->Close();
@@ -478,17 +585,16 @@ void bbcal_atime_offset( const char *configfilename ){
   cout << " ADCtime offsets for PS written to : " << toffset_ps << endl;
   cout << " --------- " << endl;
 
-  sw->Stop();
-  sw2->Stop();
-  cout << "CPU time elapsed = " << sw->CpuTime() << " s. Real time = " << sw->RealTime() << " s. " << endl << endl;
+  sw->Stop(); sw2->Stop();
+  cout << "CPU time = " << sw->CpuTime() << "s. Real time = " << sw->RealTime() << "s. \n\n";
 
 }
 
 // Create generic histogram function
-TH1F* MakeHisto(Int_t row, Int_t col, Int_t bins, Double_t min=0., Double_t max=50.)
+TH1F* MakeHisto(Int_t row, Int_t col, char const * suf, Int_t bins, Double_t min=0., Double_t max=50.)
 {
-  TH1F *h = new TH1F(TString::Format("h_R%d_C%d_Blk_%d",row,col,row*kNcolsSH+col),
-		     "",bins,min,max);
+  Int_t blkid = row*kNcolsSH+col;
+  TH1F *h = new TH1F(TString::Format("h_R%d_C%d_Blk_%d%s",row,col,blkid,suf),"",bins,min,max);
   //h->SetStats(0);
   h->SetLineWidth(1);
   h->SetLineColor(2);
