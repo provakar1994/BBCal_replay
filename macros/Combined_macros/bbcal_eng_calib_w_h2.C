@@ -45,6 +45,8 @@
 Double_t const Mp = 0.938272081;  // +/- 6E-9 GeV
 
 Int_t const ncell = 241;          // 189(SH) + 52(PS), Convention: 0-188: SH; 189-240: PS.
+Int_t const kNblksSH = 189;       // Total # SH blocks/PMTs
+Int_t const kNblksPS = 52;        // Total # PS blocks/PMTs
 Int_t const kNcolsSH = 7;         // SH columns
 Int_t const kNrowsSH = 27;        // SH rows
 Int_t const kNcolsPS = 2;         // PS columns
@@ -53,18 +55,10 @@ Double_t const zposSH = 1.901952; // m
 Double_t const zposPS = 1.695704; // m
 
 string getDate();
-void CustProfHisto(TH1D*);
+void CustmProfHisto(TH1D*);
 TString GetOutFileBase(TString);
 void ReadGain(TString, Double_t*);
-void SplitString(char const delim, std::string const myStr, std::vector<std::string> &out){
-  // split a string by a delimiter
-  std::stringstream ss(myStr);
-  while (ss.good()) {
-    std::string substr;
-    std::getline(ss, substr, delim);
-    if (!substr.empty()) out.push_back(substr);
-  }
-}
+std::vector<std::string> SplitString(char const delim, std::string const myStr);
 
 void bbcal_eng_calib_w_h2(char const *configfilename,
 			  bool isdebug=1) //0=False, 1=True
@@ -159,7 +153,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       gcutstr += currentline;
     }    
   }
-  std::vector<std::string> gCutList; SplitString('&', gcutstr.Data(), gCutList);
+  std::vector<std::string> gCutList = SplitString('&', gcutstr.Data());
   TTreeFormula *GlobalCut = new TTreeFormula("GlobalCut", globalcut, C);
   while( currentline.ReadLine( configfile ) ){
     if( currentline.BeginsWith("#") ) continue;
@@ -478,10 +472,10 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   
   // Let's read in old gain coefficients for both SH and PS
   std::cout << std::endl;
-  Double_t oldADCgainSH[kNcolsSH*kNrowsSH];
-  Double_t oldADCgainPS[kNcolsPS*kNrowsPS];
-  for (int i=0; i<189; i++) { oldADCgainSH[i] = -1000; }  
-  for (int i=0; i<52; i++) { oldADCgainPS[i] = -1000; }  
+  Double_t oldADCgainSH[kNblksSH];
+  Double_t oldADCgainPS[kNblksPS];
+  for (int i=0; i<kNblksSH; i++) { oldADCgainSH[i] = -1000; }  
+  for (int i=0; i<kNblksPS; i++) { oldADCgainPS[i] = -1000; }  
   TString adcGain_SH, gainRatio_SH, adcGain_PS, gainRatio_PS;
   if (read_gain) {
     adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh.txt", macros_dir.Data(), cfgfilebase.Data());
@@ -656,7 +650,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   // 1st Loop over all events to calibrate //
   ///////////////////////////////////////////
 
-  cout << endl;
+  std::cout << std::endl;
   Long64_t Ngoodevs=0, Nelasevs=0; 
   Long64_t Nevents = C->GetEntries(), nevent=0; UInt_t runnum=0; 
   Double_t timekeeper=0., timeremains=0.;
@@ -672,8 +666,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     sw2->Reset();
     sw2->Continue();
 
-    if(nevent % 100 == 0) cout << nevent << "/" << Nevents  << ", " << int(timeremains/60.) << "m \r";;
-    cout.flush();
+    if(nevent % 100 == 0) std::cout << nevent << "/" << Nevents  << ", " << int(timeremains/60.) << "m \r";;
+    std::cout.flush();
     // ------
 
     // get old gain coefficients
@@ -879,8 +873,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       // ****** PreShower ******
       for(Int_t blk=0; blk<psNblk; blk++){
 	Int_t blkID = int(psClBlkId[blk]);
-	if (psClBlkE[blk]>hit_threshold) A[189+blkID] += psClBlkE[blk];
-	nevents_per_cell[189+blkID]++;
+	if (psClBlkE[blk]>hit_threshold) A[kNblksSH+blkID] += psClBlkE[blk];
+	nevents_per_cell[kNblksSH+blkID]++;
       }
 
       // filling diagnostic histos
@@ -899,8 +893,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h2_PSeng_vs_PSblk_raw->Fill(psColblk, psRowblk, ClusEngPS);
       h2_EovP_vs_PSblk_raw->Fill(psColblk, psRowblk, clusEngBBCal/p_rec);
       h2_count_PS->Fill(psColblk, psRowblk, 1.);
-      h2_PSeng_vs_PSblk->Divide(h2_PSeng_vs_PSblk_raw, h2_count_PS);
-      h2_EovP_vs_PSblk->Divide(h2_EovP_vs_PSblk_raw, h2_count_PS);
+      // h2_PSeng_vs_PSblk->Divide(h2_PSeng_vs_PSblk_raw, h2_count_PS);
+      // h2_EovP_vs_PSblk->Divide(h2_EovP_vs_PSblk_raw, h2_count_PS);
 
       Double_t xtrATps = trX[0] + zposPS*trTh[0];
       Double_t ytrATps = trY[0] + zposPS*trPh[0];
@@ -913,8 +907,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h2_SHeng_vs_SHblk_raw->Fill(shColblk, shRowblk, ClusEngSH);
       h2_EovP_vs_SHblk_raw->Fill(shColblk, shRowblk, clusEngBBCal/p_rec);
       h2_count->Fill(shColblk, shRowblk, 1.);
-      h2_SHeng_vs_SHblk->Divide(h2_SHeng_vs_SHblk_raw, h2_count);
-      h2_EovP_vs_SHblk->Divide(h2_EovP_vs_SHblk_raw, h2_count);
+      // h2_SHeng_vs_SHblk->Divide(h2_SHeng_vs_SHblk_raw, h2_count);
+      // h2_EovP_vs_SHblk->Divide(h2_EovP_vs_SHblk_raw, h2_count);
 
       // E/p vs. p
       h2_EovP_vs_P->Fill(p_rec, clusEngBBCal/p_rec);
@@ -954,9 +948,13 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       
     } //global cut
   } //event loop
+  h2_EovP_vs_SHblk->Divide(h2_EovP_vs_SHblk_raw, h2_count);
+  h2_EovP_vs_PSblk->Divide(h2_EovP_vs_PSblk_raw, h2_count_PS);
+  h2_SHeng_vs_SHblk->Divide(h2_SHeng_vs_SHblk_raw, h2_count);
+  h2_PSeng_vs_PSblk->Divide(h2_PSeng_vs_PSblk_raw, h2_count_PS);
   h2_EovP_vs_SHblk_trPOS->Divide(h2_EovP_vs_SHblk_trPOS_raw, h2_count_trP);
   h2_EovP_vs_PSblk_trPOS->Divide(h2_EovP_vs_PSblk_trPOS_raw, h2_count_trP_PS);
-  cout << endl << endl;
+  std::cout << "\n\n";
 
   // Let's customize the histogram ranges
   h2_SHeng_vs_SHblk->GetZaxis()->SetRangeUser(0.9,2.0);
@@ -967,11 +965,11 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   h2_EovP_vs_PSblk_trPOS->GetZaxis()->SetRangeUser(0.8,1.2);
 
   // Customizing profile histograms
-  CustProfHisto(h2_PovPel_vs_rnum_pspotcut_prof);
-  CustProfHisto(h2_EovP_vs_P_prof); CustProfHisto(h2_EovP_vs_P_calib_prof);
-  CustProfHisto(h2_EovP_vs_rnum_prof); CustProfHisto(h2_EovP_vs_rnum_calib_prof);
-  CustProfHisto(h2_PSclsize_vs_rnum_prof); CustProfHisto(h2_PSclmult_vs_rnum_prof);
-  CustProfHisto(h2_SHclsize_vs_rnum_prof); CustProfHisto(h2_SHclmult_vs_rnum_prof);
+  CustmProfHisto(h2_PovPel_vs_rnum_pspotcut_prof);
+  CustmProfHisto(h2_EovP_vs_P_prof); CustmProfHisto(h2_EovP_vs_P_calib_prof);
+  CustmProfHisto(h2_EovP_vs_rnum_prof); CustmProfHisto(h2_EovP_vs_rnum_calib_prof);
+  CustmProfHisto(h2_PSclsize_vs_rnum_prof); CustmProfHisto(h2_PSclmult_vs_rnum_prof);
+  CustmProfHisto(h2_SHclsize_vs_rnum_prof); CustmProfHisto(h2_SHclmult_vs_rnum_prof);
 
   // B.Print();  
   // M.Print();
@@ -980,17 +978,17 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   // Time to calculate and report gain coefficients //
   ////////////////////////////////////////////////////
 
-  TH1D *h_nevent_blk_SH = new TH1D("h_nevent_blk_SH", "No. of Good Events; SH Blocks", 189, 0, 189);
-  TH1D *h_coeff_Ratio_SH = new TH1D("h_coeff_Ratio_SH", "Ratio of Gain Coefficients(new/old); SH Blocks", 189, 0, 189);
-  TH1D *h_coeff_blk_SH = new TH1D("h_coeff_blk_SH", "ADC Gain Coefficients(GeV/pC); SH Blocks", 189, 0, 189);
-  TH1D *h_old_coeff_blk_SH = new TH1D("h_old_coeff_blk_SH", "Old ADC Gain Coefficients(GeV/pC); SH Blocks", 189, 0, 189);
+  TH1D *h_nevent_blk_SH = new TH1D("h_nevent_blk_SH", "No. of Good Events; SH Blocks", kNblksSH, 0, kNblksSH);
+  TH1D *h_coeff_Ratio_SH = new TH1D("h_coeff_Ratio_SH", "Ratio of Gain Coefficients(new/old); SH Blocks", kNblksSH, 0, kNblksSH);
+  TH1D *h_coeff_blk_SH = new TH1D("h_coeff_blk_SH", "ADC Gain Coefficients(GeV/pC); SH Blocks", kNblksSH, 0, kNblksSH);
+  TH1D *h_old_coeff_blk_SH = new TH1D("h_old_coeff_blk_SH", "Old ADC Gain Coefficients(GeV/pC); SH Blocks", kNblksSH, 0, kNblksSH);
   TH2D *h2_old_coeff_detView_SH = new TH2D("h2_old_coeff_detView_SH", "Old ADC Gain Coefficients | SH", kNcolsSH, 1, kNcolsSH+1, kNrowsSH, 1, kNrowsSH+1);
   TH2D *h2_coeff_detView_SH = new TH2D("h2_coeff_detView_SH", "New ADC Gain Coefficients | SH", kNcolsSH, 1, kNcolsSH+1, kNrowsSH, 1, kNrowsSH+1);
 
-  TH1D *h_nevent_blk_PS = new TH1D("h_nevent_blk_PS", "No. of Good Events; PS Blocks", 52, 0, 52);
-  TH1D *h_coeff_Ratio_PS = new TH1D("h_coeff_Ratio_PS", "Ratio of Gain Coefficients(new/old); PS Blocks", 52, 0, 52);
-  TH1D *h_coeff_blk_PS = new TH1D("h_coeff_blk_PS", "ADC Gain Coefficients(GeV/pC); PS Blocks", 52, 0, 52);
-  TH1D *h_old_coeff_blk_PS = new TH1D("h_old_coeff_blk_PS", "Old ADC Gain Coefficients(GeV/pC); PS Blocks", 52, 0, 52);
+  TH1D *h_nevent_blk_PS = new TH1D("h_nevent_blk_PS", "No. of Good Events; PS Blocks", kNblksPS, 0, kNblksPS);
+  TH1D *h_coeff_Ratio_PS = new TH1D("h_coeff_Ratio_PS", "Ratio of Gain Coefficients(new/old); PS Blocks", kNblksPS, 0, kNblksPS);
+  TH1D *h_coeff_blk_PS = new TH1D("h_coeff_blk_PS", "ADC Gain Coefficients(GeV/pC); PS Blocks", kNblksPS, 0, kNblksPS);
+  TH1D *h_old_coeff_blk_PS = new TH1D("h_old_coeff_blk_PS", "Old ADC Gain Coefficients(GeV/pC); PS Blocks", kNblksPS, 0, kNblksPS);
   TH2D *h2_old_coeff_detView_PS = new TH2D("h2_old_coeff_detView_PS", "Old ADC Gain Coefficients | PS", kNcolsPS, 1, kNcolsPS+1, kNrowsPS, 1, kNrowsPS+1);
   TH2D *h2_coeff_detView_PS = new TH2D("h2_coeff_detView_PS", "New ADC Gain Coefficients | PS", kNcolsPS, 1, kNcolsPS+1, kNrowsPS, 1, kNrowsPS+1);
 
@@ -1019,7 +1017,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
   gainRatio_SH = Form("%s/Gain/%s_gainRatio_sh_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
   Double_t newADCgratioSH[kNcolsSH*kNrowsSH];
-  for (int i=0; i<189; i++) { newADCgratioSH[i] = -1000; }  
+  for (int i=0; i<kNblksSH; i++) { newADCgratioSH[i] = -1000; }  
   ofstream adcGainSH_outData, gainRatioSH_outData;
   adcGainSH_outData.open(adcGain_SH);
   gainRatioSH_outData.open(gainRatio_SH);
@@ -1053,11 +1051,11 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       }
       cell++;
     }
-    cout << endl;
-    adcGainSH_outData << endl;
-    gainRatioSH_outData << endl;
+    std::cout << std::endl;
+    adcGainSH_outData << std::endl;
+    gainRatioSH_outData << std::endl;
   }
-  cout << endl;
+  std::cout << std::endl;
 
   // customizing histograms
   h_nevent_blk_SH->SetLineWidth(0); h_nevent_blk_SH->SetMarkerStyle(8);
@@ -1069,7 +1067,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
   gainRatio_PS = Form("%s/Gain/%s_gainRatio_ps_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
   Double_t newADCgratioPS[kNcolsPS*kNrowsPS];
-  for (int i=0; i<52; i++) { newADCgratioPS[i] = -1000; }  
+  for (int i=0; i<kNblksPS; i++) { newADCgratioPS[i] = -1000; }  
   ofstream adcGainPS_outData, gainRatioPS_outData;
   adcGainPS_outData.open(adcGain_PS);
   gainRatioPS_outData.open(gainRatio_PS);
@@ -1104,11 +1102,11 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       }
       cell++;
     }
-    cout << endl;
-    adcGainPS_outData << endl;
-    gainRatioPS_outData << endl;
+    std::cout << std::endl;
+    adcGainPS_outData << std::endl;
+    gainRatioPS_outData << std::endl;
   }
-  cout << endl;
+  std::cout << std::endl;
 
   // customizing histograms
   h_nevent_blk_PS->SetLineWidth(0); h_nevent_blk_PS->SetMarkerStyle(8);
@@ -1132,7 +1130,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
   itrrun=0; runnum=0; 
   Nevents = C->GetEntries(), nevent=0;
-  cout << "Looping over events again to check calibration.." << endl; 
+  std::cout << "Looping over events again to check calibration.." << std::endl; 
   while(C->GetEntry(nevent++)) {
     // Calculating remaining time 
     sw2->Stop();
@@ -1142,8 +1140,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     sw2->Reset();
     sw2->Continue();
 
-    if(nevent % 100 == 0) cout << nevent << "/" << Nevents  << ", " << int(timeremains/60.) << "m \r";;
-    cout.flush();
+    if(nevent % 100 == 0) std::cout << nevent << "/" << Nevents  << ", " << int(timeremains/60.) << "m \r";;
+    std::cout.flush();
     // ------
 
     // apply global cuts efficiently (AJRP method)
@@ -1322,7 +1320,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   }
   h2_EovP_vs_SHblk_calib->Divide(h2_EovP_vs_SHblk_raw_calib, h2_count_calib);
   h2_EovP_vs_PSblk_calib->Divide(h2_EovP_vs_PSblk_raw_calib, h2_count_PS_calib);
-  cout << endl << endl;
+  std::cout << "\n\n";
 
   // Let's customize the histogram ranges
   h2_EovP_vs_SHblk_calib->GetZaxis()->SetRangeUser(0.8,1.2);
@@ -1382,13 +1380,13 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   h2_EovP_vs_P_calib_prof->Draw("same");
   c1->cd(4); //
   h2_EovP_vs_SHblk->SetStats(0);
-  h2_EovP_vs_SHblk->Draw("colz");
+  h2_EovP_vs_SHblk->Draw("colz text");
   c1->cd(5); //
   h2_EovP_vs_SHblk_calib->SetStats(0);
-  h2_EovP_vs_SHblk_calib->Draw("colz");
+  h2_EovP_vs_SHblk_calib->Draw("colz text");
   c1->cd(6); //
   h2_EovP_vs_PSblk_calib->SetStats(0);
-  h2_EovP_vs_PSblk_calib->Draw("colz");
+  h2_EovP_vs_PSblk_calib->Draw("colz text");
   c1->SaveAs(Form("%s[",outPlot.Data())); c1->SaveAs(Form("%s",outPlot.Data())); c1->Write();
   //**** -- ***//
 
@@ -1480,7 +1478,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   // manipulating urnum vector
   std::size_t nrun = lrnum.size();
   if (nrun!=Nruns)
-    cout << "*!*[WARNING] 'Nruns' value in run list doesn't match with total # runs analyzed!\n\n"; 
+    std::cout << "*!*[WARNING] 'Nruns' value in run list doesn't match with total # runs analyzed!\n\n"; 
   c5->cd(1); //
   gPad->SetGridy();
   gStyle->SetErrorX(0.0001);
@@ -1735,14 +1733,14 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 }
 
 // **** ========== Useful functions ========== ****  
-string getDate(){
+std::string getDate(){
   // returns today's date
   time_t now = time(0);
   tm ltm = *localtime(&now);
-  string yyyy = to_string(1900 + ltm.tm_year);
-  string mm = to_string(1 + ltm.tm_mon);
-  string dd = to_string(ltm.tm_mday);
-  string date = mm + '/' + dd + '/' + yyyy;
+  std::string yyyy = to_string(1900 + ltm.tm_year);
+  std::string mm = to_string(1 + ltm.tm_mon);
+  std::string dd = to_string(ltm.tm_mday);
+  std::string date = mm + '/' + dd + '/' + yyyy;
   return date;
 }
 
@@ -1750,13 +1748,13 @@ void ReadGain(TString adcGain_rfile, Double_t* adcGain){
   // reads old ADC gain coefficients from TXT files
   ifstream adcGain_data;
   adcGain_data.open(adcGain_rfile);
-  string readline;
+  std::string readline;
   Int_t elemID=0;
   if(adcGain_data.is_open()){
     std::cout << " Reading ADC gain from : "<< adcGain_rfile << "\n";
     while(getline(adcGain_data,readline)){
       istringstream tokenStream(readline);
-      string token;
+      std::string token;
       char delimiter = ' ';
       while(getline(tokenStream,token,delimiter)){
   	TString temptoken=token;
@@ -1771,20 +1769,28 @@ void ReadGain(TString adcGain_rfile, Double_t* adcGain){
   adcGain_data.close();
 }
 
-TString GetOutFileBase(TString configfilename) {
-  // returns output file base from configfilename
-  std::stringstream ss(configfilename.Data());
-  std::vector<std::string> result;
-  while( ss.good() ){
+// splits a string by a delimiter (doesn't include empty sub-strings)
+std::vector<std::string> SplitString(char const delim, std::string const myStr) {
+  std::stringstream ss(myStr);
+  std::vector<std::string> out;
+  while (ss.good()) {
     std::string substr;
-    std::getline(ss, substr, '/');
-    result.push_back(substr);
+    std::getline(ss, substr, delim);
+    if (!substr.empty()) out.push_back(substr);
   }
+  if (out.empty()) std::cerr << "WARNING! No substrings found!\n";
+  return out;
+}
+
+// returns output file base from configfilename
+TString GetOutFileBase(TString configfilename) {
+  std::vector<std::string> result;
+  result = SplitString('/',configfilename.Data());
   TString temp = result[result.size() - 1];
   return temp.ReplaceAll(".cfg", "");
 }
 
-void CustProfHisto(TH1D* hprof) {
+void CustmProfHisto(TH1D* hprof) {
   // customizes profile histograms
   hprof->SetStats(0);
   hprof->SetMarkerStyle(20);
