@@ -221,7 +221,7 @@ void bbcal_atime_offset( const char *configfilename ){
   C->SetBranchStatus("bb.tr.n", 1);
   C->SetBranchStatus("bb.tr.vz", 1);
   C->SetBranchStatus("bb.gem.track.nhits", 1);
-  //C->SetBranchStatus("g.trigbits", 1);
+  C->SetBranchStatus("g.trigbits", 1);
 
   // creating atimeOff histograms per BBCal block
   for(int r = 0; r < kNrowsSH; r++) {
@@ -629,7 +629,7 @@ void bbcal_atime_offset( const char *configfilename ){
   }
 
   //fitting PS histograms
-  cout << "\nFitting PS histograms again to check the quality of correction..\n";
+  cout << "Fitting PS histograms again to check the quality of correction..\n";
   sub = 0;
   for(int r=0; r<kNrowsPS; r++){
     for(int c=0; c<kNcolsPS; c++){
@@ -791,7 +791,7 @@ void bbcal_atime_offset( const char *configfilename ){
   //fout->Close();
   //fout->Delete();
  
-  cout << "Finishing analysis .." << endl;
+  cout << "\nFinishing analysis .." << endl;
   cout << " --------- " << endl;
   cout << " Plots saved to : " << outPeaks << endl;
   cout << " Histogram written to : " << outFile << endl;
