@@ -37,6 +37,7 @@ string getDate();
 void Custm1DHisto(TH1F*);
 void Custm2DHisto(TH2F*);
 TString GetOutFileBase(TString);
+void ReadOffset(TString, Double_t*);
 TH1F* MakeHisto(Int_t, Int_t, char const *, Int_t, Double_t, Double_t);
 std::vector<std::string> SplitString(char const delim, std::string const myStr);
 
@@ -117,7 +118,8 @@ namespace shgui {
 };
 
 // main function
-void bbcal_atime_offset( const char *configfilename ){
+void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
+
   gErrorIgnoreLevel = kError; // Ignore all ROOT warnings
 
   // Define a clock to check macro processing time
@@ -132,8 +134,11 @@ void bbcal_atime_offset( const char *configfilename ){
   //creating base for outfile names
   TString cfgfilebase = GetOutFileBase(configfilename);
 
-  Int_t SBSconf = 0;   // SBS configuration
+  TString exp = "unknown";
+  Int_t config = -1;   // Experimental configuration
+  Int_t pass = -1;     // Replay pass to get ready for
   Double_t Ebeam = 0.; // GeV
+  Double_t atpos_nom = 0.; //ns
   Double_t h_atime_bin = 240, h_atime_min = -60., h_atime_max = 60.;
 
   // Reading configfile
@@ -159,21 +164,15 @@ void bbcal_atime_offset( const char *configfilename ){
     Int_t ntokens = tokens->GetEntries();
     if( ntokens>1 ){
       TString skey = ( (TObjString*)(*tokens)[0] )->GetString();
-      if( skey == "SBSconf" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	SBSconf = sval.Atof();
-      }
-      if( skey == "E_beam" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	Ebeam = sval.Atof();
-      }
-      if( skey == "h_atime" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h_atime_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h_atime_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h_atime_max = sval2.Atof();
+      if (skey == "exp") exp = ((TObjString*)(*tokens)[1])->GetString();
+      if (skey == "config") config = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+      if (skey == "pass") pass = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+      if (skey == "E_beam") Ebeam = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      if (skey == "atpos_nom") atpos_nom = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      if (skey == "h_atime") {
+	h_atime_bin = ((TObjString*)(*tokens)[1])->GetString().Atof();
+	h_atime_min = ((TObjString*)(*tokens)[2] )->GetString().Atof();
+	h_atime_max = ((TObjString*)(*tokens)[3] )->GetString().Atof();
       }
       if( skey == "*****" ){
 	break;
@@ -221,7 +220,7 @@ void bbcal_atime_offset( const char *configfilename ){
   C->SetBranchStatus("bb.tr.n", 1);
   C->SetBranchStatus("bb.tr.vz", 1);
   C->SetBranchStatus("bb.gem.track.nhits", 1);
-  C->SetBranchStatus("g.trigbits", 1);
+  //C->SetBranchStatus("g.trigbits", 1);
 
   // creating atimeOff histograms per BBCal block
   for(int r = 0; r < kNrowsSH; r++) {
@@ -241,12 +240,30 @@ void bbcal_atime_offset( const char *configfilename ){
     }
   }
 
+  // Let's read in old ADC time offsets for both SH and PS
+  std::cout << std::endl;
+  Double_t old_ash_atimeOffs[kNblksSH];
+  Double_t old_aps_atimeOffs[kNblksPS];
+  for (int i=0; i<kNblksSH; i++) { old_ash_atimeOffs[i] = -1000; }  
+  for (int i=0; i<kNblksPS; i++) { old_aps_atimeOffs[i] = -1000; }  
+  TString atimeOff_sh, atimeOff_ps;
+  char const * exptag = "unknown";
+  if (exp=="gmn") exptag = "sbs";
+  else if (exp=="gen") exptag = "gen";
+  int ppass = pass-1;
+  if (exp=="gmn" && (config==4 || config==7) && pass==2) ppass = 0;
+  atimeOff_sh = Form("Output/%s%d_atimeOff_sh_pass%d.txt",exptag,config,ppass);
+  atimeOff_ps = Form("Output/%s%d_atimeOff_ps_pass%d.txt",exptag,config,ppass);
+  ReadOffset(atimeOff_sh, old_ash_atimeOffs);
+  ReadOffset(atimeOff_ps, old_aps_atimeOffs);
+
   // define output files
+  char const * debug = isdebug ? "_test" : "";
   TString outFile, outPeaks, toffset_ps, toffset_sh;
-  outPeaks = Form("plots/bbcal_atime_offset_sbs%d.pdf",SBSconf);
-  outFile = Form("hist/bbcal_atime_offset_sbs%d.root",SBSconf);
-  toffset_ps = Form("Output/adctime_offset_sbs%d_ps.txt",SBSconf);
-  toffset_sh = Form("Output/adctime_offset_sbs%d_sh.txt",SBSconf);
+  outPeaks = Form("plots/%s%d_atimeOff_pass%d%s.pdf",exptag,config,pass,debug);
+  outFile = Form("hist/%s%d_atimeOff_pass%d%s.root",exptag,config,pass,debug);
+  toffset_ps = Form("Output/%s%d_atimeOff_ps_pass%d%s.txt",exptag,config,pass,debug);
+  toffset_sh = Form("Output/%s%d_atimeOff_sh_pass%d%s.txt",exptag,config,pass,debug);
   ofstream toffset_psdata, toffset_shdata;
   toffset_psdata.open(toffset_ps);
   toffset_shdata.open(toffset_sh);
@@ -396,8 +413,8 @@ void bbcal_atime_offset( const char *configfilename ){
       double maxCount = h_atime_sh[r][c]->GetMaximum();
       double binWidth = h_atime_sh[r][c]->GetBinWidth(maxBin);
       double stdDev = h_atime_sh[r][c]->GetStdDev();
-      double lofitlim = h_atime_min + (maxBin)*binWidth - (1.3*stdDev);
-      double hifitlim = h_atime_min + (maxBin)*binWidth + (0.8*stdDev);
+      double lofitlim = h_atime_min + (maxBin)*binWidth - (1.0*stdDev);
+      double hifitlim = h_atime_min + (maxBin)*binWidth + (0.6*stdDev);
 
       if( h_atime_sh[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
@@ -434,13 +451,13 @@ void bbcal_atime_offset( const char *configfilename ){
 
 	h2_atimeOffSH_detview->Fill(c, r, fgaus->GetParameter(1));
 
-	cout << fgaus->GetParameter(1) << " "; 
-	toffset_shdata << fgaus->GetParameter(1) << " "; 
+	cout << fgaus->GetParameter(1) + old_ash_atimeOffs[blkid] << " "; 
+	toffset_shdata << fgaus->GetParameter(1) + old_ash_atimeOffs[blkid] << " "; 
 	ash_atimeOffs[blkid] = fgaus->GetParameter(1);
       }else{
-	cout << 0. << " ";
-	toffset_shdata << 0. << " ";
-	ash_atimeOffs[blkid] = 0.; 
+	cout << -atpos_nom << " ";
+	toffset_shdata << -atpos_nom << " ";
+	ash_atimeOffs[blkid] = -atpos_nom; 
       }
 
       h_atime_sh[r][c]->SetTitle(Form("Time Offset | SH%d-%d",r+1,c+1));
@@ -465,8 +482,8 @@ void bbcal_atime_offset( const char *configfilename ){
       double maxCount = h_atime_ps[r][c]->GetMaximum();
       double binWidth = h_atime_ps[r][c]->GetBinWidth(maxBin);
       double stdDev = h_atime_ps[r][c]->GetStdDev();
-      double lofitlim = h_atime_min + (maxBin)*binWidth - (1.2*stdDev);
-      double hifitlim = h_atime_min + (maxBin)*binWidth + (0.5*stdDev);
+      double lofitlim = h_atime_min + (maxBin)*binWidth - (0.8*stdDev);
+      double hifitlim = h_atime_min + (maxBin)*binWidth + (0.4*stdDev);
 
       if( h_atime_ps[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
@@ -503,13 +520,13 @@ void bbcal_atime_offset( const char *configfilename ){
 
 	h2_atimeOffPS_detview->Fill(c, r, fgaus->GetParameter(1));
 
-	cout << fgaus->GetParameter(1) << " "; 
-	toffset_psdata << fgaus->GetParameter(1) << " "; 
+	cout << fgaus->GetParameter(1) + old_aps_atimeOffs[blkid] << " "; 
+	toffset_psdata << fgaus->GetParameter(1) + old_aps_atimeOffs[blkid] << " "; 
 	aps_atimeOffs[blkid] = fgaus->GetParameter(1);
       }else{
-	cout << 0. << " "; 
-	toffset_psdata << 0. << " "; 
-	aps_atimeOffs[blkid] = 0.;
+	cout << -atpos_nom << " "; 
+	toffset_psdata << -atpos_nom << " "; 
+	aps_atimeOffs[blkid] = -atpos_nom;
       }
 
       h_atime_ps[r][c]->SetTitle(Form("Time Offset | PS%d-%d",r+1,c+1));
@@ -549,9 +566,6 @@ void bbcal_atime_offset( const char *configfilename ){
   } //while
   cout << endl << endl;
 
-  // h2_atimeOffSH_detview_corr->Divide(h2_atimeOffSH_detview_raw_corr, h2_count_SH); h2_atimeOffSH_detview_corr->GetZaxis()->SetRangeUser(-10,10);
-  // h2_atimeOffPS_detview_corr->Divide(h2_atimeOffPS_detview_raw_corr, h2_count_PS); h2_atimeOffPS_detview_corr->GetZaxis()->SetRangeUser(-10,10);
-
   ///////////////////////////////////////////////////////
   // Time to get the ADC time offsets after correction //
   ///////////////////////////////////////////////////////
@@ -574,8 +588,8 @@ void bbcal_atime_offset( const char *configfilename ){
       double maxCount = h_atime_sh_corr[r][c]->GetMaximum();
       double binWidth = h_atime_sh_corr[r][c]->GetBinWidth(maxBin);
       double stdDev = h_atime_sh_corr[r][c]->GetStdDev();
-      double lofitlim = h_atime_min + (maxBin)*binWidth - (1.3*stdDev);
-      double hifitlim = h_atime_min + (maxBin)*binWidth + (0.8*stdDev);
+      double lofitlim = h_atime_min + (maxBin)*binWidth - (1.0*stdDev);
+      double hifitlim = h_atime_min + (maxBin)*binWidth + (0.6*stdDev);
 
       if( h_atime_sh_corr[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
@@ -643,8 +657,8 @@ void bbcal_atime_offset( const char *configfilename ){
       double maxCount = h_atime_ps_corr[r][c]->GetMaximum();
       double binWidth = h_atime_ps_corr[r][c]->GetBinWidth(maxBin);
       double stdDev = h_atime_ps_corr[r][c]->GetStdDev();
-      double lofitlim = h_atime_min + (maxBin)*binWidth - (1.2*stdDev);
-      double hifitlim = h_atime_min + (maxBin)*binWidth + (0.5*stdDev);
+      double lofitlim = h_atime_min + (maxBin)*binWidth - (0.8*stdDev);
+      double hifitlim = h_atime_min + (maxBin)*binWidth + (0.4*stdDev);
 
       if( h_atime_ps_corr[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
@@ -765,7 +779,7 @@ void bbcal_atime_offset( const char *configfilename ){
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
   pt->AddText(Form(" Date of creation: %s", getDate().c_str()));
   pt->AddText(Form("Configfile: BBCal_replay/macros/Combined_macros/%s.cfg",cfgfilebase.Data()));
-  pt->AddText(Form(" SBS configuration: %d", SBSconf));
+  pt->AddText(Form(" %s configuration: %d, Preparing for replay pass: %d",exptag,config,pass));
   pt->AddText(Form(" Total # events analyzed: %lld", nevents));
   // pt->AddText(Form(" BBCAL ADC time (before corr.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
   // pt->AddText(Form(" BBCAL ADC time (after corr.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100));
@@ -777,8 +791,11 @@ void bbcal_atime_offset( const char *configfilename ){
   }
   if (!tmpstr.empty()) pt->AddText(Form(" %s",tmpstr.c_str()));
   pt->AddText(Form(" # events passed global cuts: %zu", goodevents.size()));
+  sw->Stop(); sw2->Stop();
+  pt->AddText(Form("Macro processing time: CPU %.1fs | Real %.1fs",sw->CpuTime(),sw->RealTime()));
   TText *t1 = pt->GetLineWith("Configfile"); t1->SetTextColor(kRed);
   TText *t2 = pt->GetLineWith(" Global"); t2->SetTextColor(kBlue);
+  TText *t3 = pt->GetLineWith("Macro"); t3->SetTextColor(kGreen+3);
   pt->Draw();
   cSummary->SaveAs(Form("%s",outPeaks.Data())); cSummary->Write();  
   //**** -- ***//
@@ -799,10 +816,10 @@ void bbcal_atime_offset( const char *configfilename ){
   cout << " ADCtime offsets for PS written to : " << toffset_ps << endl;
   cout << " --------- " << endl;
 
-  sw->Stop(); sw2->Stop();
   cout << "CPU time = " << sw->CpuTime() << "s. Real time = " << sw->RealTime() << "s. \n\n";
 }
 
+// **** ========== Useful functions ========== ****  
 // Returns today's date
 string getDate(){
   // returns today's date
@@ -813,6 +830,31 @@ string getDate(){
   string dd = to_string(ltm.tm_mday);
   string date = mm + '/' + dd + '/' + yyyy;
   return date;
+}
+
+// reads old ADC gain coefficients from TXT files
+void ReadOffset(TString atimeOff_rfile, Double_t* atimeOff){
+  ifstream atimeOff_data;
+  atimeOff_data.open(atimeOff_rfile);
+  std::string readline;
+  Int_t elemID=0;
+  if(atimeOff_data.is_open()){
+    std::cout << " Reading ADC gain from : "<< atimeOff_rfile << "\n";
+    while(getline(atimeOff_data,readline)){
+      istringstream tokenStream(readline);
+      std::string token;
+      char delimiter = ' ';
+      while(getline(tokenStream,token,delimiter)){
+  	TString temptoken=token;
+  	atimeOff[elemID] = temptoken.Atof();
+  	elemID++;
+      }
+    }
+  }else{
+    std::cerr << " **!** No file : " << atimeOff_rfile << "\n\n";
+    std::exit(1);
+  }
+  atimeOff_data.close();
 }
 
 // Create generic histogram function
@@ -862,3 +904,5 @@ TString GetOutFileBase(TString configfilename) {
   TString temp = result[result.size() - 1];
   return temp.ReplaceAll(".cfg", "");
 }
+
+
