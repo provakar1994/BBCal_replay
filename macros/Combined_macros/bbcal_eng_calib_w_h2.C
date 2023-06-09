@@ -893,8 +893,6 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h2_PSeng_vs_PSblk_raw->Fill(psColblk, psRowblk, ClusEngPS);
       h2_EovP_vs_PSblk_raw->Fill(psColblk, psRowblk, clusEngBBCal/p_rec);
       h2_count_PS->Fill(psColblk, psRowblk, 1.);
-      // h2_PSeng_vs_PSblk->Divide(h2_PSeng_vs_PSblk_raw, h2_count_PS);
-      // h2_EovP_vs_PSblk->Divide(h2_EovP_vs_PSblk_raw, h2_count_PS);
 
       Double_t xtrATps = trX[0] + zposPS*trTh[0];
       Double_t ytrATps = trY[0] + zposPS*trPh[0];
@@ -907,8 +905,6 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h2_SHeng_vs_SHblk_raw->Fill(shColblk, shRowblk, ClusEngSH);
       h2_EovP_vs_SHblk_raw->Fill(shColblk, shRowblk, clusEngBBCal/p_rec);
       h2_count->Fill(shColblk, shRowblk, 1.);
-      // h2_SHeng_vs_SHblk->Divide(h2_SHeng_vs_SHblk_raw, h2_count);
-      // h2_EovP_vs_SHblk->Divide(h2_EovP_vs_SHblk_raw, h2_count);
 
       // E/p vs. p
       h2_EovP_vs_P->Fill(p_rec, clusEngBBCal/p_rec);
@@ -1733,8 +1729,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 }
 
 // **** ========== Useful functions ========== ****  
+// returns today's date
 std::string getDate(){
-  // returns today's date
   time_t now = time(0);
   tm ltm = *localtime(&now);
   std::string yyyy = to_string(1900 + ltm.tm_year);
@@ -1744,8 +1740,8 @@ std::string getDate(){
   return date;
 }
 
+// reads old ADC gain coefficients from TXT files
 void ReadGain(TString adcGain_rfile, Double_t* adcGain){
-  // reads old ADC gain coefficients from TXT files
   ifstream adcGain_data;
   adcGain_data.open(adcGain_rfile);
   std::string readline;
@@ -1790,8 +1786,8 @@ TString GetOutFileBase(TString configfilename) {
   return temp.ReplaceAll(".cfg", "");
 }
 
+// customizes profile histograms
 void CustmProfHisto(TH1D* hprof) {
-  // customizes profile histograms
   hprof->SetStats(0);
   hprof->SetMarkerStyle(20);
   hprof->SetMarkerColor(2);
