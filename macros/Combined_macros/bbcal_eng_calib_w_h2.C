@@ -493,18 +493,18 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TH2D *h2_SHeng_vs_SHblk_raw = new TH2D("h2_SHeng_vs_SHblk_raw","Raw E_clus(SH) per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_EovP_vs_SHblk_raw = new TH2D("h2_EovP_vs_SHblk_raw","Raw E_clus/p_rec per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_EovP_vs_SHblk_raw_calib = new TH2D("h2_EovP_vs_SHblk_raw_calib","Raw E_clus/p_rec per SH block | After Calib.",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_count = new TH2D("h2_count","Count for E_clus/p_rec per per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
-  TH2D *h2_count_calib = new TH2D("h2_count_calib","Count for E_clus/p_rec per per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_count = new TH2D("h2_count","Count for E_clus/p_rec per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_count_calib = new TH2D("h2_count_calib","Count for E_clus/p_rec per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
   TH2D *h2_EovP_vs_SHblk_trPOS_raw = new TH2D("h2_EovP_vs_SHblk_trPOS_raw","Raw E_clus/p_rec per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
-  TH2D *h2_count_trP = new TH2D("h2_count_trP","Count for E_clus/p_rec per per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
+  TH2D *h2_count_trP = new TH2D("h2_count_trP","Count for E_clus/p_rec per SH block(TrPos)",kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
 
   TH2D *h2_PSeng_vs_PSblk_raw = new TH2D("h2_PSeng_vs_PSblk_raw","Raw E_clus(PS) per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_EovP_vs_PSblk_raw = new TH2D("h2_EovP_vs_PSblk_raw","Raw E_clus/p_rec per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_EovP_vs_PSblk_raw_calib = new TH2D("h2_EovP_vs_PSblk_raw_calib","Raw E_clus/p_rec per PS block | After Calib.",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_count_PS = new TH2D("h2_count_PS","Count for E_clus/p_rec per per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
-  TH2D *h2_count_PS_calib = new TH2D("h2_count_PS_calib","Count for E_clus/p_rec per per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_count_PS = new TH2D("h2_count_PS","Count for E_clus/p_rec per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_count_PS_calib = new TH2D("h2_count_PS_calib","Count for E_clus/p_rec per PS block",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
   TH2D *h2_EovP_vs_PSblk_trPOS_raw = new TH2D("h2_EovP_vs_PSblk_trPOS_raw","Raw E_clus/p_rec per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
-  TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec per per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
+  TH2D *h2_count_trP_PS = new TH2D("h2_count_trP_PS","Count for E_clus/p_rec per PS block(TrPos)",kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
   // Creating output ROOT file to contain histograms
   TString outFile, outPlot;
@@ -555,14 +555,14 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
   TH1D *h_thetabend = new TH1D("h_thetabend", "", 100, 0., 0.25);
 
-  TH2D *h2_EovP_vs_trX = new TH2D("h2_EovP_vs_trX",Form("E/p vs Track x%s",hecut),200,-0.8,0.8,200,0,2);
-  TH2D *h2_EovP_vs_trX_calib = new TH2D("h2_EovP_vs_trX_calib",Form("E/p vs Track x | After Calib.%s",hecut),200,-0.8,0.8,200,0,2);
-  TH2D *h2_EovP_vs_trY = new TH2D("h2_EovP_vs_trY",Form("E/p vs Track y%s",hecut),200,-0.16,0.16,200,0,2);
-  TH2D *h2_EovP_vs_trY_calib = new TH2D("h2_EovP_vs_trY_calib",Form("E/p vs Track y | After Calib.%s",hecut),200,-0.16,0.16,200,0,2);
-  TH2D *h2_EovP_vs_trTh = new TH2D("h2_EovP_vs_trTh",Form("E/p vs Track theta%s",hecut),200,-0.2,0.2,200,0,2);
-  TH2D *h2_EovP_vs_trTh_calib = new TH2D("h2_EovP_vs_trTh_calib",Form("E/p vs Track theta | After Calib.%s",hecut),200,-0.2,0.2,200,0,2);
-  TH2D *h2_EovP_vs_trPh = new TH2D("h2_EovP_vs_trPh",Form("E/p vs Track phi%s",hecut),200,-0.08,0.08,200,0,2);
-  TH2D *h2_EovP_vs_trPh_calib = new TH2D("h2_EovP_vs_trPh_calib",Form("E/p vs Track phi | After Calib.%s",hecut),200,-0.08,0.08,200,0,2);
+  TH2D *h2_EovP_vs_trX = new TH2D("h2_EovP_vs_trX",Form("E/p vs Track x%s",hecut),200,-0.8,0.8,200,0.4,1.6);
+  TH2D *h2_EovP_vs_trX_calib = new TH2D("h2_EovP_vs_trX_calib",Form("E/p vs Track x | After Calib.%s",hecut),200,-0.8,0.8,200,0.4,1.6);
+  TH2D *h2_EovP_vs_trY = new TH2D("h2_EovP_vs_trY",Form("E/p vs Track y%s",hecut),200,-0.16,0.16,200,0.4,1.6);
+  TH2D *h2_EovP_vs_trY_calib = new TH2D("h2_EovP_vs_trY_calib",Form("E/p vs Track y | After Calib.%s",hecut),200,-0.16,0.16,200,0.4,1.6);
+  TH2D *h2_EovP_vs_trTh = new TH2D("h2_EovP_vs_trTh",Form("E/p vs Track theta%s",hecut),200,-0.2,0.2,200,0.4,1.6);
+  TH2D *h2_EovP_vs_trTh_calib = new TH2D("h2_EovP_vs_trTh_calib",Form("E/p vs Track theta | After Calib.%s",hecut),200,-0.2,0.2,200,0.4,1.6);
+  TH2D *h2_EovP_vs_trPh = new TH2D("h2_EovP_vs_trPh",Form("E/p vs Track phi%s",hecut),200,-0.08,0.08,200,0.4,1.6);
+  TH2D *h2_EovP_vs_trPh_calib = new TH2D("h2_EovP_vs_trPh_calib",Form("E/p vs Track phi | After Calib.%s",hecut),200,-0.08,0.08,200,0.4,1.6);
   TH2D *h2_PSeng_vs_trX = new TH2D("h2_PSeng_vs_trX",Form("PS energy vs Track x%s",hecut),200,-0.8,0.8,200,0,4);
   TH2D *h2_PSeng_vs_trX_calib = new TH2D("h2_PSeng_vs_trX_calib",Form("PS energy vs Track x | After Calib.%s",hecut),200,-0.8,0.8,200,0,4);
   TH2D *h2_PSeng_vs_trY = new TH2D("h2_PSeng_vs_trY",Form("PS energy vs Track y%s",hecut),200,-0.16,0.16,200,0,4);
@@ -581,10 +581,10 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TH2D *h2_PovPel_vs_rnum_pspotcut = new TH2D("h2_PovPel_vs_rnum_pspotcut","p/p_{elastic}(#theta) vs Run no. w/ pspot cut",Nruns,0.5,Nruns+0.5,200,0.8,1.2);
   TProfile *h2_PovPel_vs_rnum_pspotcut_prof = new TProfile("h2_PovPel_vs_rnum_pspotcut_prof","p/p_{elastic}(#theta) vs Run no. (Profile)",Nruns,0.5,Nruns+0.5,0.8,1.2,"S");
 
-  TH2D *h2_EovP_vs_rnum = new TH2D("h2_EovP_vs_rnum",Form("E/p vs Run no.%s",hecut),Nruns,0.5,Nruns+0.5,200,0,2);
-  TProfile *h2_EovP_vs_rnum_prof = new TProfile("h2_EovP_vs_rnum_prof","E/p vs Run no. (Profile)",Nruns,0.5,Nruns+0.5,0,2,"S");
-  TH2D *h2_EovP_vs_rnum_calib = new TH2D("h2_EovP_vs_rnum_calib",Form("E/p vs Run no. | After Calib.%s",hecut),Nruns,0.5,Nruns+0.5,200,0,2);
-  TProfile *h2_EovP_vs_rnum_calib_prof = new TProfile("h2_EovP_vs_rnum_calib_prof","E/p vs Run no. | After Calib. (Profile)",Nruns,0.5,Nruns+0.5,0,2,"S");
+  TH2D *h2_EovP_vs_rnum = new TH2D("h2_EovP_vs_rnum",Form("E/p vs Run no.%s",hecut),Nruns,0.5,Nruns+0.5,200,0.4,1.6);
+  TProfile *h2_EovP_vs_rnum_prof = new TProfile("h2_EovP_vs_rnum_prof","E/p vs Run no. (Profile)",Nruns,0.5,Nruns+0.5,0.4,1.6,"S");
+  TH2D *h2_EovP_vs_rnum_calib = new TH2D("h2_EovP_vs_rnum_calib",Form("E/p vs Run no. | After Calib.%s",hecut),Nruns,0.5,Nruns+0.5,200,0.4,1.6);
+  TProfile *h2_EovP_vs_rnum_calib_prof = new TProfile("h2_EovP_vs_rnum_calib_prof","E/p vs Run no. | After Calib. (Profile)",Nruns,0.5,Nruns+0.5,0.4,1.6,"S");
 
   TH2D *h2_dxdyHCAL = new TH2D("h2_dxdyHCAL","p Spot cut;#Deltay (m);#Deltax (m)",200,-1,1,150,-2.5,1);
 
@@ -694,17 +694,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       }
     } 
     bool passedgCut = GlobalCut->EvalInstance(0) != 0;   
-    if (passedgCut) {
-    
-      //E_e = 0;
+    if (passedgCut) {    
       memset(A, 0, ncell*sizeof(double));
-
-      // p_rec = trP[0] * p_rec_Offset; 
-      // px_rec = trPx[0] * p_rec_Offset; 
-      // py_rec = trPy[0] * p_rec_Offset; 
-      // pz_rec = trPz[0] * p_rec_Offset;
-            
-      //E_e = p_rec; // Neglecting e- mass. 
 
       p_calib = trP[0];
 
@@ -721,9 +712,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	double thetabend = acos(enhat_fp_rot.Dot(enhat_tgt));
 	h_thetabend->Fill(thetabend);
 
-	//p_rec = (A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend) * p_rec_Offset;
 	p_calib = A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend;
-	//E_e = p_rec;
       }
       // *----
       
@@ -1171,11 +1160,6 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     bool passedgCut = GlobalCut->EvalInstance(0) != 0;   
     if (passedgCut) {
 
-      // p_rec = trP[0] * p_rec_Offset; 
-      // px_rec = trPx[0] * p_rec_Offset; 
-      // py_rec = trPy[0] * p_rec_Offset; 
-      // pz_rec = trPz[0] * p_rec_Offset; 
-
       p_calib = trP[0];
 
       // *---- calculating calibrated momentum (Helps avoiding replay)
@@ -1191,7 +1175,6 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	double thetabend = acos(enhat_fp_rot.Dot(enhat_tgt));
 	h_thetabend->Fill(thetabend);
 
-	//p_rec = (A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend) * p_rec_Offset;
 	p_calib = A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend;
       }
       // *----
@@ -1690,7 +1673,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   std::cout << " 6. New ADC gain coeffs. (GeV/pC) for PS : " << adcGain_PS << "\n";
   std::cout << " --------- " << "\n";
 
-  std::cout << "CPU time elapsed = " << sw->CpuTime() << " s. Real time = " << sw->RealTime() << " s.\n\n";
+  std::cout << "CPU time = " << sw->CpuTime() << "s. Real time = " << sw->RealTime() << "s.\n\n";
 
   ///////////////////////////////////////////////////
   // Write individual memories to file explicitely //
