@@ -70,7 +70,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TString cfgfilebase = GetOutFileBase(configfilename);
 
   TString macros_dir;
-  Int_t Nmin = 10;
+  Int_t Nmin = 10, ppass = 0;
   Double_t Nruns = -99., minMBratio = 0.1, hit_threshold = 0.;
   Double_t E_beam = 0., sbstheta = 0., hcaldist = 0., hcalheight = -0.2897;
   Double_t psE_cut_limit = 0., clusE_cut_limit = 0., EovP_cut_limit = 0.3;
@@ -104,6 +104,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   
   Double_t E_e = 0;
   Double_t p_rec = 0., px_rec = 0., py_rec = 0., pz_rec = 0.;
+  Double_t p_calib = 0., p_calib_Offset = 0.;
   Double_t A[ncell];
   bool badCells[ncell]; // Cells that have events less than Nmin
   Int_t nevents_per_cell[ncell];
@@ -164,9 +165,13 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       if( skey == "macros_dir" ){
 	macros_dir = ( (TObjString*)(*tokens)[1] )->GetString();
       }
+      if( skey == "pre_pass" ){
+	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
+	ppass = sval.Atoi();
+      }
       if( skey == "read_gain" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	read_gain = sval.Atof();
+	read_gain = sval.Atoi();
       }
       if( skey == "E_beam" ){
 	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
@@ -478,8 +483,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   for (int i=0; i<kNblksPS; i++) { oldADCgainPS[i] = -1000; }  
   TString adcGain_SH, gainRatio_SH, adcGain_PS, gainRatio_PS;
   if (read_gain) {
-    adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh.txt", macros_dir.Data(), cfgfilebase.Data());
-    adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps.txt", macros_dir.Data(), cfgfilebase.Data());
+    adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh.txt",macros_dir.Data(),cfgfilebase.Data());
+    adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps.txt",macros_dir.Data(),cfgfilebase.Data());
     ReadGain(adcGain_SH, oldADCgainSH);
     ReadGain(adcGain_PS, oldADCgainPS);
   }
@@ -505,8 +510,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TString outFile, outPlot;
   char const * debug = isdebug ? "_test" : "";
   char const * elcut = elastic_cut ? "_elcut" : "";
-  outFile = Form("%s/hist/%s_bbcal_eng_calib%s%s.root", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
-  outPlot = Form("%s/plots/%s_bbcal_eng_calib%s%s.pdf", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
+  outFile = Form("%s/hist/%s_prepass%d_bbcal_eng_calib%s%s.root",macros_dir.Data(),cfgfilebase.Data(),ppass,elcut,debug);
+  outPlot = Form("%s/plots/%s_prepass%d_bbcal_eng_calib%s%s.pdf",macros_dir.Data(),cfgfilebase.Data(),ppass,elcut,debug);
 
   //std::unique_ptr<TFile> fout( TFile::Open(outFile, "RECREATE") );
   TFile *fout = new TFile(outFile, "RECREATE");
@@ -691,15 +696,17 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     bool passedgCut = GlobalCut->EvalInstance(0) != 0;   
     if (passedgCut) {
     
-      E_e = 0;
+      //E_e = 0;
       memset(A, 0, ncell*sizeof(double));
 
-      p_rec = trP[0] * p_rec_Offset; 
-      px_rec = trPx[0] * p_rec_Offset; 
-      py_rec = trPy[0] * p_rec_Offset; 
-      pz_rec = trPz[0] * p_rec_Offset; 
-      
-      E_e = p_rec; // Neglecting e- mass. 
+      // p_rec = trP[0] * p_rec_Offset; 
+      // px_rec = trPx[0] * p_rec_Offset; 
+      // py_rec = trPy[0] * p_rec_Offset; 
+      // pz_rec = trPz[0] * p_rec_Offset;
+            
+      //E_e = p_rec; // Neglecting e- mass. 
+
+      p_calib = trP[0];
 
       // *---- calculating calibrated momentum (Helps avoiding replay)
       if(mom_calib){
@@ -714,10 +721,20 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	double thetabend = acos(enhat_fp_rot.Dot(enhat_tgt));
 	h_thetabend->Fill(thetabend);
 
-	p_rec = (A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend) * p_rec_Offset;
-	E_e = p_rec;
+	//p_rec = (A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend) * p_rec_Offset;
+	p_calib = A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend;
+	//E_e = p_rec;
       }
       // *----
+      
+      p_calib_Offset = p_calib / trP[0];
+
+      p_rec = trP[0] * p_calib_Offset * p_rec_Offset; 
+      px_rec = trPx[0] * p_calib_Offset * p_rec_Offset; 
+      py_rec = trPy[0] * p_calib_Offset * p_rec_Offset; 
+      pz_rec = trPz[0] * p_calib_Offset * p_rec_Offset; 
+
+      E_e = p_rec; // Neglecting e- mass. 
 
       // elastic calculations (Using 4-vector method)
       // Relevant 4-vectors
@@ -1010,8 +1027,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
   // SH : Filling diagnostic histograms
   Int_t cell = 0;
-  adcGain_SH = Form("%s/Gain/%s_gainCoeff_sh_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
-  gainRatio_SH = Form("%s/Gain/%s_gainRatio_sh_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
+  adcGain_SH = Form("%s/Gain/%s_prepass%d_gainCoeff_sh%s%s.txt",macros_dir.Data(),cfgfilebase.Data(),ppass,elcut,debug);
+  gainRatio_SH = Form("%s/Gain/%s_prepass%d_gainRatio_sh%s%s.txt",macros_dir.Data(),cfgfilebase.Data(),ppass,elcut,debug);
   Double_t newADCgratioSH[kNcolsSH*kNrowsSH];
   for (int i=0; i<kNblksSH; i++) { newADCgratioSH[i] = -1000; }  
   ofstream adcGainSH_outData, gainRatioSH_outData;
@@ -1060,8 +1077,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   h_old_coeff_blk_SH->SetLineWidth(0); h_old_coeff_blk_SH->SetMarkerStyle(8);
 
   // PS : Filling diagnostic histograms
-  adcGain_PS = Form("%s/Gain/%s_gainCoeff_ps_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
-  gainRatio_PS = Form("%s/Gain/%s_gainRatio_ps_calib%s%s.txt", macros_dir.Data(), cfgfilebase.Data(), elcut, debug);
+  adcGain_PS = Form("%s/Gain/%s_prepass%d_gainCoeff_ps%s%s.txt",macros_dir.Data(),cfgfilebase.Data(),ppass,elcut,debug);
+  gainRatio_PS = Form("%s/Gain/%s_prepass%d_gainRatio_ps%s%s.txt",macros_dir.Data(),cfgfilebase.Data(),ppass,elcut,debug);
   Double_t newADCgratioPS[kNcolsPS*kNrowsPS];
   for (int i=0; i<kNblksPS; i++) { newADCgratioPS[i] = -1000; }  
   ofstream adcGainPS_outData, gainRatioPS_outData;
@@ -1154,10 +1171,12 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     bool passedgCut = GlobalCut->EvalInstance(0) != 0;   
     if (passedgCut) {
 
-      p_rec = trP[0] * p_rec_Offset; 
-      px_rec = trPx[0] * p_rec_Offset; 
-      py_rec = trPy[0] * p_rec_Offset; 
-      pz_rec = trPz[0] * p_rec_Offset; 
+      // p_rec = trP[0] * p_rec_Offset; 
+      // px_rec = trPx[0] * p_rec_Offset; 
+      // py_rec = trPy[0] * p_rec_Offset; 
+      // pz_rec = trPz[0] * p_rec_Offset; 
+
+      p_calib = trP[0];
 
       // *---- calculating calibrated momentum (Helps avoiding replay)
       if(mom_calib){
@@ -1172,9 +1191,17 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	double thetabend = acos(enhat_fp_rot.Dot(enhat_tgt));
 	h_thetabend->Fill(thetabend);
 
-	p_rec = (A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend) * p_rec_Offset;
+	//p_rec = (A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend) * p_rec_Offset;
+	p_calib = A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend;
       }
       // *----
+
+      p_calib_Offset = p_calib / trP[0];
+
+      p_rec = trP[0] * p_calib_Offset * p_rec_Offset; 
+      px_rec = trPx[0] * p_calib_Offset * p_rec_Offset; 
+      py_rec = trPy[0] * p_calib_Offset * p_rec_Offset; 
+      pz_rec = trPz[0] * p_calib_Offset * p_rec_Offset;
 
       // elastic calculations (Using 4-vector method)
       // Relevant 4-vectors
@@ -1606,11 +1633,11 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TCanvas *cSummary = new TCanvas("cSummary","Summary");
   cSummary->cd();
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
+  pt->AddText(Form(" Date of creation: %s",getDate().c_str()));
   pt->AddText(Form("Configfile: BBCal_replay/macros/Combined_macros/cfg/%s.cfg",cfgfilebase.Data()));
-  pt->AddText(Form(" Date of creation: %s", getDate().c_str()));
-  pt->AddText(Form(" Total # events analyzed: %lld", Nevents));
-  pt->AddText(Form(" E/p  (before calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
-  pt->AddText(Form(" E/p (after calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100));
+  pt->AddText(Form(" Total # events analyzed: %lld, Preparing for replay pass: %d",Nevents,ppass));
+  pt->AddText(Form(" E/p (before calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
+  pt->AddText(Form(" E/p (after calib.)    | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100));
   pt->AddText(" Global cuts: ");
   std::string tmpstr = "";
   for (std::size_t i=0; i<gCutList.size(); i++) {
@@ -1639,13 +1666,16 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   pt->AddText(Form(" Minimum # events per block: %d, (Cluster) hit threshold: %.2f GeV",Nmin,hit_threshold));
   pt->AddText(" Various offsets: ");
   pt->AddText(Form(" Momentum fudge factor: %.2f, BBCAL cluster energy scale factor: %.2f",p_rec_Offset,cF));
+  if (mom_calib) pt->AddText(Form(" Momentum calibration factors: A = %.9f, B = %.9f, C = %.1f, #theta^{GEM}_{pitch} = %.1f^{o}, d_{BB} = %.4f m",A_fit,B_fit,C_fit,GEMpitch,bb_magdist));
   sw->Stop(); sw2->Stop();
   pt->AddText(Form("Macro processing time: CPU %.1fs | Real %.1fs",sw->CpuTime(),sw->RealTime()));
-  TText *t1 = pt->GetLineWith("Configfile"); t1->SetTextColor(kRed);
-  TText *t2 = pt->GetLineWith(" Global"); t2->SetTextColor(kBlue);
-  TText *t3 = pt->GetLineWith(" Other"); t3->SetTextColor(kBlue);
-  TText *t4 = pt->GetLineWith(" Various"); t4->SetTextColor(kBlue);
-  TText *t5 = pt->GetLineWith("Macro"); t5->SetTextColor(kGreen+3);
+  TText *t1 = pt->GetLineWith("Configfile"); t1->SetTextColor(kRed+2);
+  TText *t2 = pt->GetLineWith(" E/p (be"); t2->SetTextColor(kRed);
+  TText *t3 = pt->GetLineWith(" E/p (af"); t3->SetTextColor(kGreen+2);
+  TText *t4 = pt->GetLineWith(" Global"); t4->SetTextColor(kBlue);
+  TText *t5 = pt->GetLineWith(" Other"); t5->SetTextColor(kBlue);
+  TText *t6 = pt->GetLineWith(" Various"); t6->SetTextColor(kBlue);
+  TText *t7 = pt->GetLineWith("Macro"); t7->SetTextColor(kGreen+3);
   pt->Draw();
   cSummary->SaveAs(Form("%s",outPlot.Data())); cSummary->SaveAs(Form("%s]",outPlot.Data())); cSummary->Write();  
   //**** -- ***//
