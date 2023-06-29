@@ -136,7 +136,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 
   TString exp = "unknown";
   Int_t config = -1;   // Experimental configuration
-  Int_t pass = -1;     // Replay pass to get ready for
+  Int_t ppass = -1;     // Replay pass to get ready for
   Double_t Ebeam = 0.; // GeV
   Double_t atpos_nom = 0.; //ns
   Double_t h_atime_bin = 240, h_atime_min = -60., h_atime_max = 60.;
@@ -166,7 +166,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
       TString skey = ( (TObjString*)(*tokens)[0] )->GetString();
       if (skey == "exp") exp = ((TObjString*)(*tokens)[1])->GetString();
       if (skey == "config") config = ((TObjString*)(*tokens)[1])->GetString().Atoi();
-      if (skey == "pass") pass = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+      if (skey == "pre_pass") ppass = ((TObjString*)(*tokens)[1])->GetString().Atoi();
       if (skey == "E_beam") Ebeam = ((TObjString*)(*tokens)[1])->GetString().Atof();
       if (skey == "atpos_nom") atpos_nom = ((TObjString*)(*tokens)[1])->GetString().Atof();
       if (skey == "h_atime") {
@@ -216,11 +216,11 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   Double_t hodo_tmean[maxtr];   C->SetBranchStatus("bb.hodotdc.clus.tmean",1); C->SetBranchAddress("bb.hodotdc.clus.tmean",&hodo_tmean);
   Double_t hodo_trIndex[maxtr]; C->SetBranchStatus("bb.hodotdc.clus.trackindex",1); C->SetBranchAddress("bb.hodotdc.clus.trackindex",&hodo_trIndex);
   // turning on additional branches for the global cut
-  C->SetBranchStatus("e.kine.W2", 1);
-  C->SetBranchStatus("bb.tr.n", 1);
-  C->SetBranchStatus("bb.tr.vz", 1);
-  C->SetBranchStatus("bb.gem.track.nhits", 1);
-  //C->SetBranchStatus("g.trigbits", 1);
+  C->SetBranchStatus("e.kine.W2",1);
+  C->SetBranchStatus("bb.tr.n",1);
+  C->SetBranchStatus("bb.tr.vz",1);
+  C->SetBranchStatus("bb.gem.track.nhits",1);
+  if (exp=="gmn" && ppass<=2 && config>7) C->SetBranchStatus("g.trigbits",1);
 
   // creating atimeOff histograms per BBCal block
   for(int r = 0; r < kNrowsSH; r++) {
@@ -250,20 +250,20 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   char const * exptag = "unknown";
   if (exp=="gmn") exptag = "sbs";
   else if (exp=="gen") exptag = "gen";
-  int ppass = pass-1;
-  if (exp=="gmn" && (config==4 || config==7) && pass==2) ppass = 0;
-  atimeOff_sh = Form("Output/%s%d_atimeOff_sh_pass%d.txt",exptag,config,ppass);
-  atimeOff_ps = Form("Output/%s%d_atimeOff_ps_pass%d.txt",exptag,config,ppass);
+  int cpass = ppass-1;
+  if (exp=="gmn" && ppass==2) cpass = 0;
+  atimeOff_sh = Form("Output/%s%d_prepass%d_atimeOff_sh.txt",exptag,config,cpass);
+  atimeOff_ps = Form("Output/%s%d_prepass%d_atimeOff_ps.txt",exptag,config,cpass);
   ReadOffset(atimeOff_sh, old_ash_atimeOffs);
   ReadOffset(atimeOff_ps, old_aps_atimeOffs);
 
   // define output files
   char const * debug = isdebug ? "_test" : "";
   TString outFile, outPeaks, toffset_ps, toffset_sh;
-  outPeaks = Form("plots/%s%d_atimeOff_pass%d%s.pdf",exptag,config,pass,debug);
-  outFile = Form("hist/%s%d_atimeOff_pass%d%s.root",exptag,config,pass,debug);
-  toffset_ps = Form("Output/%s%d_atimeOff_ps_pass%d%s.txt",exptag,config,pass,debug);
-  toffset_sh = Form("Output/%s%d_atimeOff_sh_pass%d%s.txt",exptag,config,pass,debug);
+  outPeaks = Form("plots/%s%d_prepass%d_atimeOff%s.pdf",exptag,config,ppass,debug);
+  outFile = Form("hist/%s%d_prepass%d_atimeOff%s.root",exptag,config,ppass,debug);
+  toffset_sh = Form("Output/%s%d_prepass%d_atimeOff_sh%s.txt",exptag,config,ppass,debug);
+  toffset_ps = Form("Output/%s%d_prepass%d_atimeOff_ps%s.txt",exptag,config,ppass,debug);
   ofstream toffset_psdata, toffset_shdata;
   toffset_psdata.open(toffset_ps);
   toffset_shdata.open(toffset_sh);
@@ -274,10 +274,10 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   TH1F *h_W = new TH1F("h_W","W distribution",200,0.,5.);
   TH1F *h_Q2 = new TH1F("h_Q2","Q2 distribution",300,1.,15.);
 
-  TH1F *h_atimeSH = new TH1F("h_atimeSH","SH ADC time | Before corr.",300,-10,10);
-  TH1F *h_atimeSH_corr = new TH1F("h_atimeSH_corr","SH ADC time | After corr.",300,-10,10);
-  TH1F *h_atimePS = new TH1F("h_atimePS","PS ADC time | Before corr.",300,-10,10);
-  TH1F *h_atimePS_corr = new TH1F("h_atimePS_corr","PS ADC time | After corr.",300,-10,10);
+  TH1F *h_atimeSH = new TH1F("h_atimeSH","SH ADC time | Before corr.",300,-40,20);
+  TH1F *h_atimeSH_corr = new TH1F("h_atimeSH_corr","SH ADC time | After corr.",300,-40,20);
+  TH1F *h_atimePS = new TH1F("h_atimePS","PS ADC time | Before corr.",300,-40,20);
+  TH1F *h_atimePS_corr = new TH1F("h_atimePS_corr","PS ADC time | After corr.",300,-40,20);
 
   TH1F *h_atimeOffSH = new TH1F("h_atimeOffSH","Peak pos. of (SH ADCtime - TH ClusTmean) dist. (w/ fit error) | Before corr.",kNblksSH,0,kNblksSH);
   TH1F *h_atimeOffSH_corr = new TH1F("h_atimeOffSH_corr","Peak pos. of (SH ADCtime - TH ClusTmean) dist. (w/ fit error) | After corr.",kNblksSH,0,kNblksSH);
@@ -779,7 +779,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
   pt->AddText(Form(" Date of creation: %s", getDate().c_str()));
   pt->AddText(Form("Configfile: BBCal_replay/macros/Combined_macros/%s.cfg",cfgfilebase.Data()));
-  pt->AddText(Form(" %s configuration: %d, Preparing for replay pass: %d",exptag,config,pass));
+  pt->AddText(Form(" %s configuration: %d, Preparing for replay pass: %d",exptag,config,ppass));
   pt->AddText(Form(" Total # events analyzed: %lld", nevents));
   // pt->AddText(Form(" BBCAL ADC time (before corr.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
   // pt->AddText(Form(" BBCAL ADC time (after corr.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param[1],param[2]*100,sigerr*100));
