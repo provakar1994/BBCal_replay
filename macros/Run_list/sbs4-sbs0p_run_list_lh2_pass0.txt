@@ -1,3 +1,4 @@
+Nruns 3 # <- No. of unique runs to analyze [*IMPORTANT!]
 /w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS4/LH2/rootfiles/*11573*
 /w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS4/LH2/rootfiles/*11587*
 /w/halla-scshelf2102/sbs/sbs-gmn/pass0/SBS4/LH2/rootfiles/*11588*
