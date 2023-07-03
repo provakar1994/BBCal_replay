@@ -439,21 +439,26 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	fgaus->SetParameters( maxCount,maxBinCenter,stdDev );
 	fgaus->SetRange( lofitlim, hifitlim );
 	h_atime_sh[r][c]->Fit(fgaus,"+RQ");
+
+	double mean = fgaus->GetParameter(1);
+	double meanerr = fgaus->GetParError(1);
+	double rms = fgaus->GetParameter(2);
+	double rmserr = fgaus->GetParError(2);
 	
-	h_atimeOffSH->Fill(blkid, fgaus->GetParameter(1));
-	h_atimeOffSH->SetBinError(blkid, fgaus->GetParError(1));
+	h_atimeOffSH->Fill(blkid, mean);
+	h_atimeOffSH->SetBinError(blkid, meanerr);
 
-	h_atimeRMSSH->Fill(blkid, fgaus->GetParameter(2));
-	h_atimeRMSSH->SetBinError(blkid, fgaus->GetParError(2));
+	h_atimeRMSSH->Fill(blkid, rms);
+	h_atimeRMSSH->SetBinError(blkid, rmserr);
 
-	h_atimeOffnRMSSH->Fill(blkid, fgaus->GetParameter(1));
-	h_atimeOffnRMSSH->SetBinError(blkid, fgaus->GetParameter(2));
+	h_atimeOffnRMSSH->Fill(blkid, mean);
+	h_atimeOffnRMSSH->SetBinError(blkid, rms);
 
-	h2_atimeOffSH_detview->Fill(c, r, fgaus->GetParameter(1));
+	h2_atimeOffSH_detview->Fill(c, r, mean);
 
-	cout << fgaus->GetParameter(1) + old_ash_atimeOffs[blkid] << " "; 
-	toffset_shdata << fgaus->GetParameter(1) + old_ash_atimeOffs[blkid] << " "; 
-	ash_atimeOffs[blkid] = fgaus->GetParameter(1);
+	cout << mean + old_ash_atimeOffs[blkid] << " "; 
+	toffset_shdata << mean + old_ash_atimeOffs[blkid] << " "; 
+	ash_atimeOffs[blkid] = mean;
       }else{
 	cout << -atpos_nom << " ";
 	toffset_shdata << -atpos_nom << " ";
@@ -509,20 +514,25 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	fgaus->SetRange( lofitlim, hifitlim );
 	h_atime_ps[r][c]->Fit(fgaus,"+RQ");
 
-	h_atimeOffPS->Fill(blkid, fgaus->GetParameter(1));
-	h_atimeOffPS->SetBinError(blkid, fgaus->GetParError(1));
+	double mean = fgaus->GetParameter(1);
+	double meanerr = fgaus->GetParError(1);
+	double rms = fgaus->GetParameter(2);
+	double rmserr = rmserr;
 
-	h_atimeRMSPS->Fill(blkid, fgaus->GetParameter(2));
-	h_atimeRMSPS->SetBinError(blkid, fgaus->GetParError(2));
+	h_atimeOffPS->Fill(blkid, mean);
+	h_atimeOffPS->SetBinError(blkid, meanerr);
 
-	h_atimeOffnRMSPS->Fill(blkid, fgaus->GetParameter(1));
-	h_atimeOffnRMSPS->SetBinError(blkid, fgaus->GetParameter(2));
+	h_atimeRMSPS->Fill(blkid, rms);
+	h_atimeRMSPS->SetBinError(blkid, rmserr);
 
-	h2_atimeOffPS_detview->Fill(c, r, fgaus->GetParameter(1));
+	h_atimeOffnRMSPS->Fill(blkid, mean);
+	h_atimeOffnRMSPS->SetBinError(blkid, rms);
 
-	cout << fgaus->GetParameter(1) + old_aps_atimeOffs[blkid] << " "; 
-	toffset_psdata << fgaus->GetParameter(1) + old_aps_atimeOffs[blkid] << " "; 
-	aps_atimeOffs[blkid] = fgaus->GetParameter(1);
+	h2_atimeOffPS_detview->Fill(c, r, mean);
+
+	cout << mean + old_aps_atimeOffs[blkid] << " "; 
+	toffset_psdata << mean + old_aps_atimeOffs[blkid] << " "; 
+	aps_atimeOffs[blkid] = mean;
       }else{
 	cout << -atpos_nom << " "; 
 	toffset_psdata << -atpos_nom << " "; 
@@ -614,21 +624,26 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	fgaus->SetParameters( maxCount,maxBinCenter,stdDev );
 	fgaus->SetRange( lofitlim, hifitlim );
 	h_atime_sh_corr[r][c]->Fit(fgaus,"+RQ");
+
+	double mean = fgaus->GetParameter(1);
+	double meanerr = fgaus->GetParError(1);
+	double rms = fgaus->GetParameter(2);
+	double rmserr = fgaus->GetParError(2);
 	
-	h_atimeOffSH_corr->Fill(blkid, fgaus->GetParameter(1));
-	h_atimeOffSH_corr->SetBinError(blkid, fgaus->GetParError(1));
+	h_atimeOffSH_corr->Fill(blkid, mean);
+	h_atimeOffSH_corr->SetBinError(blkid, meanerr);
 
-	h_atimeRMSSH_corr->Fill(blkid, fgaus->GetParameter(2));
-	h_atimeRMSSH_corr->SetBinError(blkid, fgaus->GetParError(2));
+	h_atimeRMSSH_corr->Fill(blkid, rms);
+	h_atimeRMSSH_corr->SetBinError(blkid, rmserr);
 
-	h_atimeOffnRMSSH_corr->Fill(blkid, fgaus->GetParameter(1));
-	h_atimeOffnRMSSH_corr->SetBinError(blkid, fgaus->GetParameter(2));
+	h_atimeOffnRMSSH_corr->Fill(blkid, mean);
+	h_atimeOffnRMSSH_corr->SetBinError(blkid, rms);
 
-	h2_atimeOffSH_detview_corr->Fill(c, r, fgaus->GetParameter(1));
+	h2_atimeOffSH_detview_corr->Fill(c, r, mean);
 
-	// cout << fgaus->GetParameter(1) << " "; 
-	// toffset_shdata << fgaus->GetParameter(1) << " "; 
-	// ash_atimeOffs[blkid] = fgaus->GetParameter(1);
+	// cout << mean << " "; 
+	// toffset_shdata << mean << " "; 
+	// ash_atimeOffs[blkid] = mean;
       }else{
 	// cout << 0. << " ";
 	// toffset_shdata << 0. << " ";
@@ -684,20 +699,25 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	fgaus->SetRange( lofitlim, hifitlim );
 	h_atime_ps_corr[r][c]->Fit(fgaus,"+RQ");
 
-	h_atimeOffPS_corr->Fill(blkid, fgaus->GetParameter(1));
-	h_atimeOffPS_corr->SetBinError(blkid, fgaus->GetParError(1));
+	double mean = fgaus->GetParameter(1);
+	double meanerr = fgaus->GetParError(1);
+	double rms = fgaus->GetParameter(2);
+	double rmserr = fgaus->GetParError(2);
 
-	h_atimeRMSPS_corr->Fill(blkid, fgaus->GetParameter(2));
-	h_atimeRMSPS_corr->SetBinError(blkid, fgaus->GetParError(2));
+	h_atimeOffPS_corr->Fill(blkid, mean);
+	h_atimeOffPS_corr->SetBinError(blkid, meanerr);
 
-	h_atimeOffnRMSPS_corr->Fill(blkid, fgaus->GetParameter(1));
-	h_atimeOffnRMSPS_corr->SetBinError(blkid, fgaus->GetParameter(2));
+	h_atimeRMSPS_corr->Fill(blkid, rms);
+	h_atimeRMSPS_corr->SetBinError(blkid, rmserr);
 
-	h2_atimeOffPS_detview_corr->Fill(c, r, fgaus->GetParameter(1));
+	h_atimeOffnRMSPS_corr->Fill(blkid, mean);
+	h_atimeOffnRMSPS_corr->SetBinError(blkid, rms);
 
-	// cout << fgaus->GetParameter(1) << " "; 
-	// toffset_psdata << fgaus->GetParameter(1) << " "; 
-	// aps_atimeOffs[blkid] = fgaus->GetParameter(1);
+	h2_atimeOffPS_detview_corr->Fill(c, r, mean);
+
+	// cout << mean << " "; 
+	// toffset_psdata << mean << " "; 
+	// aps_atimeOffs[blkid] = mean;
       }else{
 	// cout << 0. << " "; 
 	// toffset_psdata << 0. << " "; 
