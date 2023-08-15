@@ -1,0 +1,5 @@
+Nruns 3 # <- No. of unique runs to analyze [*IMPORTANT!]
+/lustre19/expphy/volatile/halla/sbs/sbs-gen/GEN_REPLAYS/Rootfiles/GEN4/H2/rootfiles/*4457*
+/lustre19/expphy/volatile/halla/sbs/sbs-gen/GEN_REPLAYS/Rootfiles/GEN4/H2/rootfiles/*4458*
+/lustre19/expphy/volatile/halla/sbs/sbs-gen/GEN_REPLAYS/Rootfiles/GEN4/H2/rootfiles/*4459*
+endlist
