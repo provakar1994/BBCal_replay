@@ -94,6 +94,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t h2_pang_bin = 200, h2_pang_min = 0., h2_pang_max = 5.;
   Double_t h2_p_coarse_bin = 25, h2_p_coarse_min = 0., h2_p_coarse_max = 5.;
   Double_t h2_EovP_bin = 200, h2_EovP_min = 0., h2_EovP_max = 5.;
+  Double_t h2_dx_bin = 150, h2_dx_min = -2.5, h2_dx_max = 1.;
+  Double_t h2_dy_bin = 200, h2_dy_min = -1., h2_dy_max = 1.;
   //parameters to calculate calibrated momentum
   bool mom_calib = 0;
   Double_t A_fit = 0., B_fit = 0., C_fit = 0.;
@@ -148,234 +150,170 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   //   }   
   // } 
   TCut globalcut = ""; TString gcutstr;
-  while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endcut") ){
-    if( !currentline.BeginsWith("#") ){
+  while (currentline.ReadLine(configfile) && !currentline.BeginsWith("endcut")) {
+    if (!currentline.BeginsWith("#")) {
       globalcut += currentline;
       gcutstr += currentline;
     }    
   }
   std::vector<std::string> gCutList = SplitString('&', gcutstr.Data());
   TTreeFormula *GlobalCut = new TTreeFormula("GlobalCut", globalcut, C);
-  while( currentline.ReadLine( configfile ) ){
-    if( currentline.BeginsWith("#") ) continue;
+  while (currentline.ReadLine(configfile)) {
+    if (currentline.BeginsWith("#")) continue;
     TObjArray *tokens = currentline.Tokenize(" ");
     Int_t ntokens = tokens->GetEntries();
     if( ntokens>1 ){
-      TString skey = ( (TObjString*)(*tokens)[0] )->GetString();
+      TString skey = ((TObjString*)(*tokens)[0])->GetString();
       if( skey == "macros_dir" ){
-	macros_dir = ( (TObjString*)(*tokens)[1] )->GetString();
+	macros_dir = ((TObjString*)(*tokens)[1])->GetString();
       }
       if( skey == "pre_pass" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	ppass = sval.Atoi();
+	ppass = ((TObjString*)(*tokens)[1])->GetString().Atoi();
       }
       if( skey == "read_gain" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	read_gain = sval.Atoi();
+	read_gain = ((TObjString*)(*tokens)[1])->GetString().Atoi();
       }
       if( skey == "E_beam" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	E_beam = sval.Atof();
+	E_beam = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
       if( skey == "SBS_theta" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	sbstheta = sval.Atof(); sbstheta *= TMath::DegToRad(); 
+	sbstheta = ((TObjString*)(*tokens)[1])->GetString().Atof();
+	sbstheta *= TMath::DegToRad(); 
       }
       if( skey == "HCAL_dist" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	hcaldist = sval.Atof();
+	hcaldist = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
       if( skey == "hit_threshold" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	hit_threshold = sval.Atof();
+	hit_threshold = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
       if( skey == "Min_Event_Per_Channel" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	Nmin = sval.Atof();
+	Nmin = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
       if( skey == "Min_MB_Ratio" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	minMBratio = sval.Atoi();
+	minMBratio = ((TObjString*)(*tokens)[1])->GetString().Atoi();
       }
       if( skey == "psE_cut" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_psE = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	psE_cut_limit = sval1.Atof();
+	cut_on_psE = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	psE_cut_limit = ((TObjString*)(*tokens)[2])->GetString().Atof();
       } 
       if( skey == "clusE_cut" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_clusE = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	clusE_cut_limit = sval1.Atof();
+	cut_on_clusE = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	clusE_cut_limit = ((TObjString*)(*tokens)[2])->GetString().Atof();
       }      
       if( skey == "pmin_cut" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_pmin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	p_min_cut = sval1.Atof();
+	cut_on_pmin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	p_min_cut = ((TObjString*)(*tokens)[2])->GetString().Atof();
       }
       if( skey == "pmax_cut" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_pmax = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	p_max_cut = sval1.Atof();
+	cut_on_pmax = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	p_max_cut = ((TObjString*)(*tokens)[2])->GetString().Atof();
       }
       if( skey == "EovP_cut" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_EovP = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	EovP_cut_limit = sval1.Atof();
+	cut_on_EovP = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	EovP_cut_limit = ((TObjString*)(*tokens)[2])->GetString().Atof();
       }
       if( skey == "W_cut" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_W = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	W_mean = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	W_sigma = sval2.Atof();
-	TString sval3 = ( (TObjString*)(*tokens)[4] )->GetString();
-	W_nsigma = sval3.Atof();
+	cut_on_W = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	W_mean = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	W_sigma = ((TObjString*)(*tokens)[3])->GetString().Atof();
+	W_nsigma = ((TObjString*)(*tokens)[4])->GetString().Atof();
       }
       if( skey == "PovPel_cut" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_PovPel = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	PovPel_mean = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	PovPel_sigma = sval2.Atof();
-	TString sval3 = ( (TObjString*)(*tokens)[4] )->GetString();
-	PovPel_nsigma = sval3.Atof();
+	cut_on_PovPel = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	PovPel_mean = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	PovPel_sigma = ((TObjString*)(*tokens)[3])->GetString().Atof();
+	PovPel_nsigma = ((TObjString*)(*tokens)[4])->GetString().Atof();
       }
       if( skey == "pspot_cut" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cut_on_pspot = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	pspot_dxM = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	pspot_dxS = sval2.Atof();
-	TString sval3 = ( (TObjString*)(*tokens)[4] )->GetString();
-	pspot_ndxS = sval3.Atof();
-	TString sval4 = ( (TObjString*)(*tokens)[5] )->GetString();
-	pspot_dyM = sval4.Atof();
-	TString sval5 = ( (TObjString*)(*tokens)[6] )->GetString();
-	pspot_dyS = sval5.Atof();
-	TString sval6 = ( (TObjString*)(*tokens)[7] )->GetString();
-	pspot_ndyS = sval6.Atof();
+	cut_on_pspot = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	pspot_dxM = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	pspot_dxS = ((TObjString*)(*tokens)[3])->GetString().Atof();
+	pspot_ndxS = ((TObjString*)(*tokens)[4])->GetString().Atof();
+	pspot_dyM = ((TObjString*)(*tokens)[5])->GetString().Atof();
+	pspot_dyS = ((TObjString*)(*tokens)[6])->GetString().Atof();
+	pspot_ndyS = ((TObjString*)(*tokens)[7])->GetString().Atof();
       }
       if( skey == "h_W" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h_W_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h_W_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h_W_max = sval2.Atof();
+	h_W_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h_W_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h_W_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "h_Q2" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h_Q2_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h_Q2_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h_Q2_max = sval2.Atof();
+	h_Q2_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h_Q2_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h_Q2_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "h_PovPel" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h_PovPel_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h_PovPel_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h_PovPel_max = sval2.Atof();
+	h_PovPel_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h_PovPel_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h_PovPel_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "h_EovP" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h_EovP_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h_EovP_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h_EovP_max = sval2.Atof();
+	h_EovP_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h_EovP_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h_EovP_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "EovP_fit_width" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	EovP_fit_width = sval.Atof();
+	EovP_fit_width = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
       if( skey == "h_clusE" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h_clusE_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h_clusE_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h_clusE_max = sval2.Atof();
+	h_clusE_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h_clusE_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h_clusE_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "h_shE" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h_shE_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h_shE_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h_shE_max = sval2.Atof();
+	h_shE_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h_shE_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h_shE_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "h_psE" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h_psE_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h_psE_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h_psE_max = sval2.Atof();
+	h_psE_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h_psE_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h_psE_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "h2_p" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h2_p_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h2_p_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h2_p_max = sval2.Atof();
+	h2_p_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h2_p_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h2_p_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "h2_pang" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h2_pang_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h2_pang_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h2_pang_max = sval2.Atof();
+	h2_pang_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h2_pang_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h2_pang_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "h2_p_coarse" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h2_p_coarse_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h2_p_coarse_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h2_p_coarse_max = sval2.Atof();
+	h2_p_coarse_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h2_p_coarse_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h2_p_coarse_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "h2_EovP" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	h2_EovP_bin = sval.Atoi();
-	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-	h2_EovP_min = sval1.Atof();
-	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-	h2_EovP_max = sval2.Atof();
+	h2_EovP_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h2_EovP_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h2_EovP_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
+      }
+      if( skey == "h2_dx" ){
+	h2_dx_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h2_dx_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h2_dx_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
+      }
+      if( skey == "h2_dy" ){
+	h2_dy_bin = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	h2_dy_min = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	h2_dy_max = ((TObjString*)(*tokens)[3])->GetString().Atof();
       }
       if( skey == "p_rec_Offset" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	p_rec_Offset = sval.Atof();
+	p_rec_Offset = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
       if( skey == "Corr_Factor_Enrg_Calib_w_Cosmic" ){
-	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-	cF = sval.Atof();
+	cF = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
       if( skey == "mom_calib" ){
-      	TString sval = ( (TObjString*)(*tokens)[1] )->GetString();
-      	mom_calib = sval.Atoi();
-      	TString sval1 = ( (TObjString*)(*tokens)[2] )->GetString();
-      	A_fit = sval1.Atof();
-      	TString sval2 = ( (TObjString*)(*tokens)[3] )->GetString();
-      	B_fit = sval2.Atof();
-      	TString sval3 = ( (TObjString*)(*tokens)[4] )->GetString();
-      	C_fit = sval3.Atof();
-      	TString sval4 = ( (TObjString*)(*tokens)[5] )->GetString();
-      	GEMpitch = sval4.Atof();
-      	TString sval5 = ( (TObjString*)(*tokens)[6] )->GetString();
-        bb_magdist = sval5.Atof();
+      	mom_calib = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+      	A_fit = ((TObjString*)(*tokens)[2])->GetString().Atof();
+      	B_fit = ((TObjString*)(*tokens)[3])->GetString().Atof();
+      	C_fit = ((TObjString*)(*tokens)[4])->GetString().Atof();
+      	GEMpitch = ((TObjString*)(*tokens)[5])->GetString().Atof();
+      	bb_magdist = ((TObjString*)(*tokens)[6])->GetString().Atof();
       }
       if( skey == "*****" ){
 	break;
@@ -519,41 +457,41 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
   // Physics histograms
   char const * hecut = elastic_cut ? " (el. cut)" : "";
-  TH1D *h_W = new TH1D("h_W", "W distribution", h_W_bin, h_W_min, h_W_max);
-  TH1D *h_W_pspotcut = new TH1D("h_W_pspotcut", "W distribution w/ pspotcut", h_W_bin, h_W_min, h_W_max);
-  TH1D *h_Q2 = new TH1D("h_Q2", "Q2 distribution", h_Q2_bin, h_Q2_min, h_Q2_max);
-  TH1D *h_PovPel = new TH1D("h_PovPel", ";p/p_{elastic}(#theta)", h_PovPel_bin, h_PovPel_min, h_PovPel_max);
-  TH1D *h_PovPel_pspotcut = new TH1D("h_PovPel_pspotcut", "p/p_{elastic}(#theta) w/ p spot cut;p/p_{elastic}(#theta) (w/ p spot cut)", h_PovPel_bin, h_PovPel_min, h_PovPel_max);
-  TH1D *h_EovP = new TH1D("h_EovP", Form("E/p (Before Calib.)%s",hecut), h_EovP_bin, h_EovP_min, h_EovP_max);
-  TH1D *h_EovP_calib = new TH1D("h_EovP_calib", Form("E/p%s",hecut), h_EovP_bin, h_EovP_min, h_EovP_max);
-  TH1D *h_clusE = new TH1D("h_clusE", Form("Best SH+PS cl. eng.%s",hecut), h_clusE_bin, h_clusE_min, h_clusE_max);
-  TH1D *h_clusE_calib = new TH1D("h_clusE_calib", Form("Best SH+PS cl. eng. u (sh/ps.e)*%2.2f%s",cF,hecut), h_clusE_bin, h_clusE_min, h_clusE_max);
-  TH1D *h_SHclusE = new TH1D("h_SHclusE", Form("Best SH Cluster Energy%s",hecut), h_shE_bin, h_shE_min, h_shE_max);
-  TH1D *h_SHclusE_calib = new TH1D("h_SHclusE_calib", Form("Best SH cl. eng. u (sh.e)*%2.2f%s",cF,hecut), h_shE_bin, h_shE_min, h_shE_max);
-  TH1D *h_PSclusE = new TH1D("h_PSclusE", Form("Best PS Cluster Energy%s",hecut), h_psE_bin, h_psE_min, h_psE_max);
-  TH1D *h_PSclusE_calib = new TH1D("h_PSclusE_calib", Form("Best PS cl. eng. u (ps.e)*%2.2f%s",cF,hecut), h_psE_bin, h_psE_min, h_psE_max);
-  TH1D *h_shX_diff = new TH1D("h_shX_diff", Form("Vertical Position Difference%s; sh.x - tr.x (m)",hecut), 200, -0.5, 0.5);
-  TH1D *h_shY_diff = new TH1D("h_shY_diff", Form("Horizontal Position Difference%s; sh.y - tr.y (m)",hecut), 200, -0.5, 0.5);
-  TH1D *h_shX_diff_calib = new TH1D("h_shX_diff_calib", Form("Vertical Pos. Diff. | After Calib.%s; sh.x - tr.x (m)",hecut), 200, -0.5, 0.5);
-  TH1D *h_shY_diff_calib = new TH1D("h_shY_diff_calib", Form("Horizontal Pos. Diff. | After Calib.%s; sh.y - tr.y (m)",hecut), 200, -0.5, 0.5);
-  TH2D *h2_p_rec_vs_etheta = new TH2D("h2_p_rec_vs_etheta", Form("Track p vs Track ang%s",hecut), h2_pang_bin, h2_pang_min, h2_pang_max, h2_p_bin, h2_p_min, h2_p_max);
+  TH1D *h_W = new TH1D("h_W",";W (GeV)",h_W_bin,h_W_min,h_W_max);
+  TH1D *h_W_pspotcut = new TH1D("h_W_pspotcut",";W (GeV) w/ pspotcut",h_W_bin,h_W_min,h_W_max);
+  TH1D *h_Q2 = new TH1D("h_Q2","Q2 distribution",h_Q2_bin,h_Q2_min,h_Q2_max);
+  TH1D *h_PovPel = new TH1D("h_PovPel",";p/p_{elastic}(#theta)",h_PovPel_bin,h_PovPel_min,h_PovPel_max);
+  TH1D *h_PovPel_pspotcut = new TH1D("h_PovPel_pspotcut","p/p_{elastic}(#theta) w/ p spot cut;p/p_{elastic}(#theta) (w/ p spot cut)",h_PovPel_bin,h_PovPel_min,h_PovPel_max);
+  TH1D *h_EovP = new TH1D("h_EovP",Form("E/p (Before Calib.)%s",hecut),h_EovP_bin,h_EovP_min,h_EovP_max);
+  TH1D *h_EovP_calib = new TH1D("h_EovP_calib",Form("E/p%s",hecut),h_EovP_bin,h_EovP_min,h_EovP_max);
+  TH1D *h_clusE = new TH1D("h_clusE",Form("Best SH+PS cl. eng.%s",hecut),h_clusE_bin,h_clusE_min,h_clusE_max);
+  TH1D *h_clusE_calib = new TH1D("h_clusE_calib",Form("Best SH+PS cl. eng. u (sh/ps.e)*%2.2f%s",cF,hecut),h_clusE_bin,h_clusE_min,h_clusE_max);
+  TH1D *h_SHclusE = new TH1D("h_SHclusE",Form("Best SH Cluster Energy%s",hecut),h_shE_bin,h_shE_min,h_shE_max);
+  TH1D *h_SHclusE_calib = new TH1D("h_SHclusE_calib",Form("Best SH cl. eng. u (sh.e)*%2.2f%s",cF,hecut),h_shE_bin,h_shE_min,h_shE_max);
+  TH1D *h_PSclusE = new TH1D("h_PSclusE",Form("Best PS Cluster Energy%s",hecut),h_psE_bin,h_psE_min,h_psE_max);
+  TH1D *h_PSclusE_calib = new TH1D("h_PSclusE_calib",Form("Best PS cl. eng. u (ps.e)*%2.2f%s",cF,hecut),h_psE_bin,h_psE_min,h_psE_max);
+  TH1D *h_shX_diff = new TH1D("h_shX_diff",Form("Vertical Position Difference%s; sh.x - tr.x (m)",hecut),200,-0.5,0.5);
+  TH1D *h_shY_diff = new TH1D("h_shY_diff",Form("Horizontal Position Difference%s; sh.y - tr.y (m)",hecut),200,-0.5,0.5);
+  TH1D *h_shX_diff_calib = new TH1D("h_shX_diff_calib",Form("Vertical Pos. Diff. | After Calib.%s; sh.x - tr.x (m)",hecut),200,-0.5,0.5);
+  TH1D *h_shY_diff_calib = new TH1D("h_shY_diff_calib",Form("Horizontal Pos. Diff. | After Calib.%s; sh.y - tr.y (m)",hecut),200,-0.5,0.5);
+  TH2D *h2_p_rec_vs_etheta = new TH2D("h2_p_rec_vs_etheta",Form("Track p vs Track ang%s",hecut),h2_pang_bin,h2_pang_min,h2_pang_max,h2_p_bin,h2_p_min,h2_p_max);
 
-  TH2D *h2_EovP_vs_P = new TH2D("h2_EovP_vs_P", Form("E/p vs p%s; p (GeV); E/p",hecut), h2_p_coarse_bin, h2_p_coarse_min, h2_p_coarse_max, h2_EovP_bin, h2_EovP_min, h2_EovP_max);
+  TH2D *h2_EovP_vs_P = new TH2D("h2_EovP_vs_P",Form("E/p vs p%s; p (GeV); E/p",hecut),h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h2_EovP_bin,h2_EovP_min,h2_EovP_max);
   TProfile *h2_EovP_vs_P_prof = new TProfile("h2_EovP_vs_P_prof","E/p vs P (Profile)",h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h_EovP_min,h_EovP_max,"S");
-  TH2D *h2_EovP_vs_P_calib = new TH2D("h2_EovP_vs_P_calib", Form("E/p vs p | After Calib.%s; p (GeV); E/p",hecut), h2_p_coarse_bin, h2_p_coarse_min, h2_p_coarse_max, h2_EovP_bin, h2_EovP_min, h2_EovP_max);
+  TH2D *h2_EovP_vs_P_calib = new TH2D("h2_EovP_vs_P_calib",Form("E/p vs p | After Calib.%s; p (GeV); E/p",hecut),h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h2_EovP_bin,h2_EovP_min,h2_EovP_max);
   TProfile *h2_EovP_vs_P_calib_prof = new TProfile("h2_EovP_vs_P_calib_prof","E/p vs P (Profile) a clib.",h2_p_coarse_bin,h2_p_coarse_min,h2_p_coarse_max,h_EovP_min,h_EovP_max,"S");
 
-  TH2D *h2_SHeng_vs_SHblk = new TH2D("h2_SHeng_vs_SHblk", Form("SH cl. eng. per SH block%s",hecut), kNcolsSH, 0, kNcolsSH, kNrowsSH, 0, kNrowsSH);
-  TH2D *h2_EovP_vs_SHblk = new TH2D("h2_EovP_vs_SHblk", Form("E/p per SH block%s",hecut), kNcolsSH, 0, kNcolsSH, kNrowsSH, 0, kNrowsSH);
-  TH2D *h2_EovP_vs_SHblk_calib = new TH2D("h2_EovP_vs_SHblk_calib", Form("E/p per SH block | After Calib.%s",hecut), kNcolsSH, 0, kNcolsSH, kNrowsSH, 0, kNrowsSH);
-  TH2D *h2_EovP_vs_SHblk_trPOS = new TH2D("h2_EovP_vs_SHblk_trPOS", Form("E/p per SH block (TrPos)%s",hecut), kNcolsSH, -0.2992, 0.2992, kNrowsSH, -1.1542, 1.1542);
+  TH2D *h2_SHeng_vs_SHblk = new TH2D("h2_SHeng_vs_SHblk",Form("SH cl. eng. per SH block%s",hecut),kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_EovP_vs_SHblk = new TH2D("h2_EovP_vs_SHblk",Form("E/p per SH block%s",hecut),kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_EovP_vs_SHblk_calib = new TH2D("h2_EovP_vs_SHblk_calib",Form("E/p per SH block | After Calib.%s",hecut),kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_EovP_vs_SHblk_trPOS = new TH2D("h2_EovP_vs_SHblk_trPOS",Form("E/p per SH block (TrPos)%s",hecut),kNcolsSH,-0.2992,0.2992,kNrowsSH,-1.1542,1.1542);
 
-  TH2D *h2_PSeng_vs_PSblk = new TH2D("h2_PSeng_vs_PSblk", Form("PS cl. eng. per PS block%s",hecut), kNcolsPS, 0, kNcolsPS, kNrowsPS, 0, kNrowsPS);
-  TH2D *h2_EovP_vs_PSblk = new TH2D("h2_EovP_vs_PSblk", Form("E/p per PS block%s",hecut), kNcolsPS, 0, kNcolsPS, kNrowsPS, 0, kNrowsPS);
-  TH2D *h2_EovP_vs_PSblk_calib = new TH2D("h2_EovP_vs_PSblk_calib", Form("E/p per PS block | After Calib.%s",hecut), kNcolsPS, 0, kNcolsPS, kNrowsPS, 0, kNrowsPS);
-  TH2D *h2_EovP_vs_PSblk_trPOS = new TH2D("h2_EovP_vs_PSblk_trPOS", Form("E/p per PS block (TrPos)%s",hecut), kNcolsPS, -0.3705, 0.3705, kNrowsPS, -1.201, 1.151);
+  TH2D *h2_PSeng_vs_PSblk = new TH2D("h2_PSeng_vs_PSblk",Form("PS cl. eng. per PS block%s",hecut),kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_EovP_vs_PSblk = new TH2D("h2_EovP_vs_PSblk",Form("E/p per PS block%s",hecut),kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_EovP_vs_PSblk_calib = new TH2D("h2_EovP_vs_PSblk_calib",Form("E/p per PS block | After Calib.%s",hecut),kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
+  TH2D *h2_EovP_vs_PSblk_trPOS = new TH2D("h2_EovP_vs_PSblk_trPOS",Form("E/p per PS block (TrPos)%s",hecut),kNcolsPS,-0.3705,0.3705,kNrowsPS,-1.201,1.151);
 
-  TH1D *h_thetabend = new TH1D("h_thetabend", "", 100, 0., 0.25);
+  TH1D *h_thetabend = new TH1D("h_thetabend","",100,0.,0.25);
 
   TH2D *h2_EovP_vs_trX = new TH2D("h2_EovP_vs_trX",Form("E/p vs Track x%s",hecut),200,-0.8,0.8,200,0.4,1.6);
   TH2D *h2_EovP_vs_trX_calib = new TH2D("h2_EovP_vs_trX_calib",Form("E/p vs Track x | After Calib.%s",hecut),200,-0.8,0.8,200,0.4,1.6);
@@ -586,7 +524,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TH2D *h2_EovP_vs_rnum_calib = new TH2D("h2_EovP_vs_rnum_calib",Form("E/p vs Run no. | After Calib.%s",hecut),Nruns,0.5,Nruns+0.5,200,0.4,1.6);
   TProfile *h2_EovP_vs_rnum_calib_prof = new TProfile("h2_EovP_vs_rnum_calib_prof","E/p vs Run no. | After Calib. (Profile)",Nruns,0.5,Nruns+0.5,0.4,1.6,"S");
 
-  TH2D *h2_dxdyHCAL = new TH2D("h2_dxdyHCAL","p Spot cut;#Deltay (m);#Deltax (m)",200,-1,1,150,-2.5,1);
+  TH2D *h2_dxdyHCAL = new TH2D("h2_dxdyHCAL","p Spot cut;#Deltay (m);#Deltax (m)",h2_dy_bin,h2_dy_min,h2_dy_max,h2_dx_bin,h2_dx_min,h2_dx_max);
 
   // defining output ROOT tree (Set max size to 4GB)
   //auto Tout = std::make_unique<TTree>("Tout", cfgfilebase.Data());
@@ -1039,7 +977,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	gainRatioSH_outData << CoeffR(cell) << " ";
 	newADCgratioSH[cell] = CoeffR(cell);
       }else{
-	h_nevent_blk_SH->Fill(cell, nevents_per_cell[cell] );
+	h_nevent_blk_SH->Fill(cell, nevents_per_cell[cell]);
 	h_old_coeff_blk_SH->Fill(cell, oldCoeff);
 	h_coeff_Ratio_SH->Fill(cell, 1. * Corr_Factor_Enrg_Calib_w_Cosmic);
 	h_coeff_blk_SH->Fill(cell, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
@@ -1173,7 +1111,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	TVector3 GEMxaxis = (GEMyaxis.Cross(GEMzaxis)).Unit();	
 	TVector3 enhat_fp_rot = enhat_fp.X() * GEMxaxis + enhat_fp.Y() * GEMyaxis + enhat_fp.Z() * GEMzaxis;
 	double thetabend = acos(enhat_fp_rot.Dot(enhat_tgt));
-	h_thetabend->Fill(thetabend);
+	//h_thetabend->Fill(thetabend);
 
 	p_calib = A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend;
       }
