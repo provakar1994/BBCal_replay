@@ -537,13 +537,13 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   bool shEdge;          Tout->Branch("shEdge", &shEdge, "shEdge/O"); // Cut on the edge on the shower region.
   //
   UInt_t    T_rnum;     Tout->Branch("rnum", &T_rnum, "rnum/i");  // The run number for each set of data. This is important because run numbers are not always continuous.
-  ULong64_t T_gevnum;   Tout->Branch("gevnum", &T_gevnum, "gevnum/l");  //
+  ULong64_t T_gevnum;   Tout->Branch("gevnum", &T_gevnum, "gevnum/l");  // Global event number
   //
   Double_t T_ebeam;     Tout->Branch("ebeam", &E_beam, "ebeam/D");  // Energy of the beam
-  Double_t T_etheta;    Tout->Branch("etheta", &T_etheta, "etheta/D");  // 
-  Double_t T_ephi;      Tout->Branch("ephi", &T_ephi, "ephi/D");  //
+  Double_t T_etheta;    Tout->Branch("etheta", &T_etheta, "etheta/D");  // Polar scattering angle of scattered electron (radians)
+  Double_t T_ephi;      Tout->Branch("ephi", &T_ephi, "ephi/D");  // Azimuthal scattering angle of scattered electron (radians)
   Double_t T_nu;        Tout->Branch("nu", &T_nu, "nu/D");  // nu is E_e-E'_e
-  Double_t T_W2;        Tout->Branch("W2", &T_W2, "W2/D"); // W^2=p'^2, where p' is the outgoing protoooooooooon momentum.
+  Double_t T_W2;        Tout->Branch("W2", &T_W2, "W2/D"); // W^2=p'^2, where p' is the outgoing proton momentum.
   Double_t T_Q2;        Tout->Branch("Q2", &T_Q2, "Q2/D"); // Q^2 is the momentum transfer and Q^2=2M_p(nu) 
   Double_t T_PovPel;    Tout->Branch("PovPel", &T_PovPel, "PovPel/D"); // momentum over elastic momentum
   Double_t T_pelas;     Tout->Branch("pelas", &T_pelas, "pelas/D"); // elastic momentum
@@ -555,9 +555,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t T_trTh;      Tout->Branch("trTh", &T_trTh, "trTh/D"); // track theta position
   Double_t T_trPh;      Tout->Branch("trPh", &T_trPh, "trPh/D"); // track phi position
   //
-  Double_t T_thTdiff;   Tout->Branch("thTdiff", &T_thTdiff, "thTdiff/D"); //
-  Double_t T_thTmean;   Tout->Branch("thTmean", &T_thTmean, "thTmean/D"); //
-  Double_t T_thTOTmean; Tout->Branch("thTOTmean", &T_thTOTmean, "thTOTmean/D"); //
+  Double_t T_thTdiff;   Tout->Branch("thTdiff", &T_thTdiff, "thTdiff/D"); // Hodoscope has 2 PMTs, this is the difference in measured time
+  Double_t T_thTmean;   Tout->Branch("thTmean", &T_thTmean, "thTmean/D"); // Mean value of two Hodoscope PMTs
+  Double_t T_thTOTmean; Tout->Branch("thTOTmean", &T_thTOTmean, "thTOTmean/D"); // Time over threshold
   //
   Double_t T_psE;       Tout->Branch("psE", &T_psE, "psE/D"); // pre-shower energy
   Double_t T_psX;       Tout->Branch("psX", &T_psX, "psX/D"); // pre-shower x position
@@ -572,16 +572,16 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Int_t    T_shNblk;    Tout->Branch("shNblk", &T_shNblk, "shNblk/I");    // size of best cluster (SH)
   Int_t    T_shNclus;   Tout->Branch("shNclus", &T_shNclus, "shNclus/I"); // cluster multiplicity (SH)
   Double_t T_shAtime;   Tout->Branch("shAtime", &T_shAtime, "shAtime/D"); // ADC time (SH)
-  Double_t T_shX_diff;  Tout->Branch("shX_diff", &T_shX_diff, "shX_diff/D"); //
-  Double_t T_shY_diff;  Tout->Branch("shY_diff", &T_shY_diff, "shY_diff/D"); //
+  Double_t T_shX_diff;  Tout->Branch("shX_diff", &T_shX_diff, "shX_diff/D"); // measured x position - expected x position based on BB GEM track
+  Double_t T_shY_diff;  Tout->Branch("shY_diff", &T_shY_diff, "shY_diff/D"); // measured y position - expected y position based on BB GEM track
   //
   Double_t T_hcalE;     Tout->Branch("hcalE", &T_hcalE, "hcalE/D"); // energy on HCal
   Double_t T_hcalX;     Tout->Branch("hcalX", &T_hcalX, "hcalX/D"); // HCal x position
   Double_t T_hcalY;     Tout->Branch("hcalY", &T_hcalY, "hcalY/D"); ////// HCal y position
   Double_t T_hcalAtime; Tout->Branch("hcalAtime", &T_hcalAtime, "hcalAtime/D"); // HCal ADC time
   //
-  Double_t T_dx;        Tout->Branch("dx", &T_dx, "dx/D"); // HCal actual x position - the expected x position according to BBCal
-  Double_t T_dy;        Tout->Branch("dy", &T_dy, "dy/D");// HCal actual y position - the expected y position according to BBCal
+  Double_t T_dx;        Tout->Branch("dx", &T_dx, "dx/D"); // HCal actual x position - the expected x position according to BB GEM tracks
+  Double_t T_dy;        Tout->Branch("dy", &T_dy, "dy/D");// HCal actual y position - the expected y position according to BB GEM tracks
 
   // calculating HCAL co-ordinates
   TVector3 HCAL_zaxis(sin(-sbstheta),0,cos(-sbstheta)); // use angle of SBS to calculate the center of HCal
