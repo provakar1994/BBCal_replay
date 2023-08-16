@@ -1288,7 +1288,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   fitg_bc->SetRange(lower_lim_bc,upper_lim_bc);
   fitg_bc->SetParameters(norm_bc,mean_bc,stdev_bc);
   fitg_bc->SetLineWidth(2); fitg_bc->SetLineColor(2);
-  h_EovP->Fit(fitg_bc,"NO+QR"); fitg_bc->GetParameters(param_bc); fitg_bc->GetParError(2);
+  h_EovP->Fit(fitg_bc,"NO+QR"); fitg_bc->GetParameters(param_bc); sigerr_bc = fitg_bc->GetParError(2);
   h_EovP->SetLineWidth(2); h_EovP->SetLineColor(kGreen+2);
   Int_t maxBin = h_EovP_calib->GetMaximumBin();
   Double_t binW = h_EovP_calib->GetBinWidth(maxBin), norm = h_EovP_calib->GetMaximum();
@@ -1299,7 +1299,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   fitg->SetRange(lower_lim,upper_lim);
   fitg->SetParameters(norm,mean,stdev);
   fitg->SetLineWidth(2); fitg->SetLineColor(2);
-  h_EovP_calib->Fit(fitg,"QR"); fitg->GetParameters(param); fitg->GetParError(2);
+  h_EovP_calib->Fit(fitg,"QR"); fitg->GetParameters(param); sigerr = fitg->GetParError(2);
   h_EovP_calib->SetLineWidth(2); h_EovP_calib->SetLineColor(1);
   // adjusting histogram height for the legend to fit properly
   h_EovP_calib->GetYaxis()->SetRangeUser(0.,max(norm,norm_bc)*1.2);
