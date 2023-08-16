@@ -593,63 +593,63 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TTree *Tout = new TTree("Tout", cfgfilebase.Data()); 
   Tout->SetMaxTreeSize(4000000000LL);  
   //
-  bool WCut;            Tout->Branch("WCut", &WCut, "WCut/O");
-  bool PovPelCut;       Tout->Branch("PovPelCut", &PovPelCut, "PovPelCut/O");
-  bool pCut;            Tout->Branch("pCut", &pCut, "pCut/O");
-  bool shEdge;          Tout->Branch("shEdge", &shEdge, "shEdge/O");
+  bool WCut;            Tout->Branch("WCut", &WCut, "WCut/O");  // W is the invariant mass of the final hadronic state. For H2 data, this value will peak at W=M_p, so we can cut around ~0.938GeV. This cut is known just due to the fact that we are looking at elastic scattering off of H2. This cut is defined and enabled in the config file.
+  bool PovPelCut;       Tout->Branch("PovPelCut", &PovPelCut, "PovPelCut/O"); // For H2 calibrations, we want to look at elastic scattering, so we cut on the data to look at p/p_elastic close to 1.
+  bool pCut;            Tout->Branch("pCut", &pCut, "pCut/O");  // Cut on momentum.
+  bool shEdge;          Tout->Branch("shEdge", &shEdge, "shEdge/O"); // Cut on the edge on the shower region.
   //
-  UInt_t    T_rnum;     Tout->Branch("rnum", &T_rnum, "rnum/i");
-  ULong64_t T_gevnum;   Tout->Branch("gevnum", &T_gevnum, "gevnum/l");
+  UInt_t    T_rnum;     Tout->Branch("rnum", &T_rnum, "rnum/i");  // The run number for each set of data. This is important because run numbers are not always continuous.
+  ULong64_t T_gevnum;   Tout->Branch("gevnum", &T_gevnum, "gevnum/l");  //
   //
-  Double_t T_ebeam;     Tout->Branch("ebeam", &E_beam, "ebeam/D");
-  Double_t T_etheta;    Tout->Branch("etheta", &T_etheta, "etheta/D");
-  Double_t T_ephi;      Tout->Branch("ephi", &T_ephi, "ephi/D");
-  Double_t T_nu;        Tout->Branch("nu", &T_nu, "nu/D");
-  Double_t T_W2;        Tout->Branch("W2", &T_W2, "W2/D");
-  Double_t T_Q2;        Tout->Branch("Q2", &T_Q2, "Q2/D"); 
-  Double_t T_PovPel;    Tout->Branch("PovPel", &T_PovPel, "PovPel/D");
-  Double_t T_pelas;     Tout->Branch("pelas", &T_pelas, "pelas/D");
+  Double_t T_ebeam;     Tout->Branch("ebeam", &E_beam, "ebeam/D");  // Energy of the beam
+  Double_t T_etheta;    Tout->Branch("etheta", &T_etheta, "etheta/D");  // 
+  Double_t T_ephi;      Tout->Branch("ephi", &T_ephi, "ephi/D");  //
+  Double_t T_nu;        Tout->Branch("nu", &T_nu, "nu/D");  // nu is E_e-E'_e
+  Double_t T_W2;        Tout->Branch("W2", &T_W2, "W2/D"); // W^2=p'^2, where p' is the outgoing protoooooooooon momentum.
+  Double_t T_Q2;        Tout->Branch("Q2", &T_Q2, "Q2/D"); // Q^2 is the momentum transfer and Q^2=2M_p(nu) 
+  Double_t T_PovPel;    Tout->Branch("PovPel", &T_PovPel, "PovPel/D"); // momentum over elastic momentum
+  Double_t T_pelas;     Tout->Branch("pelas", &T_pelas, "pelas/D"); // elastic momentum
   //
-  Double_t T_vz;        Tout->Branch("vz", &T_vz, "vz/D");
-  Double_t T_trP;       Tout->Branch("trP", &T_trP, "trP/D");
-  Double_t T_trX;       Tout->Branch("trX", &T_trX, "trX/D");
-  Double_t T_trY;       Tout->Branch("trY", &T_trY, "trY/D");
-  Double_t T_trTh;      Tout->Branch("trTh", &T_trTh, "trTh/D");
-  Double_t T_trPh;      Tout->Branch("trPh", &T_trPh, "trPh/D");
+  Double_t T_vz;        Tout->Branch("vz", &T_vz, "vz/D"); // vertex in z
+  Double_t T_trP;       Tout->Branch("trP", &T_trP, "trP/D"); // track momentum
+  Double_t T_trX;       Tout->Branch("trX", &T_trX, "trX/D"); // track x position
+  Double_t T_trY;       Tout->Branch("trY", &T_trY, "trY/D"); // track y position
+  Double_t T_trTh;      Tout->Branch("trTh", &T_trTh, "trTh/D"); // track theta position
+  Double_t T_trPh;      Tout->Branch("trPh", &T_trPh, "trPh/D"); // track phi position
   //
-  Double_t T_thTdiff;   Tout->Branch("thTdiff", &T_thTdiff, "thTdiff/D");
-  Double_t T_thTmean;   Tout->Branch("thTmean", &T_thTmean, "thTmean/D");
-  Double_t T_thTOTmean; Tout->Branch("thTOTmean", &T_thTOTmean, "thTOTmean/D");
+  Double_t T_thTdiff;   Tout->Branch("thTdiff", &T_thTdiff, "thTdiff/D"); //
+  Double_t T_thTmean;   Tout->Branch("thTmean", &T_thTmean, "thTmean/D"); //
+  Double_t T_thTOTmean; Tout->Branch("thTOTmean", &T_thTOTmean, "thTOTmean/D"); //
   //
-  Double_t T_psE;       Tout->Branch("psE", &T_psE, "psE/D");
-  Double_t T_psX;       Tout->Branch("psX", &T_psX, "psX/D");
-  Double_t T_psY;       Tout->Branch("psY", &T_psY, "psY/D");
+  Double_t T_psE;       Tout->Branch("psE", &T_psE, "psE/D"); // pre-shower energy
+  Double_t T_psX;       Tout->Branch("psX", &T_psX, "psX/D"); // pre-shower x position
+  Double_t T_psY;       Tout->Branch("psY", &T_psY, "psY/D"); // ppppre-shower y position
   Int_t    T_psNblk;    Tout->Branch("psNblk", &T_psNblk, "psNblk/I");    // size of best cluster (PS)
   Int_t    T_psNclus;   Tout->Branch("psNclus", &T_psNclus, "psNclus/I"); // cluster multiplicity (PS)
   Double_t T_psAtime;   Tout->Branch("psAtime", &T_psAtime, "psAtime/D"); // ADC time (PS)
   //
-  Double_t T_clusE;     Tout->Branch("clusE", &T_clusE, "clusE/D");
-  Double_t T_shX;       Tout->Branch("shX", &T_shX, "shX/D");
-  Double_t T_shY;       Tout->Branch("shY", &T_shY, "shY/D");
+  Double_t T_clusE;     Tout->Branch("clusE", &T_clusE, "clusE/D"); // cluster energy (PS+SH)
+  Double_t T_shX;       Tout->Branch("shX", &T_shX, "shX/D"); // shower x position
+  Double_t T_shY;       Tout->Branch("shY", &T_shY, "shY/D"); //// shower y position
   Int_t    T_shNblk;    Tout->Branch("shNblk", &T_shNblk, "shNblk/I");    // size of best cluster (SH)
   Int_t    T_shNclus;   Tout->Branch("shNclus", &T_shNclus, "shNclus/I"); // cluster multiplicity (SH)
   Double_t T_shAtime;   Tout->Branch("shAtime", &T_shAtime, "shAtime/D"); // ADC time (SH)
-  Double_t T_shX_diff;  Tout->Branch("shX_diff", &T_shX_diff, "shX_diff/D");
-  Double_t T_shY_diff;  Tout->Branch("shY_diff", &T_shY_diff, "shY_diff/D");
+  Double_t T_shX_diff;  Tout->Branch("shX_diff", &T_shX_diff, "shX_diff/D"); //
+  Double_t T_shY_diff;  Tout->Branch("shY_diff", &T_shY_diff, "shY_diff/D"); //
   //
-  Double_t T_hcalE;     Tout->Branch("hcalE", &T_hcalE, "hcalE/D");
-  Double_t T_hcalX;     Tout->Branch("hcalX", &T_hcalX, "hcalX/D");
-  Double_t T_hcalY;     Tout->Branch("hcalY", &T_hcalY, "hcalY/D");
-  Double_t T_hcalAtime; Tout->Branch("hcalAtime", &T_hcalAtime, "hcalAtime/D");
+  Double_t T_hcalE;     Tout->Branch("hcalE", &T_hcalE, "hcalE/D"); // energy on HCal
+  Double_t T_hcalX;     Tout->Branch("hcalX", &T_hcalX, "hcalX/D"); // HCal x position
+  Double_t T_hcalY;     Tout->Branch("hcalY", &T_hcalY, "hcalY/D"); ////// HCal y position
+  Double_t T_hcalAtime; Tout->Branch("hcalAtime", &T_hcalAtime, "hcalAtime/D"); // HCal ADC time
   //
-  Double_t T_dx;        Tout->Branch("dx", &T_dx, "dx/D"); 
-  Double_t T_dy;        Tout->Branch("dy", &T_dy, "dy/D");
+  Double_t T_dx;        Tout->Branch("dx", &T_dx, "dx/D"); // HCal actual x position - the expected x position according to BBCal
+  Double_t T_dy;        Tout->Branch("dy", &T_dy, "dy/D");// HCal actual y position - the expected y position according to BBCal
 
   // calculating HCAL co-ordinates
-  TVector3 HCAL_zaxis(sin(-sbstheta),0,cos(-sbstheta));
-  TVector3 HCAL_xaxis(0,-1,0);
+  TVector3 HCAL_zaxis(sin(-sbstheta),0,cos(-sbstheta)); // use angle of SBS to calculate the center of HCal
+  TVector3 HCAL_xaxis(0,-1,0); 
   TVector3 HCAL_yaxis = HCAL_zaxis.Cross(HCAL_xaxis).Unit();
-  TVector3 HCAL_origin = hcaldist*HCAL_zaxis + hcalheight*HCAL_xaxis;
+  TVector3 HCAL_origin = hcaldist*HCAL_zaxis + hcalheight*HCAL_xaxis; // Define the center of HCal in 3D space
 
   ///////////////////////////////////////////
   // 1st Loop over all events to calibrate //
@@ -1815,4 +1815,56 @@ void CustmProfHisto(TH1D* hprof) {
   2. hist/<configFileBase>_bbcal_eng_calib.root # Contains all the interesting histograms
   3. Gain/<configFileBase>_gainRatio_sh(ps)_calib.txt # Contains gain ratios (new/old) for SH(PS)
   4. Gain/<configFileBase>_gainCoeff_sh(ps)_calib.txt # Contains new gain coeff. for SH(PS)
+*/
+
+
+/*
+
+*****Below is an example of a config file made for this script*****
+
+## GEN3: LH2, BB Field 750A, SBS Field 2100A (any other identifying qualities)
+/w/halla-scshelf2102/sbs/ktevans/GEN_ANALYSIS/BBCal_replay/macros/Run_list/GEN3_run_list_lh2_pass0.txt
+endRunlist ## This text file lists all the runs that will be used in this calibration.
+bb.tr.n==1&&abs(bb.tr.vz[0])<0.27&&bb.gem.track.nhits>3&&abs(bb.tr.r_x-0.9*bb.tr.r_th)<0.4 ## These are the global cuts that will be applied to all plots/variables.
+endcut
+macros_dir /w/halla-scshelf2102/sbs/ktevans/GEN_ANALYSIS/BBCal_replay/macros ## This is the path to BBCal_replay/macros directory
+pre_pass 0   ## List the replay pass to get prepared for
+read_gain 0  ## y/n(1/0), read old ADC gain form a file, set to 0 unless the gain coefficients are not loaded to the database
+E_beam 6.373        ## Beam energy in GeV
+SBS_theta 22.1      ## Angular position of SBS in degrees
+HCAL_dist 17.0      ## Distance to the face of HCal in meters
+hit_threshold 0.02  ## The threshold that qualifies a hit in GeV
+Min_Event_Per_Channel 100 ## The minimum number of events per channel that must be reached for it to be included in the calibration
+Min_MB_Ratio 0.1  ## This helps with the metric value. Don't change it
+## Other cuts that you can turn on and off to optimize the data you're looking at.
+psE_cut 1 0.2      # y/n(1/0) cut_limit # psE>cut_limit ## pre-shower energy
+clusE_cut 0 0.0    # y/n(1/0) cut_limit # (psE+shE)>cut_limit ## cluster energy (pre-shower + shower)
+pmin_cut 1 2.2     # y/n(1/0) cut_limit # p>cut_limit ## Check the expected momentum for your experiment
+pmax_cut 0 3.5     # y/n(1/0) cut_limit # p<cut_limit ## Check the expected momentum for your experiment
+EovP_cut 0 0.3     # y/n(1/0) cut_limit # |E/p-1|<cut_limit ##E/p should be ~1, and this restrains how close to 1 the data are
+## elastic cuts (M=>mean, S=>sigma, nS=> n sigma cut) These can be turned off to look at all data that pass the global cuts
+W_cut 0 0.957 0.2 1                # y/n(1/0) M S nS  ##Cut on W
+PovPel_cut 0 0.994 0.016 8        # y/n(1/0) M S nS   ##Cut on p/p_elastic. This should be close to 1 because we want to look at elastics
+pspot_cut 0 -1.829 0.14 4 -0.3 0.2 5 # y/n(1/0) dxM dxS ndxS dyM dyS ndyS  ##Cut on the position of the proton spot on HCal. Values are found by plotting dx vs dy on HCal.
+# histos ## Change axes for certain histograms here.
+h_W 150 0. 3.  # nbin, min, max
+h_Q2 150 0. 10.
+h_PovPel 300 0.7 1.3
+h_EovP 200 0.2 1.6
+EovP_fit_width 1.5 # how many sigmas to include in the fit
+h_clusE 90 0. 3.
+h_shE 90 0. 3.
+h_psE 140 0. 1.4
+h2_p 125 0.5 3.
+h2_pang 150 30. 45.
+h2_p_coarse 10 2.2 3.5
+h2_EovP 200 0.6 1.4
+# offsets
+p_rec_Offset 1.0	# a.k.a fudge factor (FF). With better cosmic calibrations, this offset is unnecessary, so we keep it at 1.0.
+Corr_Factor_Enrg_Calib_w_Cosmic 1.0  # a.k.a cF.With better cosmic calibrations, this offset is unnecessary, so we keep it at 1.0.
+# calculate calibrated momentum ##Get these from whomever did the optics calibration. Get GEMpitch from GEM experts and make sure the distance to the bb magnet is correct.
+mom_calib 1 0.27765103 0.932092801 0. 10. 1.63 # y/n(1/0) A B C GEMpitch bb_magdist
+
+***** Log *****
+
 */
