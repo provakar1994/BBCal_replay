@@ -58,6 +58,7 @@ string getDate();
 void CustmProfHisto(TH1D*);
 TString GetOutFileBase(TString);
 void ReadGain(TString, Double_t*);
+void Custm2DRnumHisto(TH2D*, std::vector<std::string> const & lrnum);
 std::vector<std::string> SplitString(char const delim, std::string const myStr);
 
 void bbcal_eng_calib_w_h2(char const *configfilename,
@@ -71,7 +72,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
   TString macros_dir;
   Int_t Nmin = 10, ppass = 0;
-  Double_t Nruns = -99., minMBratio = 0.1, hit_threshold = 0.;
+  Double_t minMBratio = 0.1, hit_threshold = 0.;
   Double_t E_beam = 0., sbstheta = 0., hcaldist = 0., hcalheight = -0.2897;
   Double_t psE_cut_limit = 0., clusE_cut_limit = 0., EovP_cut_limit = 0.3;
   Double_t p_rec_Offset = 1., p_min_cut = 0., p_max_cut = 0.;
@@ -126,29 +127,12 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       ifstream run_list(runlistfile);
       while( readline.ReadLine( run_list ) && !readline.BeginsWith("endlist") ){
   	if( !readline.BeginsWith("#") ){
-	  if( readline.BeginsWith("Nruns") ){ // No. of runs to analyze
-	    TObjArray *tokens = readline.Tokenize(" ");
-	    Int_t ntokens = tokens->GetEntries();
-	    if (ntokens>1) Nruns = ((TObjString*)(*tokens)[1])->GetString().Atof();
-	    if (Nruns > 0) std::cout << "\nAnalyzing " << Nruns << " run(s)..\n";
-	    else {
-	      std::cerr << "ERROR! Illegal no. of runs! Check 'Nruns' variable inside run list!";
-	      std::abort();
-	    }
-	  } else {
-	    std::cout << readline << "\n";
-	    C->Add(readline);
-	  }
+	  std::cout << readline << "\n";
+	  C->Add(readline);
   	}
       }   
     } 
   }
-  // TString currentline;
-  // while( currentline.ReadLine( configfile ) && !currentline.BeginsWith("endRunlist") ){
-  //   if( !currentline.BeginsWith("#") ){
-  //     C->Add(currentline);
-  //   }   
-  // } 
   TCut globalcut = ""; TString gcutstr;
   while (currentline.ReadLine(configfile) && !currentline.BeginsWith("endcut")) {
     if (!currentline.BeginsWith("#")) {
@@ -456,6 +440,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   fout->cd();
 
   // Physics histograms
+  Double_t Nruns = 1000; // Max # runs we anticipate to analyze 
   char const * hecut = elastic_cut ? " (el. cut)" : "";
   TH1D *h_W = new TH1D("h_W",";W (GeV)",h_W_bin,h_W_min,h_W_max);
   TH1D *h_W_pspotcut = new TH1D("h_W_pspotcut",";W (GeV) w/ pspotcut",h_W_bin,h_W_min,h_W_max);
@@ -1425,22 +1410,14 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     std::cout << "*!*[WARNING] 'Nruns' value in run list doesn't match with total # runs analyzed!\n\n"; 
   c5->cd(1); //
   gPad->SetGridy();
-  gStyle->SetErrorX(0.0001);
-  h2_EovP_vs_rnum->SetStats(0);
-  h2_EovP_vs_rnum->GetXaxis()->SetLabelSize(0.05);  
-  h2_EovP_vs_rnum->GetXaxis()->SetNdivisions(Nruns);
-  for (int i=0; i<nrun; i++) h2_EovP_vs_rnum->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
-  if (nrun>15) h2_EovP_vs_rnum->LabelsOption("v", "X"); 
+  gStyle->SetErrorX(0.0001); 
+  Custm2DRnumHisto(h2_EovP_vs_rnum,lrnum);
   h2_EovP_vs_rnum->Draw("colz");
   h2_EovP_vs_rnum_prof->Draw("same");
   c5->cd(2); //
   gPad->SetGridy();
   gStyle->SetErrorX(0.0001);
-  h2_EovP_vs_rnum_calib->SetStats(0);
-  h2_EovP_vs_rnum_calib->GetXaxis()->SetLabelSize(0.05);
-  h2_EovP_vs_rnum_calib->GetXaxis()->SetNdivisions(Nruns);
-  for (int i=0; i<nrun; i++) h2_EovP_vs_rnum_calib->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
-  if (nrun>15) h2_EovP_vs_rnum_calib->LabelsOption("v", "X"); 
+  Custm2DRnumHisto(h2_EovP_vs_rnum_calib,lrnum);
   h2_EovP_vs_rnum_calib->Draw("colz");
   h2_EovP_vs_rnum_calib_prof->Draw("same");
   c5->SaveAs(Form("%s",outPlot.Data())); c5->Write();
@@ -1513,11 +1490,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     c7->cd(2); //
     gPad->SetGridy();
     gStyle->SetErrorX(0.0001);
-    h2_PovPel_vs_rnum_pspotcut->SetStats(0);
-    h2_PovPel_vs_rnum_pspotcut->GetXaxis()->SetLabelSize(0.05);  
-    h2_PovPel_vs_rnum_pspotcut->GetXaxis()->SetNdivisions(Nruns);
-    for (int i=0; i<nrun; i++) h2_PovPel_vs_rnum_pspotcut->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
-    if (nrun>15) h2_PovPel_vs_rnum_pspotcut->LabelsOption("v", "X"); 
+    Custm2DRnumHisto(h2_PovPel_vs_rnum_pspotcut,lrnum);
     h2_PovPel_vs_rnum_pspotcut->Draw("colz");
     //h2_PovPel_vs_rnum_pspotcut_prof->Draw("same"); #giving misleading values
     c7->SaveAs(Form("%s",outPlot.Data())); c7->Write();
@@ -1527,23 +1500,19 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     TCanvas *c8 = new TCanvas("c8","cl. size vs rnum",1200,1000);
     c8->Divide(1,4);
     c8->cd(1); //
-    for (int i=0; i<nrun; i++) h2_PSclsize_vs_rnum->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
-    if (nrun>15) h2_PSclsize_vs_rnum->LabelsOption("v", "X"); 
+    Custm2DRnumHisto(h2_PSclsize_vs_rnum,lrnum);
     h2_PSclsize_vs_rnum->Draw("colz");
     h2_PSclsize_vs_rnum_prof->Draw("same");
     c8->cd(2); //
-    for (int i=0; i<nrun; i++) h2_PSclmult_vs_rnum->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
-    if (nrun>15) h2_PSclmult_vs_rnum->LabelsOption("v", "X"); 
+    Custm2DRnumHisto(h2_PSclmult_vs_rnum,lrnum);
     h2_PSclmult_vs_rnum->Draw("colz");
     h2_PSclmult_vs_rnum_prof->Draw("same");
     c8->cd(3); //
-    for (int i=0; i<nrun; i++) h2_SHclsize_vs_rnum->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
-    if (nrun>15) h2_SHclsize_vs_rnum->LabelsOption("v", "X"); 
+    Custm2DRnumHisto(h2_SHclsize_vs_rnum,lrnum); 
     h2_SHclsize_vs_rnum->Draw("colz");
     h2_SHclsize_vs_rnum_prof->Draw("same");
     c8->cd(4); //
-    for (int i=0; i<nrun; i++) h2_SHclmult_vs_rnum->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
-    if (nrun>15) h2_SHclmult_vs_rnum->LabelsOption("v", "X"); 
+    Custm2DRnumHisto(h2_SHclmult_vs_rnum,lrnum);
     h2_SHclmult_vs_rnum->Draw("colz");
     h2_SHclmult_vs_rnum_prof->Draw("same");
     c8->SaveAs(Form("%s",outPlot.Data())); c8->Write();
@@ -1742,6 +1711,16 @@ void CustmProfHisto(TH1D* hprof) {
   hprof->SetStats(0);
   hprof->SetMarkerStyle(20);
   hprof->SetMarkerColor(2);
+}
+
+// Customizes 2D histos with run # on the X-axis
+void Custm2DRnumHisto(TH2D* h, std::vector<std::string> const & lrnum)
+{
+  h->SetStats(0);
+  h->GetXaxis()->SetLabelSize(0.05);
+  h->GetXaxis()->SetRange(1,lrnum.size());
+  for (int i=0; i<lrnum.size(); i++) h->GetXaxis()->SetBinLabel(i+1,lrnum[i].c_str());
+  if (lrnum.size()>15) h->LabelsOption("v", "X");
 }
 
 /*
