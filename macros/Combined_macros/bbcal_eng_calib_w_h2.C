@@ -641,7 +641,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
 	p_calib = A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend;
 	p_calib -= (Avy_fit + Bvy_fit * trVy[0]);
-	cout<<Avy_fit<<" "<<Bvy_fit<<endl;
+	
       }
       // *----
       
