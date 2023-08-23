@@ -99,7 +99,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t h2_dy_bin = 200, h2_dy_min = -1., h2_dy_max = 1.;
   //parameters to calculate calibrated momentum
   bool mom_calib = 0;
-  Double_t A_fit = 0., B_fit = 0., C_fit = 0.;
+  Double_t A_fit = 0., B_fit = 0., C_fit = 0., Avy_fit = 0., Bvy_fit = 0.;
   Double_t bb_magdist = 1., GEMpitch = 10.;
 
   TMatrixD M(ncell,ncell), M_inv(ncell,ncell);
@@ -292,12 +292,15 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	cF = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
       if( skey == "mom_calib" ){
-      	mom_calib = ((TObjString*)(*tokens)[1])->GetString().Atoi();
-      	A_fit = ((TObjString*)(*tokens)[2])->GetString().Atof();
-      	B_fit = ((TObjString*)(*tokens)[3])->GetString().Atof();
-      	C_fit = ((TObjString*)(*tokens)[4])->GetString().Atof();
-      	GEMpitch = ((TObjString*)(*tokens)[5])->GetString().Atof();
-      	bb_magdist = ((TObjString*)(*tokens)[6])->GetString().Atof();
+	mom_calib = ((TObjString*)(*tokens)[1])->GetString().Atoi();
+	A_fit = ((TObjString*)(*tokens)[2])->GetString().Atof();
+	B_fit = ((TObjString*)(*tokens)[3])->GetString().Atof();
+	C_fit = ((TObjString*)(*tokens)[4])->GetString().Atof();
+	Avy_fit = ((TObjString*)(*tokens)[5])->GetString().Atof();
+	Bvy_fit = ((TObjString*)(*tokens)[6])->GetString().Atof();
+	GEMpitch = ((TObjString*)(*tokens)[7])->GetString().Atof();
+	bb_magdist = ((TObjString*)(*tokens)[8])->GetString().Atof();
+		
       }
       if( skey == "*****" ){
 	break;
@@ -373,6 +376,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t trTh[maxNtr];       C->SetBranchAddress("bb.tr.th", &trTh);
   Double_t trPh[maxNtr];       C->SetBranchAddress("bb.tr.ph", &trPh);
   Double_t trVz[maxNtr];       C->SetBranchAddress("bb.tr.vz", &trVz);
+  Double_t trVy[maxNtr];       C->SetBranchAddress("bb.tr.vy", &trVy);
   Double_t trTgth[maxNtr];     C->SetBranchAddress("bb.tr.tg_th", &trTgth);
   Double_t trTgph[maxNtr];     C->SetBranchAddress("bb.tr.tg_ph", &trTgph);
   Double_t trRx[maxNtr];       C->SetBranchAddress("bb.tr.r_x", &trRx);
@@ -636,6 +640,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	h_thetabend->Fill(thetabend);
 
 	p_calib = A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend;
+	p_calib -= (Avy_fit + Bvy_fit * trVy[0]);
+	
       }
       // *----
       
@@ -1099,6 +1105,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	//h_thetabend->Fill(thetabend);
 
 	p_calib = A_fit * (1. + (B_fit + C_fit*bb_magdist) * trTgth[0]) / thetabend;
+	p_calib -= (Avy_fit + Bvy_fit * trVy[0]);
       }
       // *----
 
