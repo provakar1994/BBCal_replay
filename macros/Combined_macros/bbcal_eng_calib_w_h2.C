@@ -1563,7 +1563,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   pt->AddText(Form(" Minimum # events per block: %d, (Cluster) hit threshold: %.2f GeV",Nmin,hit_threshold));
   pt->AddText(" Various offsets: ");
   pt->AddText(Form(" Momentum fudge factor: %.2f, BBCAL cluster energy scale factor: %.2f",p_rec_Offset,cF));
-  if (mom_calib) pt->AddText(Form(" Momentum calibration factors: A = %.9f, B = %.9f, C = %.1f, #theta^{GEM}_{pitch} = %.1f^{o}, d_{BB} = %.4f m",A_fit,B_fit,C_fit,GEMpitch,bb_magdist));
+  if (mom_calib) pt->AddText(Form(" Momentum calib. factors: A = %.9f, B = %.9f, C = %.1f, Avy = %.6f, Bvy = %.6f, #theta^{GEM}_{pitch} = %.1f^{o}, d_{BB} = %.4f m",A_fit,B_fit,C_fit,Avy_fit,Bvy_fit,GEMpitch,bb_magdist));
   sw->Stop(); sw2->Stop();
   pt->AddText(Form("Macro processing time: CPU %.1fs | Real %.1fs",sw->CpuTime(),sw->RealTime()));
   TText *t1 = pt->GetLineWith("Configfile"); t1->SetTextColor(kRed+2);
