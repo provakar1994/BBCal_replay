@@ -45,7 +45,7 @@ TH1F *h_atime_sh_corr[kNrowsSH][kNcolsSH];
 TH1F *h_atime_ps[kNrowsPS][kNcolsPS];
 TH1F *h_atime_ps_corr[kNrowsPS][kNcolsPS];
 
-//vector<Long64_t> goodevents;
+vector<Long64_t> goodevents;
 Double_t ash_atimeOffs[kNblksSH];
 Double_t aps_atimeOffs[kNblksPS];
 
@@ -138,7 +138,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   TString set = "N/A";     // Needed when we have multiple calibration sets within a config
   Int_t ppass = -1;        // Replay pass to get ready for
   Double_t Ebeam = 0.;     // GeV
-  Double_t atpos_nom = 0.; // ns
+  Double_t atpos_nom = 0.;   // ns
   Double_t h_atime_blk_bin = 240, h_atime_blk_min = -60., h_atime_blk_max = 60.;
   Double_t h_atime_bin = 240, h_atime_min = -60., h_atime_max = 60.;
   Double_t h_atime_off_bin = 240, h_atime_off_min = -60., h_atime_off_max = 60.;
@@ -193,6 +193,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
     } 
     delete tokens;
   }
+  atpos_nom = -1.*abs(atpos_nom); // Foolproofing - should always be a positive no.
 
   // Check for empty rootfiles and set tree branches
   if(C->GetEntries()==0) {cerr << endl << " --- No ROOT file found!! --- " << endl << endl; exit(1);}
@@ -271,7 +272,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   else if (exp=="gen") exptag = "gen";
   int cpass = ppass-1;
   if (exp=="gmn" && ppass==2) cpass = 0;
-  char const * setno = set == "N/A" ? "" : ("_set" + set).Data();
+  char const * setno = set.Atoi() < 0 ? "" : ("_set" + set).Data();
   atimeOff_sh = Form("Output/%s%d%s_prepass%d_atimeOff_sh.txt",exptag,config,setno,cpass);
   atimeOff_ps = Form("Output/%s%d%s_prepass%d_atimeOff_ps.txt",exptag,config,setno,cpass);
   ReadOffset(atimeOff_sh, old_ash_atimeOffs);
@@ -406,9 +407,8 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
       // cut on W
       // if (fabs(W - 0.938) >= 0.2) continue;
 
-      // storing good event numbers for 2nd loop
-      // NOTE: Be sure to apply all the cuts above this line.
-      //goodevents.push_back(nevent);
+      // storing good event numbers
+      goodevents.push_back(nevent);
 
       double sh_atimeOff = hodo_tmean[0] - sh_clblk_atime[0];
       double ps_atimeOff = hodo_tmean[0] - ps_clblk_atime[0];
@@ -507,9 +507,9 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	toffset_shdata << mean + old_ash_atimeOffs[blkid] << " "; 
 	ash_atimeOffs[blkid] = mean;
       }else{
-	cout << -atpos_nom << " ";
-	toffset_shdata << -atpos_nom << " ";
-	ash_atimeOffs[blkid] = -atpos_nom; 
+	cout << atpos_nom << " ";
+	toffset_shdata << atpos_nom << " ";
+	ash_atimeOffs[blkid] = atpos_nom; 
       }
 
       h_atime_sh[r][c]->SetTitle(Form("Time Offset | SH%d-%d",r+1,c+1));
@@ -581,9 +581,9 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	toffset_psdata << mean + old_aps_atimeOffs[blkid] << " "; 
 	aps_atimeOffs[blkid] = mean;
       }else{
-	cout << -atpos_nom << " "; 
-	toffset_psdata << -atpos_nom << " "; 
-	aps_atimeOffs[blkid] = -atpos_nom;
+	cout << atpos_nom << " "; 
+	toffset_psdata << atpos_nom << " "; 
+	aps_atimeOffs[blkid] = atpos_nom;
       }
 
       h_atime_ps[r][c]->SetTitle(Form("Time Offset | PS%d-%d",r+1,c+1));
@@ -659,7 +659,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   ctemp->cd(); //temporary canvas for the fits
 
   // fitting SH histograms
-  cout << "Fitting SH histograms again to check the quality of correction..\n";
+  cout << "Fitting SH ADC time histograms again to check the quality of correction..\n";
   sub = 0;
   for(int r=0; r<kNrowsSH; r++){
     for(int c=0; c<kNcolsSH; c++){
@@ -733,7 +733,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   }
 
   //fitting PS histograms
-  cout << "Fitting PS histograms again to check the quality of correction..\n";
+  cout << "Fitting PS ADC time histograms again to check the quality of correction..\n";
   sub = 0;
   for(int r=0; r<kNrowsPS; r++){
     for(int c=0; c<kNcolsPS; c++){
@@ -930,6 +930,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
   pt->AddText(Form(" Date of creation: %s", getDate().c_str()));
   pt->AddText(Form("Configfile: BBCal_replay/macros/Combined_macros/%s.cfg",cfgfilebase.Data()));
+  set = set.Atoi() < 0 ? "N/A" : set;
   pt->AddText(Form(" %s config.: %d, set: %s, Preparing for replay pass: %d",exptag,config,set.Data(),ppass));
   pt->AddText(Form(" Total # events analyzed: %lld", nevents));
   // pt->AddText(Form(" BBCAL ADC time (before corr.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
