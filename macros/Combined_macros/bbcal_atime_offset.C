@@ -138,10 +138,9 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   TString set = "N/A";     // Needed when we have multiple calibration sets within a config
   Int_t ppass = -1;        // Replay pass to get ready for
   Double_t Ebeam = 0.;     // GeV
-  Double_t atpos_nom = 0.;   // ns
-  Double_t h_atime_blk_bin = 240, h_atime_blk_min = -60., h_atime_blk_max = 60.;
-  Double_t h_atime_bin = 240, h_atime_min = -60., h_atime_max = 60.;
-  Double_t h_atime_off_bin = 240, h_atime_off_min = -60., h_atime_off_max = 60.;
+  Double_t atppos_nom = -40.; // ns Nominal ADC time peak position determined by the latency in FADC config file
+  Double_t atppos_old = 0.;   // ns Current BBCAL ADC time peak position
+  Double_t atppos_new = 0.;   // ns Desired BBCAL ADC time peak position after calibration
 
   // Reading configfile
   ifstream configfile(configfilename);
@@ -171,29 +170,16 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
       if (skey == "set") set = ((TObjString*)(*tokens)[1])->GetString();
       if (skey == "pre_pass") ppass = ((TObjString*)(*tokens)[1])->GetString().Atoi();
       if (skey == "E_beam") Ebeam = ((TObjString*)(*tokens)[1])->GetString().Atof();
-      if (skey == "atpos_nom") atpos_nom = ((TObjString*)(*tokens)[1])->GetString().Atof();
-      if (skey == "h_atime_blk") {
-	h_atime_blk_bin = ((TObjString*)(*tokens)[1])->GetString().Atof();
-	h_atime_blk_min = ((TObjString*)(*tokens)[2] )->GetString().Atof();
-	h_atime_blk_max = ((TObjString*)(*tokens)[3] )->GetString().Atof();
-      }
-      if (skey == "h_atime") {
-	h_atime_bin = ((TObjString*)(*tokens)[1])->GetString().Atof();
-	h_atime_min = ((TObjString*)(*tokens)[2] )->GetString().Atof();
-	h_atime_max = ((TObjString*)(*tokens)[3] )->GetString().Atof();
-      }
-      if (skey == "h_atime_off") {
-	h_atime_off_bin = ((TObjString*)(*tokens)[1])->GetString().Atof();
-	h_atime_off_min = ((TObjString*)(*tokens)[2] )->GetString().Atof();
-	h_atime_off_max = ((TObjString*)(*tokens)[3] )->GetString().Atof();
-      }
+      if (skey == "atppos_nom") atppos_nom = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      if (skey == "atppos_old") atppos_old = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      if (skey == "atppos_new") atppos_new = ((TObjString*)(*tokens)[1])->GetString().Atof();
       if( skey == "*****" ){
 	break;
       }
     } 
     delete tokens;
   }
-  atpos_nom = -1.*abs(atpos_nom); // Foolproofing - should always be a positive no.
+  atppos_nom = -1.*abs(atppos_nom); // Foolproofing: atppos_nom should always be a positive no.
 
   // Check for empty rootfiles and set tree branches
   if(C->GetEntries()==0) {cerr << endl << " --- No ROOT file found!! --- " << endl << endl; exit(1);}
@@ -243,12 +229,14 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   if (exp=="gmn" && ppass<=2 && config>7) C->SetBranchStatus("g.trigbits",1);
 
   // creating atimeOff histograms per BBCal block
+  Double_t h_atime_blk_bin = 240, h_atime_blk_min = atppos_nom-60., h_atime_blk_max = atppos_nom+60.;
+  Double_t h_atime_blk_corr_bin = 240, h_atime_blk_corr_min = -60., h_atime_blk_corr_max = 60.;
   for(int r = 0; r < kNrowsSH; r++) {
     for(int c = 0; c < kNcolsSH; c++) {
       int blkid = r*kNcolsSH+c;
       ash_atimeOffs[blkid] = -1000;
       h_atime_sh[r][c] = MakeHisto(r, c, "", h_atime_blk_bin, h_atime_blk_min, h_atime_blk_max);
-      h_atime_sh_corr[r][c] = MakeHisto(r, c, "_corr", h_atime_blk_bin, h_atime_blk_min, h_atime_blk_max);
+      h_atime_sh_corr[r][c] = MakeHisto(r, c, "_corr", h_atime_blk_corr_bin, h_atime_blk_corr_min, h_atime_blk_corr_max);
     }
   }
   for(int r = 0; r < kNrowsPS; r++) {
@@ -256,7 +244,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
       int blkid = r*kNcolsPS+c;
       aps_atimeOffs[blkid] = -1000;
       h_atime_ps[r][c] = MakeHisto(r, c, "", h_atime_blk_bin, h_atime_blk_min, h_atime_blk_max);
-      h_atime_ps_corr[r][c] = MakeHisto(r, c, "_corr", h_atime_blk_bin, h_atime_blk_min, h_atime_blk_max);
+      h_atime_ps_corr[r][c] = MakeHisto(r, c, "_corr", h_atime_blk_corr_bin, h_atime_blk_corr_min, h_atime_blk_corr_max);
     }
   }
 
@@ -295,6 +283,12 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   TH1F *h_W = new TH1F("h_W","W distribution",200,0.,5.);
   TH1F *h_Q2 = new TH1F("h_Q2","Q2 distribution",300,1.,15.);
 
+  // determining histogram ranges
+  Double_t h_atime_bin = 250, h_atime_min = atppos_old-20., h_atime_max = atppos_old+20;
+  Double_t h_atime_corr_bin = 250, h_atime_corr_min = atppos_new-20., h_atime_corr_max = atppos_new+20;
+  Double_t h_atime_off_bin = 250, h_atime_off_min = -atppos_old-20, h_atime_off_max = -atppos_old+20;
+  Double_t h_atime_off_corr_bin = 250, h_atime_off_corr_min = -atppos_new-20, h_atime_off_corr_max = -atppos_new+20;
+
   TH1F *h_atimeSH = new TH1F("h_atimeSH","SH ADC time | Before corr.",h_atime_bin,h_atime_min,h_atime_max);
   TH1F *h_atimeSH_corr = new TH1F("h_atimeSH_corr","SH ADC time | After corr.",h_atime_bin,h_atime_min,h_atime_max);
   TH1F *h_atimePS = new TH1F("h_atimePS","PS ADC time | Before corr.",h_atime_bin,h_atime_min,h_atime_max);
@@ -324,26 +318,26 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   TH2F *h2_count_SH = new TH2F("h2_count_SH","# events per SH block;SH columns;SH rows",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH); 
   TH2F *h2_count_PS = new TH2F("h2_count_PS","# events per PS block;PS columns;PS rows",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS); 
 
-  TH2F *h2_atimeOffSH_detview = new TH2F("h2_atimeOffSH_detview","TH ClusTmean - SH ADCtime (ns) | Before corr.;SH columns;SH rows",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH); 
-  TH2F *h2_atimeOffSH_detview_corr = new TH2F("h2_atimeOffSH_detview_corr","TH ClusTmean - SH ADCtime (ns) | After corr.;SH columns;SH rows",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH); 
-  TH2F *h2_atimeOffPS_detview = new TH2F("h2_atimeOffPS_detview","TH ClusTmean - PS ADCtime (ns) | Before corr.;PS columns;PS rows",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS); 
-  TH2F *h2_atimeOffPS_detview_corr = new TH2F("h2_atimeOffPS_detview_corr","TH ClusTmean - PS ADCtime (ns) | After corr.;PS columns;PS rows",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS); 
+  TH2F *h2_atimeOffSH_detview = new TH2F("h2_atimeOffSH_detview","Old ADC time offset (SH);SH columns;SH rows",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH); 
+  TH2F *h2_atimeOffSH_detview_corr = new TH2F("h2_atimeOffSH_detview_corr","New ADC time offset (SH);SH columns;SH rows",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH); 
+  TH2F *h2_atimeOffPS_detview = new TH2F("h2_atimeOffPS_detview","Old ADC time offset (PS);PS columns;PS rows",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS); 
+  TH2F *h2_atimeOffPS_detview_corr = new TH2F("h2_atimeOffPS_detview_corr","New ADC time offset (PS);PS columns;PS rows",kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS); 
 
   TH2F *h2_atimeOffSH_vs_blk = new TH2F("h2_atimeOffSH_vs_blk","Before offset correction (SH);SH block id;TH ClusTmean - SH ADCtime (ns)",kNblksSH,0,kNblksSH,h_atime_off_bin,h_atime_off_min,h_atime_off_max); 
-  TH2F *h2_atimeOffSH_vs_blk_corr = new TH2F("h2_atimeOffSH_vs_blk_corr","After offset correction (SH);SH block id;TH ClusTmean - SH ADCtime (ns)",kNblksSH,0,kNblksSH,h_atime_off_bin,h_atime_off_min,h_atime_off_max); 
+  TH2F *h2_atimeOffSH_vs_blk_corr = new TH2F("h2_atimeOffSH_vs_blk_corr","After offset correction (SH);SH block id;TH ClusTmean - SH ADCtime (ns)",kNblksSH,0,kNblksSH,h_atime_off_corr_bin,h_atime_off_corr_min,h_atime_off_corr_max); 
   TH2F *h2_atimeOffPS_vs_blk = new TH2F("h2_atimeOffPS_vs_blk","Before offset correction (PS);PS block id;TH ClusTmean - PS ADCtime (ns)",kNblksPS,0,kNblksPS,h_atime_off_bin,h_atime_off_min,h_atime_off_max);
-  TH2F *h2_atimeOffPS_vs_blk_corr = new TH2F("h2_atimeOffPS_vs_blk_corr","After offset correction (PS);PS block id;TH ClusTmean - PS ADCtime (ns)",kNblksPS,0,kNblksPS,h_atime_off_bin,h_atime_off_min,h_atime_off_max);
+  TH2F *h2_atimeOffPS_vs_blk_corr = new TH2F("h2_atimeOffPS_vs_blk_corr","After offset correction (PS);PS block id;TH ClusTmean - PS ADCtime (ns)",kNblksPS,0,kNblksPS,h_atime_off_corr_bin,h_atime_off_corr_min,h_atime_off_corr_max);
 
   Double_t Nruns = 1000; // Max # runs we anticipate to analyze 
   TH2F *h2_atimeOffSH_vs_rnum = new TH2F("h2_atimeOffSH_vs_rnum","Before offset correction (SH);Run no.;TH ClusTmean - SH ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_bin,h_atime_off_min,h_atime_off_max); 
-  TH2F *h2_atimeOffSH_vs_rnum_corr = new TH2F("h2_atimeOffSH_vs_rnum_corr","After offset correction (SH);Run no.;TH ClusTmean - SH ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_bin,h_atime_off_min,h_atime_off_max); 
+  TH2F *h2_atimeOffSH_vs_rnum_corr = new TH2F("h2_atimeOffSH_vs_rnum_corr","After offset correction (SH);Run no.;TH ClusTmean - SH ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_corr_bin,h_atime_off_corr_min,h_atime_off_corr_max); 
   TH2F *h2_atimeOffPS_vs_rnum = new TH2F("h2_atimeOffPS_vs_rnum","Before offset correction (PS);Run no.;TH ClusTmean - PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_bin,h_atime_off_min,h_atime_off_max);
-  TH2F *h2_atimeOffPS_vs_rnum_corr = new TH2F("h2_atimeOffPS_vs_rnum_corr","After offset correction (PS);Run no.;TH ClusTmean - PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_bin,h_atime_off_min,h_atime_off_max);
+  TH2F *h2_atimeOffPS_vs_rnum_corr = new TH2F("h2_atimeOffPS_vs_rnum_corr","After offset correction (PS);Run no.;TH ClusTmean - PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_corr_bin,h_atime_off_corr_min,h_atime_off_corr_max);
 
   TH2F *h2_atimeSH_vs_rnum = new TH2F("h2_atimeSH_vs_rnum","Before offset correction (SH);Run no.;SH ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_bin,h_atime_min,h_atime_max);
-  TH2F *h2_atimeSH_vs_rnum_corr = new TH2F("h2_atimeSH_vs_rnum_corr","After offset correction (SH);Run no.;SH ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_bin,h_atime_min,h_atime_max);
+  TH2F *h2_atimeSH_vs_rnum_corr = new TH2F("h2_atimeSH_vs_rnum_corr","After offset correction (SH);Run no.;SH ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_corr_bin,h_atime_corr_min,h_atime_corr_max);
   TH2F *h2_atimePS_vs_rnum = new TH2F("h2_atimePS_vs_rnum","Before offset correction (PS);Run no.;PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_bin,h_atime_min,h_atime_max);
-  TH2F *h2_atimePS_vs_rnum_corr = new TH2F("h2_atimePS_vs_rnum_corr","After offset correction (PS);Run no.;PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_bin,h_atime_min,h_atime_max);
+  TH2F *h2_atimePS_vs_rnum_corr = new TH2F("h2_atimePS_vs_rnum_corr","After offset correction (PS);Run no.;PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_corr_bin,h_atime_corr_min,h_atime_corr_max);
 
   ///////////////////////////////////////////
   // 1st Loop over all events to calibrate //
@@ -410,14 +404,15 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
       // storing good event numbers
       goodevents.push_back(nevent);
 
-      double sh_atimeOff = hodo_tmean[0] - sh_clblk_atime[0];
-      double ps_atimeOff = hodo_tmean[0] - ps_clblk_atime[0];
-
+      // filling diagnostic histograms before correction
       h_atimeSH->Fill(sh_clblk_atime[0]);
       h_atimePS->Fill(ps_clblk_atime[0]);
 
-      h_atime_sh[(int)sh_rowblk][(int)sh_colblk]->Fill(sh_atimeOff);
-      h_atime_ps[(int)ps_rowblk][(int)ps_colblk]->Fill(ps_atimeOff);
+      h2_atimeSH_vs_rnum->Fill(itrrun, sh_clblk_atime[0]);
+      h2_atimePS_vs_rnum->Fill(itrrun, ps_clblk_atime[0]);
+
+      double sh_atimeOff = hodo_tmean[0] - sh_clblk_atime[0];
+      double ps_atimeOff = hodo_tmean[0] - ps_clblk_atime[0];
 
       h2_count_SH->Fill(sh_colblk, sh_rowblk, 1.);
       h2_count_PS->Fill(ps_colblk, ps_rowblk, 1.);
@@ -427,9 +422,19 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 
       h2_atimeOffSH_vs_rnum->Fill(itrrun, sh_atimeOff);
       h2_atimeOffPS_vs_rnum->Fill(itrrun, ps_atimeOff);
+      // --
 
-      h2_atimeSH_vs_rnum->Fill(itrrun, sh_clblk_atime[0]);
-      h2_atimePS_vs_rnum->Fill(itrrun, ps_clblk_atime[0]);
+      // filling histograms with offset for correction
+      // calculating the offset w.r.t. BBCAL raw ADC time to avoid potential
+      // confusion caused by the presence of any artificial ADC time offset in DB
+      double sh_atime_raw = sh_clblk_atime[0] - old_ash_atimeOffs[(int)sh_idblk];
+      double ps_atime_raw = ps_clblk_atime[0] - old_aps_atimeOffs[(int)ps_idblk];
+
+      double sh_atimeOff_raw = hodo_tmean[0] - sh_atime_raw;
+      double ps_atimeOff_raw = hodo_tmean[0] - ps_atime_raw;
+
+      h_atime_sh[(int)sh_rowblk][(int)sh_colblk]->Fill(sh_atimeOff_raw);
+      h_atime_ps[(int)ps_rowblk][(int)ps_colblk]->Fill(ps_atimeOff_raw);
     } //global cut
   } //while
   cout << endl << endl; 
@@ -492,24 +497,27 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	double rms = fgaus->GetParameter(2);
 	double rmserr = fgaus->GetParError(2);
 	
-	h_atimeOffSH->Fill(blkid, mean);
+	double mean_eff = mean - old_ash_atimeOffs[blkid]; // matches the current DB
+	h_atimeOffSH->Fill(blkid, mean_eff);
 	h_atimeOffSH->SetBinError(blkid, meanerr);
 
 	h_atimeRMSSH->Fill(blkid, rms);
 	h_atimeRMSSH->SetBinError(blkid, rmserr);
 
-	h_atimeOffnRMSSH->Fill(blkid, mean);
+	h_atimeOffnRMSSH->Fill(blkid, mean_eff);
 	h_atimeOffnRMSSH->SetBinError(blkid, rms);
 
-	h2_atimeOffSH_detview->Fill(c, r, mean);
-
-	cout << mean + old_ash_atimeOffs[blkid] << " "; 
-	toffset_shdata << mean + old_ash_atimeOffs[blkid] << " "; 
+	cout << mean + atppos_new << " "; 
+	toffset_shdata << mean + atppos_new << " "; 
 	ash_atimeOffs[blkid] = mean;
+	h2_atimeOffSH_detview->Fill(c, r, old_ash_atimeOffs[blkid]);
+	h2_atimeOffSH_detview_corr->Fill(c, r, mean + atppos_new);
       }else{
-	cout << atpos_nom << " ";
-	toffset_shdata << atpos_nom << " ";
-	ash_atimeOffs[blkid] = atpos_nom; 
+	cout << atppos_nom + atppos_new << " ";
+	toffset_shdata << atppos_nom + atppos_new << " ";
+	ash_atimeOffs[blkid] = atppos_nom; 
+	h2_atimeOffSH_detview->Fill(c, r, old_ash_atimeOffs[blkid]);
+	h2_atimeOffSH_detview_corr->Fill(c, r, atppos_nom + atppos_new);
       }
 
       h_atime_sh[r][c]->SetTitle(Form("Time Offset | SH%d-%d",r+1,c+1));
@@ -566,24 +574,27 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	double rms = fgaus->GetParameter(2);
 	double rmserr = rmserr;
 
-	h_atimeOffPS->Fill(blkid, mean);
+	double mean_eff = mean - old_aps_atimeOffs[blkid];
+	h_atimeOffPS->Fill(blkid, mean_eff);
 	h_atimeOffPS->SetBinError(blkid, meanerr);
 
 	h_atimeRMSPS->Fill(blkid, rms);
 	h_atimeRMSPS->SetBinError(blkid, rmserr);
 
-	h_atimeOffnRMSPS->Fill(blkid, mean);
+	h_atimeOffnRMSPS->Fill(blkid, mean_eff);
 	h_atimeOffnRMSPS->SetBinError(blkid, rms);
 
-	h2_atimeOffPS_detview->Fill(c, r, mean);
-
-	cout << mean + old_aps_atimeOffs[blkid] << " "; 
-	toffset_psdata << mean + old_aps_atimeOffs[blkid] << " "; 
+	cout << mean + atppos_new << " "; 
+	toffset_psdata << mean + atppos_new << " "; 
 	aps_atimeOffs[blkid] = mean;
+	h2_atimeOffPS_detview->Fill(c, r, old_aps_atimeOffs[blkid]);
+	h2_atimeOffPS_detview_corr->Fill(c, r, mean + atppos_new);
       }else{
-	cout << atpos_nom << " "; 
-	toffset_psdata << atpos_nom << " "; 
-	aps_atimeOffs[blkid] = atpos_nom;
+	cout << atppos_nom + atppos_new << " "; 
+	toffset_psdata << atppos_nom + atppos_new << " "; 
+	aps_atimeOffs[blkid] = atppos_nom;
+	h2_atimeOffPS_detview->Fill(c, r, old_ash_atimeOffs[blkid]);
+	h2_atimeOffPS_detview_corr->Fill(c, r, atppos_nom + atppos_new);
       }
 
       h_atime_ps[r][c]->SetTitle(Form("Time Offset | PS%d-%d",r+1,c+1));
@@ -626,23 +637,35 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
     bool passedgCut = GlobalCut->EvalInstance(0) != 0;   
     if (passedgCut) {
 
-      double sh_atimeOff_corr = hodo_tmean[0] - sh_clblk_atime[0] - ash_atimeOffs[(int)sh_idblk];
-      double ps_atimeOff_corr = hodo_tmean[0] - ps_clblk_atime[0] - aps_atimeOffs[(int)ps_idblk];
+      double sh_atime_raw = sh_clblk_atime[0] - old_ash_atimeOffs[(int)sh_idblk];
+      double ps_atime_raw = ps_clblk_atime[0] - old_aps_atimeOffs[(int)ps_idblk];
 
-      h_atimeSH_corr->Fill(sh_clblk_atime[0] + ash_atimeOffs[(int)sh_idblk]);
-      h_atimePS_corr->Fill(ps_clblk_atime[0] + aps_atimeOffs[(int)ps_idblk]);
+      double sh_atime_new = sh_atime_raw + ash_atimeOffs[(int)sh_idblk];
+      double ps_atime_new = ps_atime_raw + aps_atimeOffs[(int)ps_idblk];
+
+      double sh_atimeOff_corr = hodo_tmean[0] - sh_atime_new;
+      double ps_atimeOff_corr = hodo_tmean[0] - ps_atime_new;
 
       h_atime_sh_corr[(int)sh_rowblk][(int)sh_colblk]->Fill(sh_atimeOff_corr);
       h_atime_ps_corr[(int)ps_rowblk][(int)ps_colblk]->Fill(ps_atimeOff_corr);
 
-      h2_atimeOffSH_vs_blk_corr->Fill(sh_idblk, sh_atimeOff_corr);
-      h2_atimeOffPS_vs_blk_corr->Fill(ps_idblk, ps_atimeOff_corr);    
+      double sh_atime_new_shifted = sh_atime_new + atppos_new;
+      double ps_atime_new_shifted = ps_atime_new + atppos_new;
 
-      h2_atimeOffSH_vs_rnum_corr->Fill(itrrun, sh_atimeOff_corr);
-      h2_atimeOffPS_vs_rnum_corr->Fill(itrrun, ps_atimeOff_corr);  
+      double sh_atimeOff_corr_shifted = hodo_tmean[0] - sh_atime_new_shifted;
+      double ps_atimeOff_corr_shifted = hodo_tmean[0] - ps_atime_new_shifted;
 
-      h2_atimeSH_vs_rnum_corr->Fill(itrrun, sh_clblk_atime[0] + ash_atimeOffs[(int)sh_idblk]);
-      h2_atimePS_vs_rnum_corr->Fill(itrrun, ps_clblk_atime[0] + aps_atimeOffs[(int)ps_idblk]);
+      h_atimeSH_corr->Fill(sh_atime_new_shifted);
+      h_atimePS_corr->Fill(ps_atime_new_shifted);
+
+      h2_atimeOffSH_vs_blk_corr->Fill(sh_idblk, sh_atimeOff_corr_shifted);
+      h2_atimeOffPS_vs_blk_corr->Fill(ps_idblk, ps_atimeOff_corr_shifted);    
+
+      h2_atimeOffSH_vs_rnum_corr->Fill(itrrun, sh_atimeOff_corr_shifted);
+      h2_atimeOffPS_vs_rnum_corr->Fill(itrrun, ps_atimeOff_corr_shifted);  
+
+      h2_atimeSH_vs_rnum_corr->Fill(itrrun, sh_atime_new_shifted);
+      h2_atimePS_vs_rnum_corr->Fill(itrrun, ps_atime_new_shifted);
     }//global cut
   } //while
   cout << endl << endl;
@@ -673,63 +696,54 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
       double maxCount = h_atime_sh_corr[r][c]->GetMaximum();
       double binWidth = h_atime_sh_corr[r][c]->GetBinWidth(maxBin);
       double stdDev = h_atime_sh_corr[r][c]->GetStdDev();
-      double lofitlim = h_atime_blk_min + (maxBin)*binWidth - (1.0*stdDev);
-      double hifitlim = h_atime_blk_min + (maxBin)*binWidth + (0.6*stdDev);
+      double lofitlim = h_atime_blk_corr_min + (maxBin)*binWidth - (1.0*stdDev);
+      double hifitlim = h_atime_blk_corr_min + (maxBin)*binWidth + (0.6*stdDev);
 
       if( h_atime_sh_corr[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
-	// Create fit functions for each module
-	fgaus->SetLineColor(1);
-	fgaus->SetNpx(1000);
+      	// Create fit functions for each module
+      	fgaus->SetLineColor(1);
+      	fgaus->SetNpx(1000);
 
-	if( h_atime_sh_corr[r][c]->GetBinContent(maxBin-1) == 0. ){
-	  while ( h_atime_sh_corr[r][c]->GetBinContent(maxBin+1) < h_atime_sh_corr[r][c]->GetBinContent(maxBin) || 
-		  h_atime_sh_corr[r][c]->GetBinContent(maxBin+1) == h_atime_sh_corr[r][c]->GetBinContent(maxBin) ) 
-	    {
-	      maxBin++;
-	    };
-	  h_atime_sh_corr[r][c]->GetXaxis()->SetRange( maxBin+1 , h_atime_sh_corr[r][c]->GetNbinsX() );
-	  maxBin = h_atime_sh_corr[r][c]->GetMaximumBin();
-	  maxBinCenter = h_atime_sh_corr[r][c]->GetXaxis()->GetBinCenter( maxBin );
-	  maxCount = h_atime_sh_corr[r][c]->GetMaximum();
-	  binWidth = h_atime_sh_corr[r][c]->GetBinWidth(maxBin);
-	  stdDev = h_atime_sh_corr[r][c]->GetStdDev();
-	}
+      	if( h_atime_sh_corr[r][c]->GetBinContent(maxBin-1) == 0. ){
+      	  while ( h_atime_sh_corr[r][c]->GetBinContent(maxBin+1) < h_atime_sh_corr[r][c]->GetBinContent(maxBin) || 
+      		  h_atime_sh_corr[r][c]->GetBinContent(maxBin+1) == h_atime_sh_corr[r][c]->GetBinContent(maxBin) ) 
+      	    {
+      	      maxBin++;
+      	    };
+      	  h_atime_sh_corr[r][c]->GetXaxis()->SetRange( maxBin+1 , h_atime_sh_corr[r][c]->GetNbinsX() );
+      	  maxBin = h_atime_sh_corr[r][c]->GetMaximumBin();
+      	  maxBinCenter = h_atime_sh_corr[r][c]->GetXaxis()->GetBinCenter( maxBin );
+      	  maxCount = h_atime_sh_corr[r][c]->GetMaximum();
+      	  binWidth = h_atime_sh_corr[r][c]->GetBinWidth(maxBin);
+      	  stdDev = h_atime_sh_corr[r][c]->GetStdDev();
+      	}
 
-	fgaus->SetParameters( maxCount,maxBinCenter,stdDev );
-	fgaus->SetRange( lofitlim, hifitlim );
-	h_atime_sh_corr[r][c]->Fit(fgaus,"+RQ");
+      	fgaus->SetParameters( maxCount,maxBinCenter,stdDev );
+      	fgaus->SetRange( lofitlim, hifitlim );
+      	h_atime_sh_corr[r][c]->Fit(fgaus,"+RQ");
 
 	double mean = fgaus->GetParameter(1);
 	double meanerr = fgaus->GetParError(1);
 	double rms = fgaus->GetParameter(2);
 	double rmserr = fgaus->GetParError(2);
 	
-	h_atimeOffSH_corr->Fill(blkid, mean);
+	double mean_eff = mean - atppos_new;
+	h_atimeOffSH_corr->Fill(blkid, mean_eff);
 	h_atimeOffSH_corr->SetBinError(blkid, meanerr);
 
 	h_atimeRMSSH_corr->Fill(blkid, rms);
 	h_atimeRMSSH_corr->SetBinError(blkid, rmserr);
 
-	h_atimeOffnRMSSH_corr->Fill(blkid, mean);
+	h_atimeOffnRMSSH_corr->Fill(blkid, mean_eff);
 	h_atimeOffnRMSSH_corr->SetBinError(blkid, rms);
 
-	h2_atimeOffSH_detview_corr->Fill(c, r, mean);
-
-	// cout << mean << " "; 
-	// toffset_shdata << mean << " "; 
-	// ash_atimeOffs[blkid] = mean;
-      }else{ // Needs more thoughts!
-	// cout << 0. << " ";
-	// toffset_shdata << 0. << " ";
-	// ash_atimeOffs[blkid] = 0.; 
+	//h2_atimeOffSH_detview_corr->Fill(c, r, mean_eff);
       }
 
       h_atime_sh_corr[r][c]->SetTitle(Form("Time Offset | SH%d-%d",r+1,c+1));
       h_atime_sh_corr[r][c]->Draw();
     }
-    // cout << endl;
-    // toffset_shdata << endl;
   }
 
   //fitting PS histograms
@@ -747,63 +761,53 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
       double maxCount = h_atime_ps_corr[r][c]->GetMaximum();
       double binWidth = h_atime_ps_corr[r][c]->GetBinWidth(maxBin);
       double stdDev = h_atime_ps_corr[r][c]->GetStdDev();
-      double lofitlim = h_atime_blk_min + (maxBin)*binWidth - (0.8*stdDev);
-      double hifitlim = h_atime_blk_min + (maxBin)*binWidth + (0.4*stdDev);
+      double lofitlim = h_atime_blk_corr_min + (maxBin)*binWidth - (0.8*stdDev);
+      double hifitlim = h_atime_blk_corr_min + (maxBin)*binWidth + (0.4*stdDev);
 
       if( h_atime_ps_corr[r][c]->GetEntries()>20 && stdDev>2.*binWidth){
 
-	// Create fit functions for each module
-	fgaus->SetLineColor(1);
-	fgaus->SetNpx(1000);
+      	// Create fit functions for each module
+      	fgaus->SetLineColor(1);
+      	fgaus->SetNpx(1000);
 
-	if( h_atime_ps_corr[r][c]->GetBinContent(maxBin-1) == 0. ){
-	  while ( h_atime_ps_corr[r][c]->GetBinContent(maxBin+1) < h_atime_ps_corr[r][c]->GetBinContent(maxBin) || 
-		  h_atime_ps_corr[r][c]->GetBinContent(maxBin+1) == h_atime_ps_corr[r][c]->GetBinContent(maxBin) ) 
-	    {
-	      maxBin++;
-	    };
-	  h_atime_ps_corr[r][c]->GetXaxis()->SetRange( maxBin+1 , h_atime_ps_corr[r][c]->GetNbinsX() );
-	  maxBin = h_atime_ps_corr[r][c]->GetMaximumBin();
-	  maxBinCenter = h_atime_ps_corr[r][c]->GetXaxis()->GetBinCenter( maxBin );
-	  maxCount = h_atime_ps_corr[r][c]->GetMaximum();
-	  binWidth = h_atime_ps_corr[r][c]->GetBinWidth(maxBin);
-	  stdDev = h_atime_ps_corr[r][c]->GetStdDev();
-	}
+      	if( h_atime_ps_corr[r][c]->GetBinContent(maxBin-1) == 0. ){
+      	  while ( h_atime_ps_corr[r][c]->GetBinContent(maxBin+1) < h_atime_ps_corr[r][c]->GetBinContent(maxBin) || 
+      		  h_atime_ps_corr[r][c]->GetBinContent(maxBin+1) == h_atime_ps_corr[r][c]->GetBinContent(maxBin) ) 
+      	    {
+      	      maxBin++;
+      	    };
+      	  h_atime_ps_corr[r][c]->GetXaxis()->SetRange( maxBin+1 , h_atime_ps_corr[r][c]->GetNbinsX() );
+      	  maxBin = h_atime_ps_corr[r][c]->GetMaximumBin();
+      	  maxBinCenter = h_atime_ps_corr[r][c]->GetXaxis()->GetBinCenter( maxBin );
+      	  maxCount = h_atime_ps_corr[r][c]->GetMaximum();
+      	  binWidth = h_atime_ps_corr[r][c]->GetBinWidth(maxBin);
+      	  stdDev = h_atime_ps_corr[r][c]->GetStdDev();
+      	}
 
-	fgaus->SetParameters( maxCount,maxBinCenter,stdDev );
-	fgaus->SetRange( lofitlim, hifitlim );
-	h_atime_ps_corr[r][c]->Fit(fgaus,"+RQ");
+      	fgaus->SetParameters( maxCount,maxBinCenter,stdDev );
+      	fgaus->SetRange( lofitlim, hifitlim );
+      	h_atime_ps_corr[r][c]->Fit(fgaus,"+RQ");
 
-	double mean = fgaus->GetParameter(1);
-	double meanerr = fgaus->GetParError(1);
-	double rms = fgaus->GetParameter(2);
-	double rmserr = fgaus->GetParError(2);
+      	double mean = fgaus->GetParameter(1);
+      	double meanerr = fgaus->GetParError(1);
+      	double rms = fgaus->GetParameter(2);
+      	double rmserr = fgaus->GetParError(2);
 
-	h_atimeOffPS_corr->Fill(blkid, mean);
+	double mean_eff = mean - atppos_new;
+	h_atimeOffPS_corr->Fill(blkid, mean_eff);
 	h_atimeOffPS_corr->SetBinError(blkid, meanerr);
 
 	h_atimeRMSPS_corr->Fill(blkid, rms);
 	h_atimeRMSPS_corr->SetBinError(blkid, rmserr);
 
-	h_atimeOffnRMSPS_corr->Fill(blkid, mean);
+	h_atimeOffnRMSPS_corr->Fill(blkid, mean_eff);
 	h_atimeOffnRMSPS_corr->SetBinError(blkid, rms);
-
-	h2_atimeOffPS_detview_corr->Fill(c, r, mean);
-
-	// cout << mean << " "; 
-	// toffset_psdata << mean << " "; 
-	// aps_atimeOffs[blkid] = mean;
-      }else{
-	// cout << 0. << " "; 
-	// toffset_psdata << 0. << " "; 
-	// aps_atimeOffs[blkid] = 0.;
       }
 
       h_atime_ps_corr[r][c]->SetTitle(Form("Time Offset | PS%d-%d",r+1,c+1));
-      h_atime_ps_corr[r][c]->Draw();    
+      h_atime_ps_corr[r][c]->Draw(); 
+      
     }
-    // cout << endl;
-    // toffset_psdata << endl;
   }
 
   /////////////////////////////////
@@ -908,19 +912,19 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   c8->cd(1); //
   h2_atimeOffPS_detview->SetStats(0);
   h2_atimeOffPS_detview->Draw("colz text");
-  h2_atimeOffPS_detview->GetZaxis()->SetRangeUser(-5,5);
+  h2_atimeOffPS_detview->GetZaxis()->SetRangeUser(atppos_nom+atppos_old-15,atppos_nom+atppos_old+15);
   c8->cd(2); //
   h2_atimeOffPS_detview_corr->SetStats(0);
   h2_atimeOffPS_detview_corr->Draw("colz text");
-  h2_atimeOffPS_detview_corr->GetZaxis()->SetRangeUser(-5,5);
+  h2_atimeOffPS_detview_corr->GetZaxis()->SetRangeUser(atppos_nom+atppos_new-15,atppos_nom+atppos_new+15);
   c8->cd(3); //
   h2_atimeOffSH_detview->SetStats(0);
   h2_atimeOffSH_detview->Draw("colz text");
-  h2_atimeOffSH_detview->GetZaxis()->SetRangeUser(-5,5);
+  h2_atimeOffSH_detview->GetZaxis()->SetRangeUser(atppos_nom+atppos_old-15,atppos_nom+atppos_old+15);
   c8->cd(4); //
   h2_atimeOffSH_detview_corr->SetStats(0);
   h2_atimeOffSH_detview_corr->Draw("colz text");
-  h2_atimeOffSH_detview_corr->GetZaxis()->SetRangeUser(-5,5);
+  h2_atimeOffSH_detview_corr->GetZaxis()->SetRangeUser(atppos_nom+atppos_new-15,atppos_nom + atppos_new+15);
   c8->SaveAs(Form("%s",outPeaks.Data())); c8->Write();
   //**** -- ***//
 
@@ -943,11 +947,14 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   }
   if (!tmpstr.empty()) pt->AddText(Form(" %s",tmpstr.c_str()));
   pt->AddText(Form(" # events passed global cuts: %zu", goodevents.size()));
+  pt->AddText(" SH/PS ADC time peak position set values: ");
+  pt->AddText(Form(" Nominal (set by latency in FADC config): %.1f, Before corr.: %.1f, After corr.: %.1f",abs(atppos_nom),atppos_old,atppos_new));
   sw->Stop(); sw2->Stop();
   pt->AddText(Form("Macro processing time: CPU %.1fs | Real %.1fs",sw->CpuTime(),sw->RealTime()));
   TText *t1 = pt->GetLineWith("Configfile"); t1->SetTextColor(kRed);
   TText *t2 = pt->GetLineWith(" Global"); t2->SetTextColor(kBlue);
-  TText *t3 = pt->GetLineWith("Macro"); t3->SetTextColor(kGreen+3);
+  TText *t3 = pt->GetLineWith(" SH/PS"); t3->SetTextColor(kBlue);
+  TText *t4 = pt->GetLineWith("Macro"); t4->SetTextColor(kGreen+3);
   pt->Draw();
   cSummary->SaveAs(Form("%s",outPeaks.Data())); cSummary->Write();  
   //**** -- ***//
