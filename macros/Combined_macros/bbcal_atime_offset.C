@@ -1,12 +1,12 @@
 /*
   This script Script to determine ADC time offsets for all SH and PS channels w.r.t
-  BBTH cluster mean time (bbhodo.clus.tmean). One needs a configfile, setup_bbcal_atime_offset.cfg, 
+  BBTH cluster mean time (bbhodo.clus.tmean). One needs a configfile, similar to /cfg/atimeOff-example.cfg, 
   to execute this script. To execute, do:
   ----
   [a-onl@aonl2 macros]$ pwd
   /adaqfs/home/a-onl/sbs/BBCal_replay/macros
   [a-onl@aonl2 macros]$ root -l 
-  root [0] .x Combined_macros/bbcal_atime_offset.C("Combined_macros/setup_bbcal_atime_offset.cfg")
+  root [0] .x Combined_macros/bbcal_atime_offset.C("Combined_macros/cfg/atimeOff-example.cfg")
   ----
   P. Datta  <pdbforce@jlab.org>  Created  16 Feb 2022
 */
@@ -283,11 +283,12 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   TH1F *h_W = new TH1F("h_W","W distribution",200,0.,5.);
   TH1F *h_Q2 = new TH1F("h_Q2","Q2 distribution",300,1.,15.);
 
-  // determining histogram ranges
+  // determining histogram ranges --
   Double_t h_atime_bin = 250, h_atime_min = atppos_old-20., h_atime_max = atppos_old+20;
   Double_t h_atime_corr_bin = 250, h_atime_corr_min = atppos_new-20., h_atime_corr_max = atppos_new+20;
   Double_t h_atime_off_bin = 250, h_atime_off_min = -atppos_old-20, h_atime_off_max = -atppos_old+20;
   Double_t h_atime_off_corr_bin = 250, h_atime_off_corr_min = -atppos_new-20, h_atime_off_corr_max = -atppos_new+20;
+  // --
 
   TH1F *h_atimeSH = new TH1F("h_atimeSH","SH ADC time | Before corr.",h_atime_bin,h_atime_min,h_atime_max);
   TH1F *h_atimeSH_corr = new TH1F("h_atimeSH_corr","SH ADC time | After corr.",h_atime_bin,h_atime_min,h_atime_max);
@@ -507,12 +508,14 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	h_atimeOffnRMSSH->Fill(blkid, mean_eff);
 	h_atimeOffnRMSSH->SetBinError(blkid, rms);
 
+	// reporting and writing new offsets for SH
 	cout << mean + atppos_new << " "; 
 	toffset_shdata << mean + atppos_new << " "; 
 	ash_atimeOffs[blkid] = mean;
 	h2_atimeOffSH_detview->Fill(c, r, old_ash_atimeOffs[blkid]);
 	h2_atimeOffSH_detview_corr->Fill(c, r, mean + atppos_new);
       }else{
+	// reporting and writing new offsets for SH
 	cout << atppos_nom + atppos_new << " ";
 	toffset_shdata << atppos_nom + atppos_new << " ";
 	ash_atimeOffs[blkid] = atppos_nom; 
@@ -574,7 +577,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	double rms = fgaus->GetParameter(2);
 	double rmserr = rmserr;
 
-	double mean_eff = mean - old_aps_atimeOffs[blkid];
+	double mean_eff = mean - old_aps_atimeOffs[blkid]; // matches the current DB
 	h_atimeOffPS->Fill(blkid, mean_eff);
 	h_atimeOffPS->SetBinError(blkid, meanerr);
 
@@ -584,12 +587,14 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 	h_atimeOffnRMSPS->Fill(blkid, mean_eff);
 	h_atimeOffnRMSPS->SetBinError(blkid, rms);
 
+	// reporting and writing new offsets for PS
 	cout << mean + atppos_new << " "; 
 	toffset_psdata << mean + atppos_new << " "; 
 	aps_atimeOffs[blkid] = mean;
 	h2_atimeOffPS_detview->Fill(c, r, old_aps_atimeOffs[blkid]);
 	h2_atimeOffPS_detview_corr->Fill(c, r, mean + atppos_new);
       }else{
+	// reporting and writing new offsets for PS
 	cout << atppos_nom + atppos_new << " "; 
 	toffset_psdata << atppos_nom + atppos_new << " "; 
 	aps_atimeOffs[blkid] = atppos_nom;
@@ -737,8 +742,6 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 
 	h_atimeOffnRMSSH_corr->Fill(blkid, mean_eff);
 	h_atimeOffnRMSSH_corr->SetBinError(blkid, rms);
-
-	//h2_atimeOffSH_detview_corr->Fill(c, r, mean_eff);
       }
 
       h_atime_sh_corr[r][c]->SetTitle(Form("Time Offset | SH%d-%d",r+1,c+1));
