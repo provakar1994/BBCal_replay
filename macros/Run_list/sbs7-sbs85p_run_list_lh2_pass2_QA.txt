@@ -1,0 +1,17 @@
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*11989*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*11990*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*11991*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*11992*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*11993*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*11994*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*12000*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*12008*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*12022*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*12035*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*12049*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*12052*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*12053*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*12058*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*12064*
+/lustre19/expphy/volatile/halla/sbs/sbs-gmn/GMN_REPLAYS/pass2/QA/SBS7/rootfiles/*12072*
+endlist
