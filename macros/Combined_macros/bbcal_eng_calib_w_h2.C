@@ -54,7 +54,8 @@ Int_t const kNrowsPS = 26;        // PS rows
 Double_t const zposSH = 1.901952; // m
 Double_t const zposPS = 1.695704; // m
 
-string getDate();
+string GetDate();
+double GetNDC(double x);
 void CustmProfHisto(TH1D*);
 TString GetOutFileBase(TString);
 void ReadGain(TString, Double_t*);
@@ -1462,14 +1463,12 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h_PovPel_pspotcut->Draw("same");
       Double_t x1 = PovPel_mean-PovPel_sigma*PovPel_nsigma;
       Double_t x2 = PovPel_mean+PovPel_sigma*PovPel_nsigma;
-      Double_t y1 = 0.;
-      Double_t y2 = h_PovPel_pspotcut->GetMaximum();
       TLine L1;
       L1.SetLineColor(2); L1.SetLineWidth(2); L1.SetLineStyle(9);
-      L1.DrawLine(x1,y1,x1,y2);
+      L1.DrawLineNDC(GetNDC(x1),0.1,GetNDC(x1),0.9);
       TLine L2;
       L2.SetLineColor(2); L2.SetLineWidth(2); L2.SetLineStyle(9);
-      L2.DrawLine(x2,y1,x2,y2);
+      L2.DrawLineNDC(GetNDC(x2),0.1,GetNDC(x2),0.9);
     } else if (cut_on_W) {
       h_W->SetLineColor(1);
       h_W->SetTitle("Blue: w/ p spot cut | Red: W cut region");
@@ -1478,14 +1477,12 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h_W_pspotcut->Draw("same");
       Double_t x1 = W_mean-W_sigma*W_nsigma;
       Double_t x2 = W_mean+W_sigma*W_nsigma;
-      Double_t y1 = 0.;
-      Double_t y2 = h_W_pspotcut->GetMaximum();
       TLine L1;
       L1.SetLineColor(2); L1.SetLineWidth(2); L1.SetLineStyle(9);
-      L1.DrawLine(x1,y1,x1,y2);
+      L1.DrawLineNDC(GetNDC(x1),0.1,GetNDC(x1),0.9);
       TLine L2;
       L2.SetLineColor(2); L2.SetLineWidth(2); L2.SetLineStyle(9);
-      L2.DrawLine(x2,y1,x2,y2);
+      L2.DrawLineNDC(GetNDC(x2),0.1,GetNDC(x2),0.9);
     }
     p7->cd(2); //
     h2_dxdyHCAL->Draw("colz");
@@ -1530,7 +1527,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TCanvas *cSummary = new TCanvas("cSummary","Summary");
   cSummary->cd();
   TPaveText *pt = new TPaveText(.05,.1,.95,.8);
-  pt->AddText(Form(" Date of creation: %s",getDate().c_str()));
+  pt->AddText(Form(" Date of creation: %s",GetDate().c_str()));
   pt->AddText(Form("Configfile: BBCal_replay/macros/Combined_macros/cfg/%s.cfg",cfgfilebase.Data()));
   pt->AddText(Form(" Total # events analyzed: %lld, Preparing for replay pass: %d",Nevents,ppass));
   pt->AddText(Form(" E/p (before calib.) | #mu = %.2f, #sigma = (%.3f #pm %.3f) p",param_bc[1],param_bc[2]*100,sigerr_bc*100));
@@ -1563,7 +1560,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   pt->AddText(Form(" Minimum # events per block: %d, (Cluster) hit threshold: %.2f GeV",Nmin,hit_threshold));
   pt->AddText(" Various offsets: ");
   pt->AddText(Form(" Momentum fudge factor: %.2f, BBCAL cluster energy scale factor: %.2f",p_rec_Offset,cF));
-  if (mom_calib) pt->AddText(Form(" Momentum calibration factors: A = %.9f, B = %.9f, C = %.1f, #theta^{GEM}_{pitch} = %.1f^{o}, d_{BB} = %.4f m",A_fit,B_fit,C_fit,GEMpitch,bb_magdist));
+  if (mom_calib) pt->AddText(Form(" Mom. calib. params: A = %.9f, B = %.9f, C = %.1f, Avy = %.6f, Bvy = %.6f, #theta^{GEM}_{pitch} = %.1f^{o}, d_{BB} = %.4f m",A_fit,B_fit,C_fit,Avy_fit,Bvy_fit,GEMpitch,bb_magdist));
   sw->Stop(); sw2->Stop();
   pt->AddText(Form("Macro processing time: CPU %.1fs | Real %.1fs",sw->CpuTime(),sw->RealTime()));
   TText *t1 = pt->GetLineWith("Configfile"); t1->SetTextColor(kRed+2);
@@ -1657,7 +1654,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
 // **** ========== Useful functions ========== ****  
 // returns today's date
-std::string getDate(){
+std::string GetDate(){
   time_t now = time(0);
   tm ltm = *localtime(&now);
   std::string yyyy = to_string(1900 + ltm.tm_year);
@@ -1730,6 +1727,12 @@ void Custm2DRnumHisto(TH2D* h, std::vector<std::string> const & lrnum)
   if (lrnum.size()>15) h->LabelsOption("v", "X");
 }
 
+// Returns NDC value for a given abscissa
+double GetNDC(double x) {
+  gPad->Update();
+  return (x - gPad->GetX1())/(gPad->GetX2()-gPad->GetX1());
+}
+
 /*
   List of input and output files:
   *Input files: 
@@ -1783,11 +1786,13 @@ h2_p 125 0.5 3.
 h2_pang 150 30. 45.
 h2_p_coarse 10 2.2 3.5
 h2_EovP 200 0.6 1.4
+h2_dx 240 -5 1
+h2_dy 240 -4 2
 # offsets
 p_rec_Offset 1.0	# a.k.a fudge factor (FF). With better cosmic calibrations, this offset is unnecessary, so we keep it at 1.0.
 Corr_Factor_Enrg_Calib_w_Cosmic 1.0  # a.k.a cF.With better cosmic calibrations, this offset is unnecessary, so we keep it at 1.0.
 # calculate calibrated momentum ##Get these from whomever did the optics calibration. Get GEMpitch from GEM experts and make sure the distance to the bb magnet is correct.
-mom_calib 1 0.27765103 0.932092801 0. 10. 1.63 # y/n(1/0) A B C GEMpitch bb_magdist
+mom_calib 1 0.27765103 0.932092801 0. 0.0175826672 -33.8073321 10. 1.63 # y/n(1/0) A B C Avy Bvy GEMpitch bb_magdist
 
 ***** Log *****
 
