@@ -1,5 +1,5 @@
-Nruns 10 # <- No. of unique runs to analyze [*IMPORTANT!]
-/lustre19/expphy/volatile/halla/sbs/sbs-gen/GEN_REPLAYS/Rootfiles/GEN2/H2/SBS30/rootfiles/*1998*
+Nruns 9 # <- No. of unique runs to analyze [*IMPORTANT!]
+##/lustre19/expphy/volatile/halla/sbs/sbs-gen/GEN_REPLAYS/Rootfiles/GEN2/H2/SBS30/rootfiles/*1998*
 /lustre19/expphy/volatile/halla/sbs/sbs-gen/GEN_REPLAYS/Rootfiles/GEN2/H2/SBS30/rootfiles/*1999*
 /lustre19/expphy/volatile/halla/sbs/sbs-gen/GEN_REPLAYS/Rootfiles/GEN2/H2/SBS30/rootfiles/*2000*
 /lustre19/expphy/volatile/halla/sbs/sbs-gen/GEN_REPLAYS/Rootfiles/GEN2/H2/SBS30/rootfiles/*2001*
