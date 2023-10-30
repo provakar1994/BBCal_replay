@@ -107,7 +107,7 @@ void sh_HVUpdate_cosmic(Int_t nrun=0, Double_t des_TrigAmp=15.,
 	  double ampRatio = des_TrigAmp/sigPeakTrig.at(blk);
 	  double HV_old = HV_Value[nc][ns][nch];
 	  double HV_new = HV_Value[nc][ns][nch]*pow(ampRatio,alphaINV);
-	  if(fabs(HV_new)>2200 || (HV_new != HV_new)){
+	  if(fabs(HV_new)>2400 || (HV_new != HV_new)){
 	    cout << " *!* New HV for SH Ch. " << row+1 << "-" << col+1
 		 << " seems too high! " << endl;
 	    outfile_hv << " " << HV_old;
@@ -131,11 +131,11 @@ void sh_HVUpdate_cosmic(Int_t nrun=0, Double_t des_TrigAmp=15.,
   h_hv_xy_new->SetTitle(Form("HV New (V) [%0.1f mV Trig. Amp.]",des_TrigAmp));
   h_hv_xy_new->Draw("text col");
   // h_hv_xy_new->SetMarkerSize(1.8);
-  h_hv_xy_new->GetZaxis()->SetRangeUser(-2200.,-800.);
+  h_hv_xy_new->GetZaxis()->SetRangeUser(-2400.,-800.);
   c1->cd(2);
   h_hv_xy_old->Draw("text col");
   // h_hv_xy_old->SetMarkerSize(1.8);
-  h_hv_xy_old->GetZaxis()->SetRangeUser(-2200.,-800.);
+  h_hv_xy_old->GetZaxis()->SetRangeUser(-2400.,-800.);
   c2->cd();
   h_hv_xy_shift->Draw("text col");
   
