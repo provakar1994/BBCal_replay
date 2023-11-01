@@ -544,12 +544,12 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   // SH and PS cluster level histograms
   TH1D *h_SHcltdiff = new TH1D("h_SHcltdiff","SH ADC time diff. bet. secondary blocks in cluster",200,-60,60);
   TH1D *h_SHcltdiff_calib = new TH1D("h_SHcltdiff_calib","SH ADC time diff. bet. secondary blocks in cluster",200,-60,60);
-  TH1D *h_PScltdiff = new TH1D("h_PScltdiff","PS ADC time diff. bet. secondary blocks in cluster",200,-40,40);
-  TH1D *h_PScltdiff_calib = new TH1D("h_PScltdiff_calib","PS ADC time diff. bet. secondary blocks in cluster",200,-40,40);
+  TH1D *h_PScltdiff = new TH1D("h_PScltdiff","PS ADC time diff. bet. secondary blocks in cluster",200,-60,60);
+  TH1D *h_PScltdiff_calib = new TH1D("h_PScltdiff_calib","PS ADC time diff. bet. secondary blocks in cluster",200,-60,60);
   TH2D *h2_SHtdiff_vs_engFrac = new TH2D("h2_SHtdiff_vs_engFrac",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-60,60);
   TH2D *h2_SHtdiff_vs_engFrac_calib = new TH2D("h2_SHtdiff_vs_engFrac_calib",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-60,60);
-  TH2D *h2_PStdiff_vs_engFrac = new TH2D("h2_PStdiff_vs_engFrac",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-40,40);
-  TH2D *h2_PStdiff_vs_engFrac_calib = new TH2D("h2_PStdiff_vs_engFrac_calib",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-40,40);
+  TH2D *h2_PStdiff_vs_engFrac = new TH2D("h2_PStdiff_vs_engFrac",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-60,60);
+  TH2D *h2_PStdiff_vs_engFrac_calib = new TH2D("h2_PStdiff_vs_engFrac_calib",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-60,60);
 
   // defining output ROOT tree (Set max size to 4GB)
   //auto Tout = std::make_unique<TTree>("Tout", cfgfilebase.Data());
@@ -1656,7 +1656,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     TText *tel = pt->GetLineWith(" Elastic"); tel->SetTextColor(kBlue);
   }
   pt->AddText(" Other cuts: ");
-  pt->AddText(Form(" Minimum # events per block: %d, (Cluster) hit threshold: %.2f GeV",Nmin,sh_hit_threshold));
+  pt->AddText(Form(" Minimum # events per block: %d | Cluster (Cl.) hit threshold: %.2f GeV (SH), %.2f GeV (PS)",Nmin,sh_hit_threshold,ps_hit_threshold));
+  pt->AddText(Form(" Cl. tmax cut: %.1f ns (SH), %.1f ns (PS) | Cl. energy fraction cut: %.1f GeV (SH), %.1f GeV (PS)",sh_tmax_cut,ps_tmax_cut,sh_engFrac_cut,ps_engFrac_cut));
   pt->AddText(" Various offsets: ");
   pt->AddText(Form(" Momentum fudge factor: %.2f, BBCAL cluster energy scale factor: %.2f",p_rec_Offset,cF));
   if (mom_calib) pt->AddText(Form(" Mom. calib. params: A = %.9f, B = %.9f, C = %.1f, Avy = %.6f, Bvy = %.6f, #theta^{GEM}_{pitch} = %.1f^{o}, d_{BB} = %.4f m",A_fit,B_fit,C_fit,Avy_fit,Bvy_fit,GEMpitch,bb_magdist));
