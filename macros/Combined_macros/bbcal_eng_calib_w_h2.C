@@ -73,7 +73,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
   TString macros_dir;
   Int_t Nmin = 10, ppass = 0;
-  Double_t minMBratio = 0.1, hit_threshold = 0.;
+  Double_t minMBratio = 0.1, sh_hit_threshold = 0., ps_hit_threshold = 0.;
+  Double_t ps_tmax_cut = 1000., sh_tmax_cut = 1000., ps_engFrac_cut = 0., sh_engFrac_cut = 0.;
   Double_t E_beam = 0., sbstheta = 0., hcaldist = 0., hcalheight = -0.2897;
   Double_t psE_cut_limit = 0., clusE_cut_limit = 0., EovP_cut_limit = 0.3;
   Double_t p_rec_Offset = 1., p_min_cut = 0., p_max_cut = 0.;
@@ -168,8 +169,23 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       if( skey == "HCAL_dist" ){
 	hcaldist = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
-      if( skey == "hit_threshold" ){
-	hit_threshold = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      if( skey == "sh_hit_threshold" ){
+      	sh_hit_threshold = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      }
+      if( skey == "ps_hit_threshold" ){
+      	ps_hit_threshold = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      }
+      if( skey == "sh_tmax_cut" ){
+      	sh_tmax_cut = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      }
+      if( skey == "ps_tmax_cut" ){
+      	ps_tmax_cut = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      }
+      if( skey == "sh_engFrac_cut" ){
+      	sh_engFrac_cut = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      }
+      if( skey == "ps_engFrac_cut" ){
+      	ps_engFrac_cut = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
       if( skey == "Min_Event_Per_Channel" ){
 	Nmin = ((TObjString*)(*tokens)[1])->GetString().Atof();
@@ -343,6 +359,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t psClBlkE[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.e", &psClBlkE);
   Double_t psClBlkX[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.x", &psClBlkX);
   Double_t psClBlkY[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.y", &psClBlkY);
+  Double_t psClBlkAtime[maxNtr]; C->SetBranchAddress("bb.ps.clus_blk.atime", &psClBlkAtime);
   Double_t psAgainblk;         if (!read_gain) C->SetBranchAddress("bb.ps.againblk", &psAgainblk);
   // bb.sh branches
   C->SetBranchStatus("bb.sh.*", 1);
@@ -359,6 +376,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t shClBlkE[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.e", &shClBlkE);
   Double_t shClBlkX[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.x", &shClBlkX);
   Double_t shClBlkY[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.y", &shClBlkY);
+  Double_t shClBlkAtime[maxNtr]; C->SetBranchAddress("bb.sh.clus_blk.atime", &shClBlkAtime);
   Double_t shAgainblk;         if (!read_gain) C->SetBranchAddress("bb.sh.againblk", &shAgainblk);
   // sbs.hcal branches
   Double_t hcalE;              C->SetBranchStatus("sbs.hcal.e",1); C->SetBranchAddress("sbs.hcal.e", &hcalE);
@@ -516,6 +534,16 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
   TH2D *h2_dxdyHCAL = new TH2D("h2_dxdyHCAL","p Spot cut;#Deltay (m);#Deltax (m)",h2_dy_bin,h2_dy_min,h2_dy_max,h2_dx_bin,h2_dx_min,h2_dx_max);
 
+  // SH and PS cluster level histograms
+  TH1D *h_SHcltdiff = new TH1D("h_SHcltdiff","SH ADC time diff. bet. secondary blocks in cluster",200,-60,60);
+  TH1D *h_SHcltdiff_calib = new TH1D("h_SHcltdiff_calib","SH ADC time diff. bet. secondary blocks in cluster",200,-60,60);
+  TH1D *h_PScltdiff = new TH1D("h_PScltdiff","PS ADC time diff. bet. secondary blocks in cluster",200,-40,40);
+  TH1D *h_PScltdiff_calib = new TH1D("h_PScltdiff_calib","PS ADC time diff. bet. secondary blocks in cluster",200,-40,40);
+  TH2D *h2_SHtdiff_vs_engFrac = new TH2D("h2_SHtdiff_vs_engFrac",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-60,60);
+  TH2D *h2_SHtdiff_vs_engFrac_calib = new TH2D("h2_SHtdiff_vs_engFrac_calib",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-60,60);
+  TH2D *h2_PStdiff_vs_engFrac = new TH2D("h2_PStdiff_vs_engFrac",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-40,40);
+  TH2D *h2_PStdiff_vs_engFrac_calib = new TH2D("h2_PStdiff_vs_engFrac_calib",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-40,40);
+
   // defining output ROOT tree (Set max size to 4GB)
   //auto Tout = std::make_unique<TTree>("Tout", cfgfilebase.Data());
   TTree *Tout = new TTree("Tout", cfgfilebase.Data()); 
@@ -599,8 +627,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     sw2->Reset();
     sw2->Continue();
 
-    if(nevent % 100 == 0) std::cout << nevent << "/" << Nevents  << ", " << int(timeremains/60.) << "m \r";;
-    std::cout.flush();
+    // if(nevent % 100 == 0) std::cout << nevent << "/" << Nevents  << ", " << int(timeremains/60.) << "m \r";;
+    // std::cout.flush();
     // ------
 
     // get old gain coefficients
@@ -798,18 +826,42 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       /************************
        * Starting calibration *
        ************************/
+      // ATTENTION: In case the clustering cuts we use during calibration is tighter than
+      // the ones used during replay 
 
       // Loop over all the blocks in main cluster and fill in A's
       for(Int_t blk=0; blk<shNblk; blk++){
-	Int_t blkID = int(shClBlkId[blk]);
-	if (shClBlkE[blk]>hit_threshold) A[blkID] += shClBlkE[blk];
+	Int_t blkID = int(shClBlkId[blk]);	
+	if (shClBlkE[blk]>sh_hit_threshold) {
+	  Double_t shtdiff = shClBlkAtime[blk]-shClBlkAtime[0];
+	  Double_t shengFrac = shClBlkE[blk]/shClBlkE[0];
+	  if (abs(shtdiff)<sh_tmax_cut && shengFrac>=sh_engFrac_cut) {
+	    A[blkID] += shClBlkE[blk];
+	    // filling cluster level histos
+	    if (blk!=0) {
+	      h_SHcltdiff->Fill(shtdiff);
+	      h2_SHtdiff_vs_engFrac->Fill(shengFrac,shtdiff);
+	    }
+	  }
+	}
 	nevents_per_cell[blkID]++; 
       }
     
       // ****** PreShower ******
       for(Int_t blk=0; blk<psNblk; blk++){
 	Int_t blkID = int(psClBlkId[blk]);
-	if (psClBlkE[blk]>hit_threshold) A[kNblksSH+blkID] += psClBlkE[blk];
+	if (psClBlkE[blk]>ps_hit_threshold) {
+	  Double_t pstdiff = psClBlkAtime[blk]-psClBlkAtime[0];
+	  Double_t psengFrac = psClBlkE[blk]/psClBlkE[0];
+	  if (abs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
+	    A[kNblksSH+blkID] += psClBlkE[blk];
+	    // filling cluster level histos
+	    if (blk!=0) {
+	      h_PScltdiff->Fill(pstdiff);
+	      h2_PStdiff_vs_engFrac->Fill(psengFrac,pstdiff);
+	    }
+	  }
+	}
 	nevents_per_cell[kNblksSH+blkID]++;
       }
 
@@ -1153,26 +1205,52 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
       // calculating calibrated BBCAL energy
       // ****** Shower ******
-      Double_t shClusE = 0., shX_calib = 0., shY_calib = 0.;
+      Double_t shClusE = 0., shX_calib = 0., shY_calib = 0., shClBlkE_calib_HE = 0.;
       for(Int_t blk=0; blk<shNblk; blk++){
   	Int_t blkID = int(shClBlkId[blk]);
 	// calculating the updated cluster centroid
 	shX_calib = (shX_calib*shClusE + shClBlkX[blk]*shClBlkE[blk]) / (shClusE+shClBlkE[blk]);
 	shY_calib = (shY_calib*shClusE + shClBlkY[blk]*shClBlkE[blk]) / (shClusE+shClBlkE[blk]);
 	 
+	if (blk==0) shClBlkE_calib_HE = shClBlkE[blk] * newADCgratioSH[blkID];
 	Double_t shClBlkE_calib = shClBlkE[blk] * newADCgratioSH[blkID];
- 	if (shClBlkE_calib>hit_threshold) shClusE += shClBlkE_calib;
+ 	//if (shClBlkE_calib>hit_threshold) shClusE += shClBlkE_calib;
+	if (shClBlkE_calib>sh_hit_threshold) {
+	  Double_t shtdiff = shClBlkAtime[blk]-shClBlkAtime[0];
+	  Double_t shengFrac = shClBlkE_calib/shClBlkE_calib_HE;
+	  if (abs(shtdiff)<sh_tmax_cut && shengFrac>=sh_engFrac_cut) {
+	    shClusE += shClBlkE_calib;
+	    // filling cluster level histos
+	    if (blk!=0) {
+	      h_SHcltdiff_calib->Fill(shtdiff);
+	      h2_SHtdiff_vs_engFrac_calib->Fill(shengFrac,shtdiff);
+	    }
+	  }
+	}
       }
       // ****** PreShower ******
-      Double_t psClusE = 0., psX_calib = 0., psY_calib = 0.;
+      Double_t psClusE = 0., psX_calib = 0., psY_calib = 0., psClBlkE_calib_HE = 0.;
       for(Int_t blk=0; blk<psNblk; blk++){
 	Int_t blkID = int(psClBlkId[blk]);
 	// calculating the updated cluster centroid
 	psX_calib = (psX_calib*psClusE + psClBlkX[blk]*psClBlkE[blk]) / (psClusE+psClBlkE[blk]);
 	psY_calib = (psY_calib*psClusE + psClBlkY[blk]*psClBlkE[blk]) / (psClusE+psClBlkE[blk]);
 
+	if (blk==0) psClBlkE_calib_HE = psClBlkE[blk] * newADCgratioPS[blkID];
 	Double_t psClBlkE_calib = psClBlkE[blk] * newADCgratioPS[blkID];
-	if (psClBlkE_calib>hit_threshold) psClusE += psClBlkE_calib;
+	//if (psClBlkE_calib>hit_threshold) psClusE += psClBlkE_calib;
+	if (psClBlkE_calib>ps_hit_threshold) {
+	  Double_t pstdiff = psClBlkAtime[blk]-psClBlkAtime[0];
+	  Double_t psengFrac = psClBlkE_calib/psClBlkE_calib_HE;
+	  if (abs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
+	    psClusE += psClBlkE_calib;
+	    // filling cluster level histos
+	    if (blk!=0) {
+	      h_PScltdiff_calib->Fill(pstdiff);
+	      h2_PStdiff_vs_engFrac_calib->Fill(psengFrac,pstdiff);
+	    }
+	  }
+	}
       }
       Double_t clusEngBBCal = shClusE + psClusE;
       Double_t xtrATsh = trX[0] + zposSH*trTh[0];
@@ -1557,7 +1635,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     TText *tel = pt->GetLineWith(" Elastic"); tel->SetTextColor(kBlue);
   }
   pt->AddText(" Other cuts: ");
-  pt->AddText(Form(" Minimum # events per block: %d, (Cluster) hit threshold: %.2f GeV",Nmin,hit_threshold));
+  pt->AddText(Form(" Minimum # events per block: %d, (Cluster) hit threshold: %.2f GeV",Nmin,sh_hit_threshold));
   pt->AddText(" Various offsets: ");
   pt->AddText(Form(" Momentum fudge factor: %.2f, BBCAL cluster energy scale factor: %.2f",p_rec_Offset,cF));
   if (mom_calib) pt->AddText(Form(" Mom. calib. params: A = %.9f, B = %.9f, C = %.1f, Avy = %.6f, Bvy = %.6f, #theta^{GEM}_{pitch} = %.1f^{o}, d_{BB} = %.4f m",A_fit,B_fit,C_fit,Avy_fit,Bvy_fit,GEMpitch,bb_magdist));
@@ -1604,6 +1682,11 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   h_SHclusE->Write(); h_SHclusE_calib->Write();
   h_PSclusE->Write(); h_PSclusE_calib->Write();
   h2_SHeng_vs_SHblk->Write(); h2_PSeng_vs_PSblk->Write();
+  // SH and PS cluster level histograms
+  h_SHcltdiff->Write(); h_SHcltdiff_calib->Write(); 
+  h_PScltdiff->Write(); h_PScltdiff_calib->Write(); 
+  h2_SHtdiff_vs_engFrac->Write(); h2_SHtdiff_vs_engFrac_calib->Write();
+  h2_PStdiff_vs_engFrac->Write(); h2_PStdiff_vs_engFrac_calib->Write();
   // various corrs. with E/p
   h2_EovP_vs_SHblk_trPOS->Write(); h2_EovP_vs_PSblk_trPOS->Write();
   h2_EovP_vs_P->Write(); h2_EovP_vs_P_calib->Write();
