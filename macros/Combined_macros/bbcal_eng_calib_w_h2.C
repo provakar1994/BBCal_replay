@@ -627,8 +627,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     sw2->Reset();
     sw2->Continue();
 
-    // if(nevent % 100 == 0) std::cout << nevent << "/" << Nevents  << ", " << int(timeremains/60.) << "m \r";;
-    // std::cout.flush();
+    if(nevent % 100 == 0) std::cout << nevent << "/" << Nevents  << ", " << int(timeremains/60.) << "m \r";;
+    std::cout.flush();
     // ------
 
     // get old gain coefficients
@@ -726,9 +726,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
       // cut definitions
       // cut on W
-      WCut = abs(W - W_mean) <= W_sigma*W_nsigma;
+      WCut = fabs(W - W_mean) <= W_sigma*W_nsigma;
       // cut on PovPel
-      PovPelCut = abs(PovPel - PovPel_mean) <= PovPel_sigma*PovPel_nsigma;
+      PovPelCut = fabs(PovPel - PovPel_mean) <= PovPel_sigma*PovPel_nsigma;
       // defining pspot cut
       pCut = pow((dx-pspot_dxM) / (pspot_dxS*pspot_ndxS), 2) + pow((dy-pspot_dyM) / (pspot_dyS*pspot_ndyS), 2) <= 1.;
       // SH active area
@@ -827,7 +827,14 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
        * Starting calibration *
        ************************/
       // ATTENTION: In case the clustering cuts we use during calibration is tighter than
-      // the ones used during replay 
+      // the ones used during replay, SH eng, PS eng, and total cluster energy before calibration
+      // in the output tree will be slightly off from the actual situation. It is because right now we
+      // copy these values from Podd generated tree to the output tree but as you can imagine,
+      // tighter clustering threshold may change the SH & PS cluster energy. The remedy is to loop
+      // through all the blocks in the cluster twice but that will significantly hurt the efficiency. So,
+      // for the time being I am leaving the output tree variables as they are for such situation but
+      // I will make some changes such that the (before calibration) histograms are as realistic as possible.
+      clusEngBBCal = 0.; ClusEngSH = 0.; ClusEngPS = 0.; // fill these variables with realistic numbers
 
       // Loop over all the blocks in main cluster and fill in A's
       for(Int_t blk=0; blk<shNblk; blk++){
@@ -835,8 +842,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	if (shClBlkE[blk]>sh_hit_threshold) {
 	  Double_t shtdiff = shClBlkAtime[blk]-shClBlkAtime[0];
 	  Double_t shengFrac = shClBlkE[blk]/shClBlkE[0];
-	  if (abs(shtdiff)<sh_tmax_cut && shengFrac>=sh_engFrac_cut) {
+	  if (fabs(shtdiff)<sh_tmax_cut && shengFrac>=sh_engFrac_cut) {
 	    A[blkID] += shClBlkE[blk];
+	    ClusEngSH += shClBlkE[blk];
 	    // filling cluster level histos
 	    if (blk!=0) {
 	      h_SHcltdiff->Fill(shtdiff);
@@ -853,8 +861,10 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	if (psClBlkE[blk]>ps_hit_threshold) {
 	  Double_t pstdiff = psClBlkAtime[blk]-psClBlkAtime[0];
 	  Double_t psengFrac = psClBlkE[blk]/psClBlkE[0];
-	  if (abs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
+	  if (fabs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
+	  //if (psengFrac>=ps_engFrac_cut) {
 	    A[kNblksSH+blkID] += psClBlkE[blk];
+	    ClusEngPS += psClBlkE[blk];
 	    // filling cluster level histos
 	    if (blk!=0) {
 	      h_PScltdiff->Fill(pstdiff);
@@ -864,6 +874,11 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	}
 	nevents_per_cell[kNblksSH+blkID]++;
       }
+
+      // Realistic cluster energies even w/ tighter clustering thresholds (see note above)
+      ClusEngSH *= Corr_Factor_Enrg_Calib_w_Cosmic;
+      ClusEngPS *= Corr_Factor_Enrg_Calib_w_Cosmic;
+      clusEngBBCal = ClusEngSH + ClusEngPS;
 
       // filling diagnostic histos
       h_EovP->Fill(clusEngBBCal / p_rec);
@@ -1218,7 +1233,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	if (shClBlkE_calib>sh_hit_threshold) {
 	  Double_t shtdiff = shClBlkAtime[blk]-shClBlkAtime[0];
 	  Double_t shengFrac = shClBlkE_calib/shClBlkE_calib_HE;
-	  if (abs(shtdiff)<sh_tmax_cut && shengFrac>=sh_engFrac_cut) {
+	  if (fabs(shtdiff)<sh_tmax_cut && shengFrac>=sh_engFrac_cut) {
 	    shClusE += shClBlkE_calib;
 	    // filling cluster level histos
 	    if (blk!=0) {
@@ -1242,7 +1257,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	if (psClBlkE_calib>ps_hit_threshold) {
 	  Double_t pstdiff = psClBlkAtime[blk]-psClBlkAtime[0];
 	  Double_t psengFrac = psClBlkE_calib/psClBlkE_calib_HE;
-	  if (abs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
+	  if (fabs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
 	    psClusE += psClBlkE_calib;
 	    // filling cluster level histos
 	    if (blk!=0) {
