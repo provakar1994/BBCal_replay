@@ -23,6 +23,13 @@
   4. In addition to all the global cuts (as mentioned above in point 1) the cuts defined under the 
      "other cuts" section of the configfile gets applied to h_W2, h_Q2, & all h_PovPel* histograms but
      they don't get appield to the output ROOT tree branches.
+  5. In case the clustering cuts we use during calibration is tighter than the ones used during replay, 
+     SH eng, PS eng, and total cluster energy before calibration in the output tree will be slightly off 
+     from the actual situation. It is because right now we copy these values from Podd generated tree to 
+     the output tree but as you can imagine, tighter clustering threshold may change the SH & PS cluster 
+     energy. The remedy is to loop through all the blocks in the cluster twice but that will significantly 
+     hurt the efficiency. So, for the time being I am leaving the output tree variables as they are for such 
+     situation but I will make some changes such that the (before calibration) histograms are as realistic as possible.
 */
 
 #include <memory>
@@ -718,9 +725,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       Double_t dy = hcalY - hcalY_exp;
 
       // bbcal energy and position projections
-      Double_t clusEngBBCal = (shE + psE) * Corr_Factor_Enrg_Calib_w_Cosmic;
       Double_t ClusEngSH = shE * Corr_Factor_Enrg_Calib_w_Cosmic;
       Double_t ClusEngPS = psE * Corr_Factor_Enrg_Calib_w_Cosmic;
+      Double_t clusEngBBCal = ClusEngSH + ClusEngPS;
       Double_t xtrATsh = trX[0] + zposSH*trTh[0];
       Double_t ytrATsh = trY[0] + zposSH*trPh[0];
 
@@ -843,8 +850,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	  Double_t shtdiff = shClBlkAtime[blk]-shClBlkAtime[0];
 	  Double_t shengFrac = shClBlkE[blk]/shClBlkE[0];
 	  if (fabs(shtdiff)<sh_tmax_cut && shengFrac>=sh_engFrac_cut) {
-	    A[blkID] += shClBlkE[blk];
-	    ClusEngSH += shClBlkE[blk];
+	    Double_t shClBlkE_i = shClBlkE[blk] * Corr_Factor_Enrg_Calib_w_Cosmic;
+	    A[blkID] += shClBlkE_i;
+	    ClusEngSH += shClBlkE_i;
 	    // filling cluster level histos
 	    if (blk!=0) {
 	      h_SHcltdiff->Fill(shtdiff);
@@ -862,9 +870,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	  Double_t pstdiff = psClBlkAtime[blk]-psClBlkAtime[0];
 	  Double_t psengFrac = psClBlkE[blk]/psClBlkE[0];
 	  if (fabs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
-	  //if (psengFrac>=ps_engFrac_cut) {
-	    A[kNblksSH+blkID] += psClBlkE[blk];
-	    ClusEngPS += psClBlkE[blk];
+	    Double_t psClBlkE_i = psClBlkE[blk] * Corr_Factor_Enrg_Calib_w_Cosmic; 
+	    A[kNblksSH+blkID] += psClBlkE_i;
+	    ClusEngPS += psClBlkE_i;
 	    // filling cluster level histos
 	    if (blk!=0) {
 	      h_PScltdiff->Fill(pstdiff);
@@ -876,8 +884,6 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       }
 
       // Realistic cluster energies even w/ tighter clustering thresholds (see note above)
-      ClusEngSH *= Corr_Factor_Enrg_Calib_w_Cosmic;
-      ClusEngPS *= Corr_Factor_Enrg_Calib_w_Cosmic;
       clusEngBBCal = ClusEngSH + ClusEngPS;
 
       // filling diagnostic histos
@@ -1024,27 +1030,27 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     for(Int_t shcol = 0; shcol<kNcolsSH; shcol++){
       Double_t oldCoeff = oldADCgainSH[shrow*kNcolsSH+shcol];
       if(!badCells[cell]){
-	h_coeff_Ratio_SH->Fill(cell, CoeffR(cell));
-	h_coeff_blk_SH->Fill(cell, CoeffR(cell) * oldCoeff);
+	h_coeff_Ratio_SH->Fill(cell, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h_coeff_blk_SH->Fill(cell, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 	h_nevent_blk_SH->Fill(cell, nevents_per_cell[cell]);
 	h_old_coeff_blk_SH->Fill(cell, oldCoeff);
 	h2_old_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff);
-	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, CoeffR(cell) * oldCoeff);
+	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 
-	cout << CoeffR(cell) << "  ";
-	adcGainSH_outData << CoeffR(cell) * oldCoeff << " ";
-	gainRatioSH_outData << CoeffR(cell) << " ";
-	newADCgratioSH[cell] = CoeffR(cell);
+	cout << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
+	adcGainSH_outData << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff << " ";
+	gainRatioSH_outData << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
+	newADCgratioSH[cell] = CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic;
       }else{
 	h_nevent_blk_SH->Fill(cell, nevents_per_cell[cell]);
 	h_old_coeff_blk_SH->Fill(cell, oldCoeff);
 	h_coeff_Ratio_SH->Fill(cell, 1. * Corr_Factor_Enrg_Calib_w_Cosmic);
 	h_coeff_blk_SH->Fill(cell, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
 	h2_old_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff);
-	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, 1. * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 
 	cout << 1.*Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
-	adcGainSH_outData << oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
+	adcGainSH_outData << 1. * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff << " ";
 	gainRatioSH_outData << 1. * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
 	newADCgratioSH[cell] = 1. * Corr_Factor_Enrg_Calib_w_Cosmic;
       }
@@ -1075,27 +1081,27 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       Int_t psBlock = psrow * kNcolsPS + pscol;
       Double_t oldCoeff = oldADCgainPS[psrow*kNcolsPS+pscol];
       if(!badCells[cell]){
-	h_coeff_Ratio_PS->Fill(psBlock, CoeffR(cell));
-	h_coeff_blk_PS->Fill(psBlock, CoeffR(cell) * oldCoeff);
+	h_coeff_Ratio_PS->Fill(psBlock, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h_coeff_blk_PS->Fill(psBlock, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 	h_nevent_blk_PS->Fill(psBlock, nevents_per_cell[cell]);
 	h_old_coeff_blk_PS->Fill(psBlock, oldCoeff);
 	h2_old_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff);
-	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, CoeffR(cell) * oldCoeff);
+	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 
-	cout << CoeffR(cell) << "  ";
-	adcGainPS_outData << CoeffR(cell) * oldCoeff << " ";
-	gainRatioPS_outData << CoeffR(cell) << " ";
-	newADCgratioPS[psBlock] = CoeffR(cell);
+	cout << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
+	adcGainPS_outData << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff << " ";
+	gainRatioPS_outData << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
+	newADCgratioPS[psBlock] = CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic;
       }else{
 	h_nevent_blk_PS->Fill(psBlock, nevents_per_cell[cell]);
 	h_old_coeff_blk_PS->Fill(psBlock, oldCoeff);
 	h_coeff_Ratio_PS->Fill(psBlock, 1. * Corr_Factor_Enrg_Calib_w_Cosmic);
-	h_coeff_blk_PS->Fill(psBlock, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h_coeff_blk_PS->Fill(psBlock, 1. * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 	h2_old_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff);
-	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, 1. * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 
 	cout << 1. * Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
-	adcGainPS_outData << oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
+	adcGainPS_outData << 1. * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff << " ";
 	gainRatioPS_outData << 1. * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
 	newADCgratioPS[psBlock] = 1. * Corr_Factor_Enrg_Calib_w_Cosmic;
       }
@@ -1844,6 +1850,19 @@ double GetNDC(double x) {
 
 
 /*
+  Description of some non-obvious configuration file parameters:
+  1. Corr_Factor_Enrg_Calib_w_Cosmic: This is essentially an offset that gets multiplied to the SH and PS
+     block energies to shift the E/p peak towards 1. We use this in a situation when we know that the p
+     reconstruction is good but BBCAL energy reconstruction is off by more than 20%. The idea was to artificially
+     shift the BBCAL block energy by a constant factor to reduce the discripancy in E/p before performing
+     calibration.
+     NOTE: It happed during the very beginning of GMn with cosmic calibration since we didn't know the amount
+     of cosmic energy deposition in BBCAL blocks very well. Now-a-days our cosmic calibration is much better so
+     this scale factor is obsolete. Still we decided to keep the machinery and use Corr_Factor_Enrg_Calib_w_Cosmic=1.
+*/
+
+
+/*
 
 *****Below is an example of a config file made for this script*****
 
@@ -1888,7 +1907,7 @@ h2_dx 240 -5 1
 h2_dy 240 -4 2
 # offsets
 p_rec_Offset 1.0	# a.k.a fudge factor (FF). With better cosmic calibrations, this offset is unnecessary, so we keep it at 1.0.
-Corr_Factor_Enrg_Calib_w_Cosmic 1.0  # a.k.a cF.With better cosmic calibrations, this offset is unnecessary, so we keep it at 1.0.
+Corr_Factor_Enrg_Calib_w_Cosmic 1.0  # a.k.a cF. With better cosmic calibrations, this offset is unnecessary, so we keep it at 1.0.
 # calculate calibrated momentum ##Get these from whomever did the optics calibration. Get GEMpitch from GEM experts and make sure the distance to the bb magnet is correct.
 mom_calib 1 0.27765103 0.932092801 0. 0.0175826672 -33.8073321 10. 1.63 # y/n(1/0) A B C Avy Bvy GEMpitch bb_magdist
 
