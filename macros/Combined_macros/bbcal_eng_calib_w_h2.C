@@ -516,10 +516,10 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TH2D *h2_EovP_vs_trTh_calib = new TH2D("h2_EovP_vs_trTh_calib",Form("E/p vs Track theta | After Calib.%s",hecut),200,-0.2,0.2,200,0.4,1.6);
   TH2D *h2_EovP_vs_trPh = new TH2D("h2_EovP_vs_trPh",Form("E/p vs Track phi%s",hecut),200,-0.08,0.08,200,0.4,1.6);
   TH2D *h2_EovP_vs_trPh_calib = new TH2D("h2_EovP_vs_trPh_calib",Form("E/p vs Track phi | After Calib.%s",hecut),200,-0.08,0.08,200,0.4,1.6);
-  TH2D *h2_PSeng_vs_trX = new TH2D("h2_PSeng_vs_trX",Form("PS energy vs Track x%s",hecut),200,-0.8,0.8,200,0,4);
-  TH2D *h2_PSeng_vs_trX_calib = new TH2D("h2_PSeng_vs_trX_calib",Form("PS energy vs Track x | After Calib.%s",hecut),200,-0.8,0.8,200,0,4);
-  TH2D *h2_PSeng_vs_trY = new TH2D("h2_PSeng_vs_trY",Form("PS energy vs Track y%s",hecut),200,-0.16,0.16,200,0,4);
-  TH2D *h2_PSeng_vs_trY_calib = new TH2D("h2_PSeng_vs_trY_calib",Form("PS energy vs Track y | After Calib.%s",hecut),200,-0.16,0.16,200,0,4);  
+  TH2D *h2_PSeng_vs_trXatPS = new TH2D("h2_PSeng_vs_trXatPS",Form("PS energy vs Track x (proj. at PS)%s",hecut),200,-1.,1.,200,0,4);
+  TH2D *h2_PSeng_vs_trXatPS_calib = new TH2D("h2_PSeng_vs_trXatPS_calib",Form("PS energy vs Track x (proj. at PS) | After Calib.%s",hecut),200,-1.,1.,200,0,4);
+  TH2D *h2_PSeng_vs_trYatPS = new TH2D("h2_PSeng_vs_trYatPS",Form("PS energy vs Track y%s (proj. at PS)",hecut),200,-0.3,0.3,200,0,4);
+  TH2D *h2_PSeng_vs_trYatPS_calib = new TH2D("h2_PSeng_vs_trYatPS_calib",Form("PS energy vs Track y (proj. at PS) | After Calib.%s",hecut),200,-0.3,0.3,200,0,4);  
 
   TH2D *h2_PSclsize_vs_rnum = new TH2D("h2_PSclsize_vs_rnum",Form("PS (best) cluster size vs Run no.%s",hecut),Nruns,0.5,Nruns+0.5,10,0,10);
   TProfile *h2_PSclsize_vs_rnum_prof = new TProfile("h2_PSclsize_vs_rnum_prof","PS (best) cluster size vs Run no. (Profile)",Nruns,0.5,Nruns+0.5,0,10,"S");
@@ -924,8 +924,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h2_EovP_vs_trY->Fill(trY[0], clusEngBBCal/p_rec);
       h2_EovP_vs_trTh->Fill(trTh[0], clusEngBBCal/p_rec);
       h2_EovP_vs_trPh->Fill(trPh[0], clusEngBBCal/p_rec);
-      h2_PSeng_vs_trX->Fill(trX[0], ClusEngPS);
-      h2_PSeng_vs_trY->Fill(trY[0], ClusEngPS);
+      h2_PSeng_vs_trXatPS->Fill(xtrATps, ClusEngPS);
+      h2_PSeng_vs_trYatPS->Fill(ytrATps, ClusEngPS);
 
       // E/p vs. rnum (to check correlations with beam current and/or threshold)
       h2_EovP_vs_rnum->Fill(itrrun, clusEngBBCal/p_rec);
@@ -1342,12 +1342,14 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h2_EovP_vs_PSblk_raw_calib->Fill(psColblk, psRowblk, clusEngBBCal/p_rec);
 
       // histos to check bias in tracking
+      Double_t xtrATps = trX[0] + zposPS*trTh[0];
+      Double_t ytrATps = trY[0] + zposPS*trPh[0];
       h2_EovP_vs_trX_calib->Fill(trX[0], clusEngBBCal/p_rec);
       h2_EovP_vs_trY_calib->Fill(trY[0], clusEngBBCal/p_rec);
       h2_EovP_vs_trTh_calib->Fill(trTh[0], clusEngBBCal/p_rec);
       h2_EovP_vs_trPh_calib->Fill(trPh[0], clusEngBBCal/p_rec);
-      h2_PSeng_vs_trX_calib->Fill(trX[0], psClusE);
-      h2_PSeng_vs_trY_calib->Fill(trY[0], psClusE);
+      h2_PSeng_vs_trXatPS_calib->Fill(xtrATps, psClusE);
+      h2_PSeng_vs_trYatPS_calib->Fill(ytrATps, psClusE);
 
       // E/p vs. rnum (to check correlations with beam current and/or threshold)
       h2_EovP_vs_rnum_calib->Fill(itrrun, clusEngBBCal/p_rec);
@@ -1365,6 +1367,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   /////////////////////////////////
   // Generating diagnostic plots //
   /////////////////////////////////
+  /**** Global settings ****/
+  //gStyle->SetPalette(kRainBow);
+
   /**** Canvas 1 (E/p) ****/
   TCanvas *c1 = new TCanvas("c1","E/p",1500,1200);
   c1->Divide(3,2);
@@ -1465,24 +1470,24 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   h2_EovP_vs_trPh->Draw("colz");
   c3->cd(2); //
   gPad->SetGridy();
-  h2_PSeng_vs_trX->SetStats(0);
-  h2_PSeng_vs_trX->Draw("colz");
+  h2_PSeng_vs_trXatPS->SetStats(0);
+  h2_PSeng_vs_trXatPS->Draw("colz");
   c3->cd(3); //
   gPad->SetGridy();
-  h2_PSeng_vs_trY->SetStats(0);
-  h2_PSeng_vs_trY->Draw("colz");
+  h2_PSeng_vs_trYatPS->SetStats(0);
+  h2_PSeng_vs_trYatPS->Draw("colz");
   c3->cd(4); //
   gPad->SetGridy();
   h2_EovP_vs_trPh_calib->SetStats(0);
   h2_EovP_vs_trPh_calib->Draw("colz");
   c3->cd(5); //
   gPad->SetGridy();
-  h2_PSeng_vs_trX_calib->SetStats(0);
-  h2_PSeng_vs_trX_calib->Draw("colz");
+  h2_PSeng_vs_trXatPS_calib->SetStats(0);
+  h2_PSeng_vs_trXatPS_calib->Draw("colz");
   c3->cd(6); //
   gPad->SetGridy();
-  h2_PSeng_vs_trY_calib->SetStats(0);
-  h2_PSeng_vs_trY_calib->Draw("colz");
+  h2_PSeng_vs_trYatPS_calib->SetStats(0);
+  h2_PSeng_vs_trYatPS_calib->Draw("colz");
   c3->SaveAs(Form("%s",outPlot.Data())); c3->Write();
   //**** -- ***//
 
@@ -1656,8 +1661,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     TText *tel = pt->GetLineWith(" Elastic"); tel->SetTextColor(kBlue);
   }
   pt->AddText(" Other cuts: ");
-  pt->AddText(Form(" Minimum # events per block: %d | Cluster (Cl.) hit threshold: %.2f GeV (SH), %.2f GeV (PS)",Nmin,sh_hit_threshold,ps_hit_threshold));
-  pt->AddText(Form(" Cl. tmax cut: %.1f ns (SH), %.1f ns (PS) | Cl. energy fraction cut: %.1f GeV (SH), %.1f GeV (PS)",sh_tmax_cut,ps_tmax_cut,sh_engFrac_cut,ps_engFrac_cut));
+  pt->AddText(Form(" Minimum # events per block: %d | Cluster hit threshold: %.2f GeV (SH), %.2f GeV (PS)",Nmin,sh_hit_threshold,ps_hit_threshold));
+  pt->AddText(Form(" Cluster tmax cut: %.1f ns (SH), %.1f ns (PS) | Cluster energy fraction cut: %.1f GeV (SH), %.1f GeV (PS)",sh_tmax_cut,ps_tmax_cut,sh_engFrac_cut,ps_engFrac_cut));
   pt->AddText(" Various offsets: ");
   pt->AddText(Form(" Momentum fudge factor: %.2f, BBCAL cluster energy scale factor: %.2f",p_rec_Offset,cF));
   if (mom_calib) pt->AddText(Form(" Mom. calib. params: A = %.9f, B = %.9f, C = %.1f, Avy = %.6f, Bvy = %.6f, #theta^{GEM}_{pitch} = %.1f^{o}, d_{BB} = %.4f m",A_fit,B_fit,C_fit,Avy_fit,Bvy_fit,GEMpitch,bb_magdist));
@@ -1721,8 +1726,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   h2_EovP_vs_trY->Write(); h2_EovP_vs_trY_calib->Write();
   h2_EovP_vs_trTh->Write(); h2_EovP_vs_trTh_calib->Write();
   h2_EovP_vs_trPh->Write(); h2_EovP_vs_trPh_calib->Write();
-  h2_PSeng_vs_trX->Write(); h2_PSeng_vs_trX_calib->Write();
-  h2_PSeng_vs_trY->Write(); h2_PSeng_vs_trY_calib->Write();
+  h2_PSeng_vs_trXatPS->Write(); h2_PSeng_vs_trXatPS_calib->Write();
+  h2_PSeng_vs_trYatPS->Write(); h2_PSeng_vs_trYatPS_calib->Write();
   // rate dependence
   h2_PSclsize_vs_rnum->Write(); h2_PSclsize_vs_rnum_prof->Write();
   h2_PSclmult_vs_rnum->Write(); h2_PSclmult_vs_rnum_prof->Write();
