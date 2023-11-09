@@ -867,7 +867,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       for(Int_t blk=0; blk<psNblk; blk++){
 	Int_t blkID = int(psClBlkId[blk]);
 	if (psClBlkE[blk]>ps_hit_threshold) {
-	  Double_t pstdiff = psClBlkAtime[blk]-psClBlkAtime[0];
+	  Double_t pstdiff = psClBlkAtime[blk]-shClBlkAtime[0];
 	  Double_t psengFrac = psClBlkE[blk]/psClBlkE[0];
 	  if (fabs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
 	    Double_t psClBlkE_i = psClBlkE[blk] * Corr_Factor_Enrg_Calib_w_Cosmic; 
@@ -1261,7 +1261,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	Double_t psClBlkE_calib = psClBlkE[blk] * newADCgratioPS[blkID];
 	//if (psClBlkE_calib>hit_threshold) psClusE += psClBlkE_calib;
 	if (psClBlkE_calib>ps_hit_threshold) {
-	  Double_t pstdiff = psClBlkAtime[blk]-psClBlkAtime[0];
+	  Double_t pstdiff = psClBlkAtime[blk]-shClBlkAtime[0];
 	  Double_t psengFrac = psClBlkE_calib/psClBlkE_calib_HE;
 	  if (fabs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
 	    psClusE += psClBlkE_calib;
