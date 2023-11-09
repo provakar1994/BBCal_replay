@@ -23,6 +23,13 @@
   4. In addition to all the global cuts (as mentioned above in point 1) the cuts defined under the 
      "other cuts" section of the configfile gets applied to h_W2, h_Q2, & all h_PovPel* histograms but
      they don't get appield to the output ROOT tree branches.
+  5. In case the clustering cuts we use during calibration is tighter than the ones used during replay, 
+     SH eng, PS eng, and total cluster energy before calibration in the output tree will be slightly off 
+     from the actual situation. It is because right now we copy these values from Podd generated tree to 
+     the output tree but as you can imagine, tighter clustering threshold may change the SH & PS cluster 
+     energy. The remedy is to loop through all the blocks in the cluster twice but that will significantly 
+     hurt the efficiency. So, for the time being I am leaving the output tree variables as they are for such 
+     situation but I will make some changes such that the (before calibration) histograms are as realistic as possible.
 */
 
 #include <memory>
@@ -73,7 +80,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
   TString macros_dir;
   Int_t Nmin = 10, ppass = 0;
-  Double_t minMBratio = 0.1, hit_threshold = 0.;
+  Double_t minMBratio = 0.1, sh_hit_threshold = 0., ps_hit_threshold = 0.;
+  Double_t ps_tmax_cut = 1000., sh_tmax_cut = 1000., ps_engFrac_cut = 0., sh_engFrac_cut = 0.;
   Double_t E_beam = 0., sbstheta = 0., hcaldist = 0., hcalheight = -0.2897;
   Double_t psE_cut_limit = 0., clusE_cut_limit = 0., EovP_cut_limit = 0.3;
   Double_t p_rec_Offset = 1., p_min_cut = 0., p_max_cut = 0.;
@@ -168,8 +176,23 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       if( skey == "HCAL_dist" ){
 	hcaldist = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
-      if( skey == "hit_threshold" ){
-	hit_threshold = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      if( skey == "sh_hit_threshold" ){
+      	sh_hit_threshold = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      }
+      if( skey == "ps_hit_threshold" ){
+      	ps_hit_threshold = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      }
+      if( skey == "sh_tmax_cut" ){
+      	sh_tmax_cut = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      }
+      if( skey == "ps_tmax_cut" ){
+      	ps_tmax_cut = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      }
+      if( skey == "sh_engFrac_cut" ){
+      	sh_engFrac_cut = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      }
+      if( skey == "ps_engFrac_cut" ){
+      	ps_engFrac_cut = ((TObjString*)(*tokens)[1])->GetString().Atof();
       }
       if( skey == "Min_Event_Per_Channel" ){
 	Nmin = ((TObjString*)(*tokens)[1])->GetString().Atof();
@@ -343,6 +366,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t psClBlkE[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.e", &psClBlkE);
   Double_t psClBlkX[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.x", &psClBlkX);
   Double_t psClBlkY[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.y", &psClBlkY);
+  Double_t psClBlkAtime[maxNtr]; C->SetBranchAddress("bb.ps.clus_blk.atime", &psClBlkAtime);
   Double_t psAgainblk;         if (!read_gain) C->SetBranchAddress("bb.ps.againblk", &psAgainblk);
   // bb.sh branches
   C->SetBranchStatus("bb.sh.*", 1);
@@ -359,6 +383,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t shClBlkE[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.e", &shClBlkE);
   Double_t shClBlkX[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.x", &shClBlkX);
   Double_t shClBlkY[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.y", &shClBlkY);
+  Double_t shClBlkAtime[maxNtr]; C->SetBranchAddress("bb.sh.clus_blk.atime", &shClBlkAtime);
   Double_t shAgainblk;         if (!read_gain) C->SetBranchAddress("bb.sh.againblk", &shAgainblk);
   // sbs.hcal branches
   Double_t hcalE;              C->SetBranchStatus("sbs.hcal.e",1); C->SetBranchAddress("sbs.hcal.e", &hcalE);
@@ -491,10 +516,10 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TH2D *h2_EovP_vs_trTh_calib = new TH2D("h2_EovP_vs_trTh_calib",Form("E/p vs Track theta | After Calib.%s",hecut),200,-0.2,0.2,200,0.4,1.6);
   TH2D *h2_EovP_vs_trPh = new TH2D("h2_EovP_vs_trPh",Form("E/p vs Track phi%s",hecut),200,-0.08,0.08,200,0.4,1.6);
   TH2D *h2_EovP_vs_trPh_calib = new TH2D("h2_EovP_vs_trPh_calib",Form("E/p vs Track phi | After Calib.%s",hecut),200,-0.08,0.08,200,0.4,1.6);
-  TH2D *h2_PSeng_vs_trX = new TH2D("h2_PSeng_vs_trX",Form("PS energy vs Track x%s",hecut),200,-0.8,0.8,200,0,4);
-  TH2D *h2_PSeng_vs_trX_calib = new TH2D("h2_PSeng_vs_trX_calib",Form("PS energy vs Track x | After Calib.%s",hecut),200,-0.8,0.8,200,0,4);
-  TH2D *h2_PSeng_vs_trY = new TH2D("h2_PSeng_vs_trY",Form("PS energy vs Track y%s",hecut),200,-0.16,0.16,200,0,4);
-  TH2D *h2_PSeng_vs_trY_calib = new TH2D("h2_PSeng_vs_trY_calib",Form("PS energy vs Track y | After Calib.%s",hecut),200,-0.16,0.16,200,0,4);  
+  TH2D *h2_PSeng_vs_trXatPS = new TH2D("h2_PSeng_vs_trXatPS",Form("PS energy vs Track x (proj. at PS)%s",hecut),200,-1.,1.,200,0,4);
+  TH2D *h2_PSeng_vs_trXatPS_calib = new TH2D("h2_PSeng_vs_trXatPS_calib",Form("PS energy vs Track x (proj. at PS) | After Calib.%s",hecut),200,-1.,1.,200,0,4);
+  TH2D *h2_PSeng_vs_trYatPS = new TH2D("h2_PSeng_vs_trYatPS",Form("PS energy vs Track y%s (proj. at PS)",hecut),200,-0.3,0.3,200,0,4);
+  TH2D *h2_PSeng_vs_trYatPS_calib = new TH2D("h2_PSeng_vs_trYatPS_calib",Form("PS energy vs Track y (proj. at PS) | After Calib.%s",hecut),200,-0.3,0.3,200,0,4);  
 
   TH2D *h2_PSclsize_vs_rnum = new TH2D("h2_PSclsize_vs_rnum",Form("PS (best) cluster size vs Run no.%s",hecut),Nruns,0.5,Nruns+0.5,10,0,10);
   TProfile *h2_PSclsize_vs_rnum_prof = new TProfile("h2_PSclsize_vs_rnum_prof","PS (best) cluster size vs Run no. (Profile)",Nruns,0.5,Nruns+0.5,0,10,"S");
@@ -515,6 +540,16 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TProfile *h2_EovP_vs_rnum_calib_prof = new TProfile("h2_EovP_vs_rnum_calib_prof","E/p vs Run no. | After Calib. (Profile)",Nruns,0.5,Nruns+0.5,0.4,1.6,"S");
 
   TH2D *h2_dxdyHCAL = new TH2D("h2_dxdyHCAL","p Spot cut;#Deltay (m);#Deltax (m)",h2_dy_bin,h2_dy_min,h2_dy_max,h2_dx_bin,h2_dx_min,h2_dx_max);
+
+  // SH and PS cluster level histograms
+  TH1D *h_SHcltdiff = new TH1D("h_SHcltdiff","SH ADC time diff. bet. secondary blocks in cluster",200,-60,60);
+  TH1D *h_SHcltdiff_calib = new TH1D("h_SHcltdiff_calib","SH ADC time diff. bet. secondary blocks in cluster",200,-60,60);
+  TH1D *h_PScltdiff = new TH1D("h_PScltdiff","PS ADC time diff. bet. secondary blocks in cluster",200,-60,60);
+  TH1D *h_PScltdiff_calib = new TH1D("h_PScltdiff_calib","PS ADC time diff. bet. secondary blocks in cluster",200,-60,60);
+  TH2D *h2_SHtdiff_vs_engFrac = new TH2D("h2_SHtdiff_vs_engFrac",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-60,60);
+  TH2D *h2_SHtdiff_vs_engFrac_calib = new TH2D("h2_SHtdiff_vs_engFrac_calib",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-60,60);
+  TH2D *h2_PStdiff_vs_engFrac = new TH2D("h2_PStdiff_vs_engFrac",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-60,60);
+  TH2D *h2_PStdiff_vs_engFrac_calib = new TH2D("h2_PStdiff_vs_engFrac_calib",";clus_blk.e/eblk;clus_blk.atime-atimeblk",200,0,1,200,-60,60);
 
   // defining output ROOT tree (Set max size to 4GB)
   //auto Tout = std::make_unique<TTree>("Tout", cfgfilebase.Data());
@@ -690,17 +725,17 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       Double_t dy = hcalY - hcalY_exp;
 
       // bbcal energy and position projections
-      Double_t clusEngBBCal = (shE + psE) * Corr_Factor_Enrg_Calib_w_Cosmic;
       Double_t ClusEngSH = shE * Corr_Factor_Enrg_Calib_w_Cosmic;
       Double_t ClusEngPS = psE * Corr_Factor_Enrg_Calib_w_Cosmic;
+      Double_t clusEngBBCal = ClusEngSH + ClusEngPS;
       Double_t xtrATsh = trX[0] + zposSH*trTh[0];
       Double_t ytrATsh = trY[0] + zposSH*trPh[0];
 
       // cut definitions
       // cut on W
-      WCut = abs(W - W_mean) <= W_sigma*W_nsigma;
+      WCut = fabs(W - W_mean) <= W_sigma*W_nsigma;
       // cut on PovPel
-      PovPelCut = abs(PovPel - PovPel_mean) <= PovPel_sigma*PovPel_nsigma;
+      PovPelCut = fabs(PovPel - PovPel_mean) <= PovPel_sigma*PovPel_nsigma;
       // defining pspot cut
       pCut = pow((dx-pspot_dxM) / (pspot_dxS*pspot_ndxS), 2) + pow((dy-pspot_dyM) / (pspot_dyS*pspot_ndyS), 2) <= 1.;
       // SH active area
@@ -798,20 +833,58 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       /************************
        * Starting calibration *
        ************************/
+      // ATTENTION: In case the clustering cuts we use during calibration is tighter than
+      // the ones used during replay, SH eng, PS eng, and total cluster energy before calibration
+      // in the output tree will be slightly off from the actual situation. It is because right now we
+      // copy these values from Podd generated tree to the output tree but as you can imagine,
+      // tighter clustering threshold may change the SH & PS cluster energy. The remedy is to loop
+      // through all the blocks in the cluster twice but that will significantly hurt the efficiency. So,
+      // for the time being I am leaving the output tree variables as they are for such situation but
+      // I will make some changes such that the (before calibration) histograms are as realistic as possible.
+      clusEngBBCal = 0.; ClusEngSH = 0.; ClusEngPS = 0.; // fill these variables with realistic numbers
 
       // Loop over all the blocks in main cluster and fill in A's
       for(Int_t blk=0; blk<shNblk; blk++){
-	Int_t blkID = int(shClBlkId[blk]);
-	if (shClBlkE[blk]>hit_threshold) A[blkID] += shClBlkE[blk];
+	Int_t blkID = int(shClBlkId[blk]);	
+	if (shClBlkE[blk]>sh_hit_threshold) {
+	  Double_t shtdiff = shClBlkAtime[blk]-shClBlkAtime[0];
+	  Double_t shengFrac = shClBlkE[blk]/shClBlkE[0];
+	  if (fabs(shtdiff)<sh_tmax_cut && shengFrac>=sh_engFrac_cut) {
+	    Double_t shClBlkE_i = shClBlkE[blk] * Corr_Factor_Enrg_Calib_w_Cosmic;
+	    A[blkID] += shClBlkE_i;
+	    ClusEngSH += shClBlkE_i;
+	    // filling cluster level histos
+	    if (blk!=0) {
+	      h_SHcltdiff->Fill(shtdiff);
+	      h2_SHtdiff_vs_engFrac->Fill(shengFrac,shtdiff);
+	    }
+	  }
+	}
 	nevents_per_cell[blkID]++; 
       }
     
       // ****** PreShower ******
       for(Int_t blk=0; blk<psNblk; blk++){
 	Int_t blkID = int(psClBlkId[blk]);
-	if (psClBlkE[blk]>hit_threshold) A[kNblksSH+blkID] += psClBlkE[blk];
+	if (psClBlkE[blk]>ps_hit_threshold) {
+	  Double_t pstdiff = psClBlkAtime[blk]-shClBlkAtime[0];
+	  Double_t psengFrac = psClBlkE[blk]/psClBlkE[0];
+	  if (fabs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
+	    Double_t psClBlkE_i = psClBlkE[blk] * Corr_Factor_Enrg_Calib_w_Cosmic; 
+	    A[kNblksSH+blkID] += psClBlkE_i;
+	    ClusEngPS += psClBlkE_i;
+	    // filling cluster level histos
+	    if (blk!=0) {
+	      h_PScltdiff->Fill(pstdiff);
+	      h2_PStdiff_vs_engFrac->Fill(psengFrac,pstdiff);
+	    }
+	  }
+	}
 	nevents_per_cell[kNblksSH+blkID]++;
       }
+
+      // Realistic cluster energies even w/ tighter clustering thresholds (see note above)
+      clusEngBBCal = ClusEngSH + ClusEngPS;
 
       // filling diagnostic histos
       h_EovP->Fill(clusEngBBCal / p_rec);
@@ -851,8 +924,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h2_EovP_vs_trY->Fill(trY[0], clusEngBBCal/p_rec);
       h2_EovP_vs_trTh->Fill(trTh[0], clusEngBBCal/p_rec);
       h2_EovP_vs_trPh->Fill(trPh[0], clusEngBBCal/p_rec);
-      h2_PSeng_vs_trX->Fill(trX[0], ClusEngPS);
-      h2_PSeng_vs_trY->Fill(trY[0], ClusEngPS);
+      h2_PSeng_vs_trXatPS->Fill(xtrATps, ClusEngPS);
+      h2_PSeng_vs_trYatPS->Fill(ytrATps, ClusEngPS);
 
       // E/p vs. rnum (to check correlations with beam current and/or threshold)
       h2_EovP_vs_rnum->Fill(itrrun, clusEngBBCal/p_rec);
@@ -957,27 +1030,27 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     for(Int_t shcol = 0; shcol<kNcolsSH; shcol++){
       Double_t oldCoeff = oldADCgainSH[shrow*kNcolsSH+shcol];
       if(!badCells[cell]){
-	h_coeff_Ratio_SH->Fill(cell, CoeffR(cell));
-	h_coeff_blk_SH->Fill(cell, CoeffR(cell) * oldCoeff);
+	h_coeff_Ratio_SH->Fill(cell, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h_coeff_blk_SH->Fill(cell, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 	h_nevent_blk_SH->Fill(cell, nevents_per_cell[cell]);
 	h_old_coeff_blk_SH->Fill(cell, oldCoeff);
 	h2_old_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff);
-	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, CoeffR(cell) * oldCoeff);
+	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 
-	cout << CoeffR(cell) << "  ";
-	adcGainSH_outData << CoeffR(cell) * oldCoeff << " ";
-	gainRatioSH_outData << CoeffR(cell) << " ";
-	newADCgratioSH[cell] = CoeffR(cell);
+	cout << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
+	adcGainSH_outData << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff << " ";
+	gainRatioSH_outData << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
+	newADCgratioSH[cell] = CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic;
       }else{
 	h_nevent_blk_SH->Fill(cell, nevents_per_cell[cell]);
 	h_old_coeff_blk_SH->Fill(cell, oldCoeff);
 	h_coeff_Ratio_SH->Fill(cell, 1. * Corr_Factor_Enrg_Calib_w_Cosmic);
 	h_coeff_blk_SH->Fill(cell, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
 	h2_old_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff);
-	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h2_coeff_detView_SH->Fill(shcol+1, shrow+1, 1. * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 
 	cout << 1.*Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
-	adcGainSH_outData << oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
+	adcGainSH_outData << 1. * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff << " ";
 	gainRatioSH_outData << 1. * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
 	newADCgratioSH[cell] = 1. * Corr_Factor_Enrg_Calib_w_Cosmic;
       }
@@ -1008,27 +1081,27 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       Int_t psBlock = psrow * kNcolsPS + pscol;
       Double_t oldCoeff = oldADCgainPS[psrow*kNcolsPS+pscol];
       if(!badCells[cell]){
-	h_coeff_Ratio_PS->Fill(psBlock, CoeffR(cell));
-	h_coeff_blk_PS->Fill(psBlock, CoeffR(cell) * oldCoeff);
+	h_coeff_Ratio_PS->Fill(psBlock, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h_coeff_blk_PS->Fill(psBlock, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 	h_nevent_blk_PS->Fill(psBlock, nevents_per_cell[cell]);
 	h_old_coeff_blk_PS->Fill(psBlock, oldCoeff);
 	h2_old_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff);
-	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, CoeffR(cell) * oldCoeff);
+	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 
-	cout << CoeffR(cell) << "  ";
-	adcGainPS_outData << CoeffR(cell) * oldCoeff << " ";
-	gainRatioPS_outData << CoeffR(cell) << " ";
-	newADCgratioPS[psBlock] = CoeffR(cell);
+	cout << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
+	adcGainPS_outData << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff << " ";
+	gainRatioPS_outData << CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
+	newADCgratioPS[psBlock] = CoeffR(cell) * Corr_Factor_Enrg_Calib_w_Cosmic;
       }else{
 	h_nevent_blk_PS->Fill(psBlock, nevents_per_cell[cell]);
 	h_old_coeff_blk_PS->Fill(psBlock, oldCoeff);
 	h_coeff_Ratio_PS->Fill(psBlock, 1. * Corr_Factor_Enrg_Calib_w_Cosmic);
-	h_coeff_blk_PS->Fill(psBlock, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h_coeff_blk_PS->Fill(psBlock, 1. * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 	h2_old_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff);
-	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic);
+	h2_coeff_detView_PS->Fill(pscol+1, psrow+1, 1. * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff);
 
 	cout << 1. * Corr_Factor_Enrg_Calib_w_Cosmic << "  ";
-	adcGainPS_outData << oldCoeff * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
+	adcGainPS_outData << 1. * Corr_Factor_Enrg_Calib_w_Cosmic * oldCoeff << " ";
 	gainRatioPS_outData << 1. * Corr_Factor_Enrg_Calib_w_Cosmic << " ";
 	newADCgratioPS[psBlock] = 1. * Corr_Factor_Enrg_Calib_w_Cosmic;
       }
@@ -1153,26 +1226,52 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 
       // calculating calibrated BBCAL energy
       // ****** Shower ******
-      Double_t shClusE = 0., shX_calib = 0., shY_calib = 0.;
+      Double_t shClusE = 0., shX_calib = 0., shY_calib = 0., shClBlkE_calib_HE = 0.;
       for(Int_t blk=0; blk<shNblk; blk++){
   	Int_t blkID = int(shClBlkId[blk]);
 	// calculating the updated cluster centroid
 	shX_calib = (shX_calib*shClusE + shClBlkX[blk]*shClBlkE[blk]) / (shClusE+shClBlkE[blk]);
 	shY_calib = (shY_calib*shClusE + shClBlkY[blk]*shClBlkE[blk]) / (shClusE+shClBlkE[blk]);
 	 
+	if (blk==0) shClBlkE_calib_HE = shClBlkE[blk] * newADCgratioSH[blkID];
 	Double_t shClBlkE_calib = shClBlkE[blk] * newADCgratioSH[blkID];
- 	if (shClBlkE_calib>hit_threshold) shClusE += shClBlkE_calib;
+ 	//if (shClBlkE_calib>hit_threshold) shClusE += shClBlkE_calib;
+	if (shClBlkE_calib>sh_hit_threshold) {
+	  Double_t shtdiff = shClBlkAtime[blk]-shClBlkAtime[0];
+	  Double_t shengFrac = shClBlkE_calib/shClBlkE_calib_HE;
+	  if (fabs(shtdiff)<sh_tmax_cut && shengFrac>=sh_engFrac_cut) {
+	    shClusE += shClBlkE_calib;
+	    // filling cluster level histos
+	    if (blk!=0) {
+	      h_SHcltdiff_calib->Fill(shtdiff);
+	      h2_SHtdiff_vs_engFrac_calib->Fill(shengFrac,shtdiff);
+	    }
+	  }
+	}
       }
       // ****** PreShower ******
-      Double_t psClusE = 0., psX_calib = 0., psY_calib = 0.;
+      Double_t psClusE = 0., psX_calib = 0., psY_calib = 0., psClBlkE_calib_HE = 0.;
       for(Int_t blk=0; blk<psNblk; blk++){
 	Int_t blkID = int(psClBlkId[blk]);
 	// calculating the updated cluster centroid
 	psX_calib = (psX_calib*psClusE + psClBlkX[blk]*psClBlkE[blk]) / (psClusE+psClBlkE[blk]);
 	psY_calib = (psY_calib*psClusE + psClBlkY[blk]*psClBlkE[blk]) / (psClusE+psClBlkE[blk]);
 
+	if (blk==0) psClBlkE_calib_HE = psClBlkE[blk] * newADCgratioPS[blkID];
 	Double_t psClBlkE_calib = psClBlkE[blk] * newADCgratioPS[blkID];
-	if (psClBlkE_calib>hit_threshold) psClusE += psClBlkE_calib;
+	//if (psClBlkE_calib>hit_threshold) psClusE += psClBlkE_calib;
+	if (psClBlkE_calib>ps_hit_threshold) {
+	  Double_t pstdiff = psClBlkAtime[blk]-shClBlkAtime[0];
+	  Double_t psengFrac = psClBlkE_calib/psClBlkE_calib_HE;
+	  if (fabs(pstdiff)<ps_tmax_cut && psengFrac>=ps_engFrac_cut) {
+	    psClusE += psClBlkE_calib;
+	    // filling cluster level histos
+	    if (blk!=0) {
+	      h_PScltdiff_calib->Fill(pstdiff);
+	      h2_PStdiff_vs_engFrac_calib->Fill(psengFrac,pstdiff);
+	    }
+	  }
+	}
       }
       Double_t clusEngBBCal = shClusE + psClusE;
       Double_t xtrATsh = trX[0] + zposSH*trTh[0];
@@ -1243,12 +1342,14 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
       h2_EovP_vs_PSblk_raw_calib->Fill(psColblk, psRowblk, clusEngBBCal/p_rec);
 
       // histos to check bias in tracking
+      Double_t xtrATps = trX[0] + zposPS*trTh[0];
+      Double_t ytrATps = trY[0] + zposPS*trPh[0];
       h2_EovP_vs_trX_calib->Fill(trX[0], clusEngBBCal/p_rec);
       h2_EovP_vs_trY_calib->Fill(trY[0], clusEngBBCal/p_rec);
       h2_EovP_vs_trTh_calib->Fill(trTh[0], clusEngBBCal/p_rec);
       h2_EovP_vs_trPh_calib->Fill(trPh[0], clusEngBBCal/p_rec);
-      h2_PSeng_vs_trX_calib->Fill(trX[0], psClusE);
-      h2_PSeng_vs_trY_calib->Fill(trY[0], psClusE);
+      h2_PSeng_vs_trXatPS_calib->Fill(xtrATps, psClusE);
+      h2_PSeng_vs_trYatPS_calib->Fill(ytrATps, psClusE);
 
       // E/p vs. rnum (to check correlations with beam current and/or threshold)
       h2_EovP_vs_rnum_calib->Fill(itrrun, clusEngBBCal/p_rec);
@@ -1266,6 +1367,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   /////////////////////////////////
   // Generating diagnostic plots //
   /////////////////////////////////
+  /**** Global settings ****/
+  //gStyle->SetPalette(kRainBow);
+
   /**** Canvas 1 (E/p) ****/
   TCanvas *c1 = new TCanvas("c1","E/p",1500,1200);
   c1->Divide(3,2);
@@ -1366,24 +1470,24 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   h2_EovP_vs_trPh->Draw("colz");
   c3->cd(2); //
   gPad->SetGridy();
-  h2_PSeng_vs_trX->SetStats(0);
-  h2_PSeng_vs_trX->Draw("colz");
+  h2_PSeng_vs_trXatPS->SetStats(0);
+  h2_PSeng_vs_trXatPS->Draw("colz");
   c3->cd(3); //
   gPad->SetGridy();
-  h2_PSeng_vs_trY->SetStats(0);
-  h2_PSeng_vs_trY->Draw("colz");
+  h2_PSeng_vs_trYatPS->SetStats(0);
+  h2_PSeng_vs_trYatPS->Draw("colz");
   c3->cd(4); //
   gPad->SetGridy();
   h2_EovP_vs_trPh_calib->SetStats(0);
   h2_EovP_vs_trPh_calib->Draw("colz");
   c3->cd(5); //
   gPad->SetGridy();
-  h2_PSeng_vs_trX_calib->SetStats(0);
-  h2_PSeng_vs_trX_calib->Draw("colz");
+  h2_PSeng_vs_trXatPS_calib->SetStats(0);
+  h2_PSeng_vs_trXatPS_calib->Draw("colz");
   c3->cd(6); //
   gPad->SetGridy();
-  h2_PSeng_vs_trY_calib->SetStats(0);
-  h2_PSeng_vs_trY_calib->Draw("colz");
+  h2_PSeng_vs_trYatPS_calib->SetStats(0);
+  h2_PSeng_vs_trYatPS_calib->Draw("colz");
   c3->SaveAs(Form("%s",outPlot.Data())); c3->Write();
   //**** -- ***//
 
@@ -1557,7 +1661,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     TText *tel = pt->GetLineWith(" Elastic"); tel->SetTextColor(kBlue);
   }
   pt->AddText(" Other cuts: ");
-  pt->AddText(Form(" Minimum # events per block: %d, (Cluster) hit threshold: %.2f GeV",Nmin,hit_threshold));
+  pt->AddText(Form(" Minimum # events per block: %d | Cluster hit threshold: %.2f GeV (SH), %.2f GeV (PS)",Nmin,sh_hit_threshold,ps_hit_threshold));
+  pt->AddText(Form(" Cluster tmax cut: %.1f ns (SH), %.1f ns (PS) | Cluster energy fraction cut: %.1f GeV (SH), %.1f GeV (PS)",sh_tmax_cut,ps_tmax_cut,sh_engFrac_cut,ps_engFrac_cut));
   pt->AddText(" Various offsets: ");
   pt->AddText(Form(" Momentum fudge factor: %.2f, BBCAL cluster energy scale factor: %.2f",p_rec_Offset,cF));
   if (mom_calib) pt->AddText(Form(" Mom. calib. params: A = %.9f, B = %.9f, C = %.1f, Avy = %.6f, Bvy = %.6f, #theta^{GEM}_{pitch} = %.1f^{o}, d_{BB} = %.4f m",A_fit,B_fit,C_fit,Avy_fit,Bvy_fit,GEMpitch,bb_magdist));
@@ -1604,6 +1709,11 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   h_SHclusE->Write(); h_SHclusE_calib->Write();
   h_PSclusE->Write(); h_PSclusE_calib->Write();
   h2_SHeng_vs_SHblk->Write(); h2_PSeng_vs_PSblk->Write();
+  // SH and PS cluster level histograms
+  h_SHcltdiff->Write(); h_SHcltdiff_calib->Write(); 
+  h_PScltdiff->Write(); h_PScltdiff_calib->Write(); 
+  h2_SHtdiff_vs_engFrac->Write(); h2_SHtdiff_vs_engFrac_calib->Write();
+  h2_PStdiff_vs_engFrac->Write(); h2_PStdiff_vs_engFrac_calib->Write();
   // various corrs. with E/p
   h2_EovP_vs_SHblk_trPOS->Write(); h2_EovP_vs_PSblk_trPOS->Write();
   h2_EovP_vs_P->Write(); h2_EovP_vs_P_calib->Write();
@@ -1616,8 +1726,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   h2_EovP_vs_trY->Write(); h2_EovP_vs_trY_calib->Write();
   h2_EovP_vs_trTh->Write(); h2_EovP_vs_trTh_calib->Write();
   h2_EovP_vs_trPh->Write(); h2_EovP_vs_trPh_calib->Write();
-  h2_PSeng_vs_trX->Write(); h2_PSeng_vs_trX_calib->Write();
-  h2_PSeng_vs_trY->Write(); h2_PSeng_vs_trY_calib->Write();
+  h2_PSeng_vs_trXatPS->Write(); h2_PSeng_vs_trXatPS_calib->Write();
+  h2_PSeng_vs_trYatPS->Write(); h2_PSeng_vs_trYatPS_calib->Write();
   // rate dependence
   h2_PSclsize_vs_rnum->Write(); h2_PSclsize_vs_rnum_prof->Write();
   h2_PSclmult_vs_rnum->Write(); h2_PSclmult_vs_rnum_prof->Write();
@@ -1746,6 +1856,19 @@ double GetNDC(double x) {
 
 
 /*
+  Description of some non-obvious configuration file parameters:
+  1. Corr_Factor_Enrg_Calib_w_Cosmic: This is essentially an offset that gets multiplied to the SH and PS
+     block energies to shift the E/p peak towards 1. We use this in a situation when we know that the p
+     reconstruction is good but BBCAL energy reconstruction is off by more than 20%. The idea was to artificially
+     shift the BBCAL block energy by a constant factor to reduce the discripancy in E/p before performing
+     calibration.
+     NOTE: It happed during the very beginning of GMn with cosmic calibration since we didn't know the amount
+     of cosmic energy deposition in BBCAL blocks very well. Now-a-days our cosmic calibration is much better so
+     this scale factor is obsolete. Still we decided to keep the machinery and use Corr_Factor_Enrg_Calib_w_Cosmic=1.
+*/
+
+
+/*
 
 *****Below is an example of a config file made for this script*****
 
@@ -1790,7 +1913,7 @@ h2_dx 240 -5 1
 h2_dy 240 -4 2
 # offsets
 p_rec_Offset 1.0	# a.k.a fudge factor (FF). With better cosmic calibrations, this offset is unnecessary, so we keep it at 1.0.
-Corr_Factor_Enrg_Calib_w_Cosmic 1.0  # a.k.a cF.With better cosmic calibrations, this offset is unnecessary, so we keep it at 1.0.
+Corr_Factor_Enrg_Calib_w_Cosmic 1.0  # a.k.a cF. With better cosmic calibrations, this offset is unnecessary, so we keep it at 1.0.
 # calculate calibrated momentum ##Get these from whomever did the optics calibration. Get GEMpitch from GEM experts and make sure the distance to the bb magnet is correct.
 mom_calib 1 0.27765103 0.932092801 0. 0.0175826672 -33.8073321 10. 1.63 # y/n(1/0) A B C Avy Bvy GEMpitch bb_magdist
 
