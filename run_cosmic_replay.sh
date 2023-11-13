@@ -14,6 +14,7 @@ GEn="e1209016"
 
 module purge
 module load analyzer
+module list
 
 cd replay
 analyzer -b -q 'replay_BBCal.C+('$1','$2',"'$GEn'")'
