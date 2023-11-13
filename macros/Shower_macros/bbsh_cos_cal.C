@@ -416,7 +416,10 @@ void bbsh_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
 	hADCamp[r][c]->GetYaxis()->SetLabelSize(0.06);
 	hADCamp[r][c]->SetLineColor(kBlue+1);
 	hADCamp[r][c]->Draw();
-      }else hADCamp[r][c]->Draw();
+      }else {
+	hADCamp[r][c]->SetTitle(TString::Format("SH %d.%d | ADC Amp ",r+1,c+1));
+	hADCamp[r][c]->Draw();
+      }
 
       gPad->Update();
 
@@ -666,6 +669,50 @@ void processEvent( int entry = -1, bool trigAmp = 0 ){
       // 	  hamptointratio[r][c]->Fill( adc_amp[r][c]/adc[r][c] );  
       // 	}
       // }
+      // ------
+
+      // ------ This block is needed to take care of the fact that SH 7.4,8.2, & 8.4 are dead! :( 
+      // SH 8.2 (50)
+      else if (m == 43) { // m = block with no signal - 7
+      	if( (gPulse[r][c+1]&&gPulse[r+3][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2]) ){
+      	  if(trigAmp) {
+      	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
+      	  }else{
+      	    hADCamp[r][c]->Fill( adc_amp[r][c] );
+      	  }
+      	  hamptointratio[r][c]->Fill( adc_amp[r][c]/adc[r][c] );  
+      	}
+      } else if (m == 57) { // m = block with no signal + 7
+      	if( (gPulse[r-1][c+1]&&gPulse[r+2][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2]) ){
+      	  if(trigAmp) {
+      	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
+      	  }else{
+      	    hADCamp[r][c]->Fill( adc_amp[r][c] );
+      	  }
+      	  hamptointratio[r][c]->Fill( adc_amp[r][c]/adc[r][c] );  
+      	}
+      }
+      // SH 7.4 (45)
+      else if (m == 38) { // m = block with no signal - 7
+      	if( (gPulse[r][c+1]&&gPulse[r+4][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2]) ){
+      	  if(trigAmp) {
+      	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
+      	  }else{
+      	    hADCamp[r][c]->Fill( adc_amp[r][c] );
+      	  }
+      	  hamptointratio[r][c]->Fill( adc_amp[r][c]/adc[r][c] );  
+      	}
+      } 
+      else if (m == 59) { // m = block with no signal + 7
+      	if( (gPulse[r-2][c+1]&&gPulse[r+2][c+1]) && (!gPulse[r+1][c]&&!gPulse[r+1][c+2]) ){
+      	  if(trigAmp) {
+      	    hADCamp[r][c]->Fill( trigTofadc_ratiosSH[m]*adc_amp[r][c] ); 
+      	  }else{
+      	    hADCamp[r][c]->Fill( adc_amp[r][c] );
+      	  }
+      	  hamptointratio[r][c]->Fill( adc_amp[r][c]/adc[r][c] );  
+      	}
+      }
       // ------
 
       else{  // all other rows
