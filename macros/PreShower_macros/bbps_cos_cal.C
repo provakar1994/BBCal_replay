@@ -437,7 +437,14 @@ void bbps_cos_cal ( int nrun=366, int event=-1, bool userInput=1 ){
 	hADCamp[r][c]->GetYaxis()->SetLabelSize(0.06);
 	hADCamp[r][c]->SetLineColor(kBlue+1);
 	hADCamp[r][c]->Draw();
-      }else hADCamp[r][c]->Draw();
+      }else {
+	if(c%2==0){
+	  hADCamp[r][c]->SetTitle(TString::Format("PS-R%d | Amp  ",r+1));
+	}else{
+	  hADCamp[r][c]->SetTitle(TString::Format("PS-L%d | Amp  ",r+1));
+	}
+	hADCamp[r][c]->Draw();
+      }
 
       gPad->Update();
 
