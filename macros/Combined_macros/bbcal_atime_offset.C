@@ -141,6 +141,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   Double_t atppos_nom = -40.; // ns Nominal ADC time peak position determined by the latency in FADC config file
   Double_t atppos_old = 0.;   // ns Current BBCAL ADC time peak position
   Double_t atppos_new = 0.;   // ns Desired BBCAL ADC time peak position after calibration
+  Double_t hcal_atppos = 0.;  // ns HCAL ADC time peak position
 
   // Reading configfile
   ifstream configfile(configfilename);
@@ -173,6 +174,7 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
       if (skey == "atppos_nom") atppos_nom = ((TObjString*)(*tokens)[1])->GetString().Atof();
       if (skey == "atppos_old") atppos_old = ((TObjString*)(*tokens)[1])->GetString().Atof();
       if (skey == "atppos_new") atppos_new = ((TObjString*)(*tokens)[1])->GetString().Atof();
+      if (skey == "hcal_atppos") hcal_atppos = ((TObjString*)(*tokens)[1])->GetString().Atof();
       if( skey == "*****" ){
 	break;
       }
@@ -206,6 +208,8 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   Double_t ps_atimeblk;  C->SetBranchStatus("bb.ps.atimeblk",1); C->SetBranchAddress("bb.ps.atimeblk",&ps_atimeblk);
   Double_t ps_idblk;     C->SetBranchStatus("bb.ps.idblk",1); C->SetBranchAddress("bb.ps.idblk",&ps_idblk);
   Double_t ps_clblk_atime[maxtr]; C->SetBranchStatus("bb.ps.clus_blk.atime",1); C->SetBranchAddress("bb.ps.clus_blk.atime",&ps_clblk_atime);
+  //hcal
+  Double_t hcal_atimeblk;C->SetBranchStatus("sbs.hcal.atimeblk",1); C->SetBranchAddress("sbs.hcal.atimeblk",&hcal_atimeblk);
   //gem
   Double_t p[maxtr];     C->SetBranchStatus("bb.tr.p",1); C->SetBranchAddress("bb.tr.p",&p);
   Double_t pz[maxtr];    C->SetBranchStatus("bb.tr.pz",1); C->SetBranchAddress("bb.tr.pz",&pz);
@@ -335,6 +339,13 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   TH2F *h2_atimeOffPS_vs_rnum = new TH2F("h2_atimeOffPS_vs_rnum","Before offset correction (PS);Run no.;TH ClusTmean - PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_bin,h_atime_off_min,h_atime_off_max);
   TH2F *h2_atimeOffPS_vs_rnum_corr = new TH2F("h2_atimeOffPS_vs_rnum_corr","After offset correction (PS);Run no.;TH ClusTmean - PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_corr_bin,h_atime_off_corr_min,h_atime_off_corr_max);
 
+  Double_t coin_ppos = hcal_atppos - atppos_old;
+  Double_t coin_ppos_corr = hcal_atppos - atppos_new;
+  TH2F *h2_ShHcalCoin_vs_rnum = new TH2F("h2_ShHcalCoin_vs_rnum","Before offset correction (SH);Run no.;HCAL ADCtime - SH ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_bin,coin_ppos-20.,coin_ppos+20.); 
+  TH2F *h2_ShHcalCoin_vs_rnum_corr = new TH2F("h2_ShHcalCoin_vs_rnum_corr","After offset correction (SH);Run no.;HCAL ADCtime - SH ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_corr_bin,coin_ppos_corr-20.,coin_ppos_corr+20.); 
+  TH2F *h2_PsHcalCoin_vs_rnum = new TH2F("h2_PsHcalCoin_vs_rnum","Before offset correction (PS);Run no.;HCAL ADCtime - PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_bin,coin_ppos-20.,coin_ppos+20.);
+  TH2F *h2_PsHcalCoin_vs_rnum_corr = new TH2F("h2_PsHcalCoin_vs_rnum_corr","After offset correction (PS);Run no.;HCAL ADCtime - PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_off_corr_bin,coin_ppos_corr-20.,coin_ppos_corr+20.);
+
   TH2F *h2_atimeSH_vs_rnum = new TH2F("h2_atimeSH_vs_rnum","Before offset correction (SH);Run no.;SH ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_bin,h_atime_min,h_atime_max);
   TH2F *h2_atimeSH_vs_rnum_corr = new TH2F("h2_atimeSH_vs_rnum_corr","After offset correction (SH);Run no.;SH ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_corr_bin,h_atime_corr_min,h_atime_corr_max);
   TH2F *h2_atimePS_vs_rnum = new TH2F("h2_atimePS_vs_rnum","Before offset correction (PS);Run no.;PS ADCtime (ns)",Nruns,0.5,Nruns+0.5,h_atime_bin,h_atime_min,h_atime_max);
@@ -423,6 +434,9 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 
       h2_atimeOffSH_vs_rnum->Fill(itrrun, sh_atimeOff);
       h2_atimeOffPS_vs_rnum->Fill(itrrun, ps_atimeOff);
+
+      h2_ShHcalCoin_vs_rnum->Fill(itrrun, sh_atimeblk-hcal_atimeblk);
+      h2_PsHcalCoin_vs_rnum->Fill(itrrun, ps_atimeblk-hcal_atimeblk);
       // --
 
       // filling histograms with offset for correction
@@ -441,8 +455,9 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   cout << endl << endl; 
 
   // customizing histos with run # on the x-axis
-  Custm2DRnumHisto(h2_atimeSH_vs_rnum, lrnum); Custm2DRnumHisto(h2_atimeOffSH_vs_rnum, lrnum); 
-  Custm2DRnumHisto(h2_atimePS_vs_rnum, lrnum); Custm2DRnumHisto(h2_atimeOffPS_vs_rnum, lrnum);
+  Custm2DRnumHisto(h2_atimeSH_vs_rnum, lrnum); Custm2DRnumHisto(h2_atimePS_vs_rnum, lrnum); 
+  Custm2DRnumHisto(h2_atimeOffSH_vs_rnum, lrnum); Custm2DRnumHisto(h2_atimeOffPS_vs_rnum, lrnum);
+  Custm2DRnumHisto(h2_ShHcalCoin_vs_rnum, lrnum); Custm2DRnumHisto(h2_PsHcalCoin_vs_rnum, lrnum);
 
   ///////////////////////////////////////////////////
   // Time to calculate and report ADC time offsets //
@@ -671,13 +686,17 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
 
       h2_atimeSH_vs_rnum_corr->Fill(itrrun, sh_atime_new_shifted);
       h2_atimePS_vs_rnum_corr->Fill(itrrun, ps_atime_new_shifted);
+
+      h2_ShHcalCoin_vs_rnum_corr->Fill(itrrun, sh_atime_new_shifted-hcal_atimeblk);
+      h2_PsHcalCoin_vs_rnum_corr->Fill(itrrun, ps_atime_new_shifted-hcal_atimeblk);
     }//global cut
   } //while
   cout << endl << endl;
 
   // customizing histos with run # on the x-axis
-  Custm2DRnumHisto(h2_atimeSH_vs_rnum_corr, lrnum); Custm2DRnumHisto(h2_atimeOffSH_vs_rnum_corr, lrnum); 
-  Custm2DRnumHisto(h2_atimePS_vs_rnum_corr, lrnum); Custm2DRnumHisto(h2_atimeOffPS_vs_rnum_corr, lrnum);
+  Custm2DRnumHisto(h2_atimeSH_vs_rnum_corr, lrnum); Custm2DRnumHisto(h2_atimePS_vs_rnum_corr, lrnum); 
+  Custm2DRnumHisto(h2_atimeOffSH_vs_rnum_corr, lrnum); Custm2DRnumHisto(h2_atimeOffPS_vs_rnum_corr, lrnum);
+  Custm2DRnumHisto(h2_ShHcalCoin_vs_rnum_corr, lrnum); Custm2DRnumHisto(h2_PsHcalCoin_vs_rnum_corr, lrnum);
 
   ///////////////////////////////////////////////////////
   // Time to get the ADC time offsets after correction //
@@ -881,54 +900,82 @@ void bbcal_atime_offset (char const * configfilename, bool isdebug = 1) {
   c5->SaveAs(Form("%s",outPeaks.Data())); c5->Write();
   //**** -- ***//
 
-  /**** Canvas 6 (SH atime vs. rnum) ****/
-  TCanvas *c6 = new TCanvas("c6","SH off. vs. rnum",1200,800);
+  /**** Canvas 6 (HCAL-SH coin vs. rnum) ****/
+  TCanvas *c6 = new TCanvas("c6","HCAL-SH coin vs. rnum",1200,800);
   c6->Divide(1,2);
   c6->cd(1); //
   gPad->SetGridy();
-  h2_atimeSH_vs_rnum->SetStats(0);
-  h2_atimeSH_vs_rnum->Draw("colz");
+  h2_ShHcalCoin_vs_rnum->SetStats(0);
+  h2_ShHcalCoin_vs_rnum->Draw("colz");
   c6->cd(2); //
   gPad->SetGridy();
-  h2_atimeSH_vs_rnum_corr->SetStats(0);
-  h2_atimeSH_vs_rnum_corr->Draw("colz");
+  h2_ShHcalCoin_vs_rnum_corr->SetStats(0);
+  h2_ShHcalCoin_vs_rnum_corr->Draw("colz");
   c6->SaveAs(Form("%s",outPeaks.Data())); c6->Write();
   //**** -- ***//
 
-  /**** Canvas 7 (SH atime vs. rnum) ****/
-  TCanvas *c7 = new TCanvas("c7","PS off. vs. rnum",1200,800);
+  /**** Canvas 7 (HCAL-PS coin vs. rnum) ****/
+  TCanvas *c7 = new TCanvas("c7","HCAL-PS coin vs. rnum",1200,800);
   c7->Divide(1,2);
   c7->cd(1); //
   gPad->SetGridy();
-  h2_atimePS_vs_rnum->SetStats(0);
-  h2_atimePS_vs_rnum->Draw("colz");
+  h2_PsHcalCoin_vs_rnum->SetStats(0);
+  h2_PsHcalCoin_vs_rnum->Draw("colz");
   c7->cd(2); //
   gPad->SetGridy();
-  h2_atimePS_vs_rnum_corr->SetStats(0);
-  h2_atimePS_vs_rnum_corr->Draw("colz");
+  h2_PsHcalCoin_vs_rnum_corr->SetStats(0);
+  h2_PsHcalCoin_vs_rnum_corr->Draw("colz");
   c7->SaveAs(Form("%s",outPeaks.Data())); c7->Write();
   //**** -- ***//
 
-  /**** Canvas 8 (Offsets) ****/
-  TCanvas *c8 = new TCanvas("c8","Offsets",1200,800);
-  c8->Divide(2,2);
+  /**** Canvas 8 (SH atime vs. rnum) ****/
+  TCanvas *c8 = new TCanvas("c8","SH atime vs. rnum",1200,800);
+  c8->Divide(1,2);
   c8->cd(1); //
+  gPad->SetGridy();
+  h2_atimeSH_vs_rnum->SetStats(0);
+  h2_atimeSH_vs_rnum->Draw("colz");
+  c8->cd(2); //
+  gPad->SetGridy();
+  h2_atimeSH_vs_rnum_corr->SetStats(0);
+  h2_atimeSH_vs_rnum_corr->Draw("colz");
+  c8->SaveAs(Form("%s",outPeaks.Data())); c8->Write();
+  //**** -- ***//
+
+  /**** Canvas 9 (SH atime vs. rnum) ****/
+  TCanvas *c9 = new TCanvas("c9","PS atime vs. rnum",1200,800);
+  c9->Divide(1,2);
+  c9->cd(1); //
+  gPad->SetGridy();
+  h2_atimePS_vs_rnum->SetStats(0);
+  h2_atimePS_vs_rnum->Draw("colz");
+  c9->cd(2); //
+  gPad->SetGridy();
+  h2_atimePS_vs_rnum_corr->SetStats(0);
+  h2_atimePS_vs_rnum_corr->Draw("colz");
+  c9->SaveAs(Form("%s",outPeaks.Data())); c9->Write();
+  //**** -- ***//
+
+  /**** Canvas 10 (Offsets) ****/
+  TCanvas *c10 = new TCanvas("c10","Offsets",1200,800);
+  c10->Divide(2,2);
+  c10->cd(1); //
   h2_atimeOffPS_detview->SetStats(0);
   h2_atimeOffPS_detview->Draw("colz text");
   h2_atimeOffPS_detview->GetZaxis()->SetRangeUser(atppos_nom+atppos_old-15,atppos_nom+atppos_old+15);
-  c8->cd(2); //
+  c10->cd(2); //
   h2_atimeOffPS_detview_corr->SetStats(0);
   h2_atimeOffPS_detview_corr->Draw("colz text");
   h2_atimeOffPS_detview_corr->GetZaxis()->SetRangeUser(atppos_nom+atppos_new-15,atppos_nom+atppos_new+15);
-  c8->cd(3); //
+  c10->cd(3); //
   h2_atimeOffSH_detview->SetStats(0);
   h2_atimeOffSH_detview->Draw("colz text");
   h2_atimeOffSH_detview->GetZaxis()->SetRangeUser(atppos_nom+atppos_old-15,atppos_nom+atppos_old+15);
-  c8->cd(4); //
+  c10->cd(4); //
   h2_atimeOffSH_detview_corr->SetStats(0);
   h2_atimeOffSH_detview_corr->Draw("colz text");
   h2_atimeOffSH_detview_corr->GetZaxis()->SetRangeUser(atppos_nom+atppos_new-15,atppos_nom + atppos_new+15);
-  c8->SaveAs(Form("%s",outPeaks.Data())); c8->Write();
+  c10->SaveAs(Form("%s",outPeaks.Data())); c10->Write();
   //**** -- ***//
 
   /**** Summary Canvas ****/
