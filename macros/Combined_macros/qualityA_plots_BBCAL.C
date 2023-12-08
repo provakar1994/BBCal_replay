@@ -194,6 +194,7 @@ void qualityA_plots_BBCAL(TString outFileBase = "qulaityA_plots_BBCAL.root",
   UInt_t trigbits;             C->SetBranchAddress("fEvtHdr.fTrigBits", &trigbits);
   ULong64_t gevnum;            C->SetBranchAddress("fEvtHdr.fEvtNum", &gevnum);
   // turning on additional branches for the global cut
+  C->SetBranchStatus("e.kine.W2", 1);
   C->SetBranchStatus("sbs.hcal.e", 1);
   C->SetBranchStatus("bb.gem.track.nhits", 1);
 
