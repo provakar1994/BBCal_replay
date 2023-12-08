@@ -461,7 +461,7 @@ void qualityA_plots_BBCAL(TString outFileBase = "qulaityA_plots_BBCAL.root",
   h2_PSeng_vs_PSblk->SetStats(0);
   h2_PSeng_vs_PSblk->Draw("colz text");
   c1->SaveAs(Form("%s[",plotsFile.Data()),"pdf");
-  c1->SaveAs(Form("%s",plotsFile.Data()),"pdf");
+  c1->SaveAs(Form("%s",plotsFile.Data()),"pdf"); c1->Write();
   // ***** 
 
   // creating another canvas to show all the interesting plots
@@ -501,7 +501,7 @@ void qualityA_plots_BBCAL(TString outFileBase = "qulaityA_plots_BBCAL.root",
   // h2_PSeng_vs_trY->Draw("colz");
   h2_PSeng_vs_trYatPS->SetStats(0);
   h2_PSeng_vs_trYatPS->Draw("colz");
-  c2->SaveAs(Form("%s",plotsFile.Data()),"pdf");
+  c2->SaveAs(Form("%s",plotsFile.Data()),"pdf"); c2->Write();
   // *****
 
   /**** Canvas 3 (E/p vs. run number) ****/
@@ -513,7 +513,7 @@ void qualityA_plots_BBCAL(TString outFileBase = "qulaityA_plots_BBCAL.root",
   Custm2DRnumHisto(h2_EovP_vs_rnum,lrnum);
   h2_EovP_vs_rnum->Draw("colz");
   h2_EovP_vs_rnum_prof->Draw("same");
-  c3->SaveAs(Form("%s",plotsFile.Data()),"pdf");
+  c3->SaveAs(Form("%s",plotsFile.Data()),"pdf"); c3->Write();
 
   /**** Canvas 4 (SH off. vs. rnum) ****/
   TCanvas *c4 = new TCanvas("c4","TH-BBCAL coin vs blk",1200,800);
@@ -528,7 +528,7 @@ void qualityA_plots_BBCAL(TString outFileBase = "qulaityA_plots_BBCAL.root",
   h2_ThPsCoin_vs_blk->SetStats(0);
   h2_ThPsCoin_vs_blk->Draw("colz");
   h2_ThPsCoin_vs_blk_prof->Draw("same");
-  c4->SaveAs(Form("%s",plotsFile.Data()));
+  c4->SaveAs(Form("%s",plotsFile.Data())); c4->Write();
   //**** -- ***//
 
   /**** Canvas 5 (PS off. vs. rnum) ****/
@@ -544,7 +544,7 @@ void qualityA_plots_BBCAL(TString outFileBase = "qulaityA_plots_BBCAL.root",
   h2_ThPsCoin_vs_rnum->SetStats(0);
   h2_ThPsCoin_vs_rnum->Draw("colz");
   h2_ThPsCoin_vs_rnum_prof->Draw("same");
-  c5->SaveAs(Form("%s",plotsFile.Data()));
+  c5->SaveAs(Form("%s",plotsFile.Data())); c5->Write();
   //**** -- ***//
 
   /**** Canvas 6 (HCAL-SH coin vs. rnum) ****/
@@ -560,7 +560,7 @@ void qualityA_plots_BBCAL(TString outFileBase = "qulaityA_plots_BBCAL.root",
   h2_PsHcalCoin_vs_rnum->SetStats(0);
   h2_PsHcalCoin_vs_rnum->Draw("colz");
   h2_PsHcalCoin_vs_rnum_prof->Draw("same");
-  c6->SaveAs(Form("%s",plotsFile.Data())); 
+  c6->SaveAs(Form("%s",plotsFile.Data())); c6->Write();
 
   /**** Canvas 9 (SH atime vs. rnum) ****/
   TCanvas *c7 = new TCanvas("c7","BBCAL atime vs rnum",1200,800);
@@ -575,7 +575,7 @@ void qualityA_plots_BBCAL(TString outFileBase = "qulaityA_plots_BBCAL.root",
   h2_atimePS_vs_rnum->SetStats(0);
   h2_atimePS_vs_rnum->Draw("colz");
   h2_atimePS_vs_rnum_prof->Draw("same");
-  c7->SaveAs(Form("%s]",plotsFile.Data()));
+  c7->SaveAs(Form("%s]",plotsFile.Data())); c7->Write();
   
   cout << "Finishing analysis..." << endl;
   cout << " --------- " << endl;
