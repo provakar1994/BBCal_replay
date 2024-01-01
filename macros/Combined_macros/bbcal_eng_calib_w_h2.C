@@ -366,6 +366,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t psClBlkE[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.e", &psClBlkE);
   Double_t psClBlkX[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.x", &psClBlkX);
   Double_t psClBlkY[maxNtr];   C->SetBranchAddress("bb.ps.clus_blk.y", &psClBlkY);
+  Double_t psClBlkRow[maxNtr]; C->SetBranchAddress("bb.ps.clus_blk.row", &psClBlkRow);
+  Double_t psClBlkCol[maxNtr]; C->SetBranchAddress("bb.ps.clus_blk.col", &psClBlkCol);
   Double_t psClBlkAtime[maxNtr]; C->SetBranchAddress("bb.ps.clus_blk.atime", &psClBlkAtime);
   Double_t psAgainblk;         if (!read_gain) C->SetBranchAddress("bb.ps.againblk", &psAgainblk);
   // bb.sh branches
@@ -383,6 +385,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   Double_t shClBlkE[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.e", &shClBlkE);
   Double_t shClBlkX[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.x", &shClBlkX);
   Double_t shClBlkY[maxNtr];   C->SetBranchAddress("bb.sh.clus_blk.y", &shClBlkY);
+  Double_t shClBlkRow[maxNtr]; C->SetBranchAddress("bb.sh.clus_blk.row", &shClBlkRow);
+  Double_t shClBlkCol[maxNtr]; C->SetBranchAddress("bb.sh.clus_blk.col", &shClBlkCol);
   Double_t shClBlkAtime[maxNtr]; C->SetBranchAddress("bb.sh.clus_blk.atime", &shClBlkAtime);
   Double_t shAgainblk;         if (!read_gain) C->SetBranchAddress("bb.sh.againblk", &shAgainblk);
   // sbs.hcal branches
@@ -520,6 +524,9 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   TH2D *h2_PSeng_vs_trXatPS_calib = new TH2D("h2_PSeng_vs_trXatPS_calib",Form("PS energy vs Track x (proj. at PS) | After Calib.%s",hecut),200,-1.,1.,200,0,4);
   TH2D *h2_PSeng_vs_trYatPS = new TH2D("h2_PSeng_vs_trYatPS",Form("PS energy vs Track y%s (proj. at PS)",hecut),200,-0.3,0.3,200,0,4);
   TH2D *h2_PSeng_vs_trYatPS_calib = new TH2D("h2_PSeng_vs_trYatPS_calib",Form("PS energy vs Track y (proj. at PS) | After Calib.%s",hecut),200,-0.3,0.3,200,0,4);  
+
+  TH2D *h2_nev_per_SHblk = new TH2D("h2_nev_per_SHblk",Form("# good events per SH block%s;SH cols;SH rows",hecut),kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);
+  TH2D *h2_nev_per_PSblk = new TH2D("h2_nev_per_PSblk",Form("# good events per PS block%s;PS cols;PS rows",hecut),kNcolsPS,0,kNcolsPS,kNrowsPS,0,kNrowsPS);
 
   TH2D *h2_PSclsize_vs_rnum = new TH2D("h2_PSclsize_vs_rnum",Form("PS (best) cluster size vs Run no.%s",hecut),Nruns,0.5,Nruns+0.5,10,0,10);
   TProfile *h2_PSclsize_vs_rnum_prof = new TProfile("h2_PSclsize_vs_rnum_prof","PS (best) cluster size vs Run no. (Profile)",Nruns,0.5,Nruns+0.5,0,10,"S");
@@ -860,6 +867,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	    }
 	  }
 	}
+	h2_nev_per_SHblk->Fill(shClBlkCol[blk],shClBlkRow[blk],1.);
 	nevents_per_cell[blkID]++; 
       }
     
@@ -880,6 +888,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
 	    }
 	  }
 	}
+	h2_nev_per_PSblk->Fill(psClBlkCol[blk],psClBlkRow[blk],1.);
 	nevents_per_cell[kNblksSH+blkID]++;
       }
 
@@ -1604,26 +1613,36 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
     c7->SaveAs(Form("%s",outPlot.Data())); c7->Write();
     //**** -- ***//
 
-    /**** Canvas 8 (cluster size) ****/
-    TCanvas *c8 = new TCanvas("c8","cl. size vs rnum",1200,1000);
-    c8->Divide(1,4);
+    /**** Canvas 8 (# events per block) ****/
+    TCanvas *c8 = new TCanvas("c8","good ev per blk",1200,1000);
+    c8->Divide(2,1);
     c8->cd(1); //
+    h2_nev_per_SHblk->Draw("colz text");
+    c8->cd(2); //
+    h2_nev_per_PSblk->Draw("colz text");
+    c8->SaveAs(Form("%s",outPlot.Data())); c8->Write();
+    //**** -- ***//
+
+    /**** Canvas 9 (cluster size) ****/
+    TCanvas *c9 = new TCanvas("c9","cl. size vs rnum",1200,1000);
+    c9->Divide(1,4);
+    c9->cd(1); //
     Custm2DRnumHisto(h2_PSclsize_vs_rnum,lrnum);
     h2_PSclsize_vs_rnum->Draw("colz");
     h2_PSclsize_vs_rnum_prof->Draw("same");
-    c8->cd(2); //
+    c9->cd(2); //
     Custm2DRnumHisto(h2_PSclmult_vs_rnum,lrnum);
     h2_PSclmult_vs_rnum->Draw("colz");
     h2_PSclmult_vs_rnum_prof->Draw("same");
-    c8->cd(3); //
+    c9->cd(3); //
     Custm2DRnumHisto(h2_SHclsize_vs_rnum,lrnum); 
     h2_SHclsize_vs_rnum->Draw("colz");
     h2_SHclsize_vs_rnum_prof->Draw("same");
-    c8->cd(4); //
+    c9->cd(4); //
     Custm2DRnumHisto(h2_SHclmult_vs_rnum,lrnum);
     h2_SHclmult_vs_rnum->Draw("colz");
     h2_SHclmult_vs_rnum_prof->Draw("same");
-    c8->SaveAs(Form("%s",outPlot.Data())); c8->Write();
+    c9->SaveAs(Form("%s",outPlot.Data())); c9->Write();
   }
   //**** -- ***//
 
@@ -1709,6 +1728,7 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   h_SHclusE->Write(); h_SHclusE_calib->Write();
   h_PSclusE->Write(); h_PSclusE_calib->Write();
   h2_SHeng_vs_SHblk->Write(); h2_PSeng_vs_PSblk->Write();
+  h2_nev_per_SHblk->Write(); h2_nev_per_PSblk->Write();
   // SH and PS cluster level histograms
   h_SHcltdiff->Write(); h_SHcltdiff_calib->Write(); 
   h_PScltdiff->Write(); h_PScltdiff_calib->Write(); 
@@ -1738,16 +1758,12 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   // gain coefficients
   h_nevent_blk_SH->Write();
   h_coeff_Ratio_SH->Write();
-  h_coeff_blk_SH->Write();
-  h_old_coeff_blk_SH->Write();
-  h2_old_coeff_detView_SH->Write();
-  h2_coeff_detView_SH->Write();
+  h_coeff_blk_SH->Write(); h_old_coeff_blk_SH->Write();
+  h2_old_coeff_detView_SH->Write(); h2_coeff_detView_SH->Write();
   h_nevent_blk_PS->Write();
   h_coeff_Ratio_PS->Write();
-  h_coeff_blk_PS->Write();
-  h_old_coeff_blk_PS->Write();
-  h2_old_coeff_detView_PS->Write();
-  h2_coeff_detView_PS->Write();
+  h_coeff_blk_PS->Write(); h_old_coeff_blk_PS->Write();
+  h2_old_coeff_detView_PS->Write(); h2_coeff_detView_PS->Write();
   
   /////////////////////////////////////
   // Clear memories & free resources //
