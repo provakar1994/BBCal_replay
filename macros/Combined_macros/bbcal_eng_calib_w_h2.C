@@ -426,6 +426,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   // turning on additional branches for the global cut
   C->SetBranchStatus("sbs.hcal.e", 1);
   C->SetBranchStatus("bb.gem.track.nhits", 1);
+  C->SetBranchStatus("bb.gem.track.ngoodhits", 1);
+  C->SetBranchStatus("bb.gem.track.chi2ndf", 1);
 
   // Clear arrays
   memset(nevents_per_cell, 0, ncell*sizeof(int));
@@ -1525,10 +1527,10 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   /**** Canvas 5 (E/p vs. run number) ****/
   TCanvas *c5 = new TCanvas("c5","E/p vs rnum",1200,1000);
   c5->Divide(1,2);
-  // manipulating urnum vector
-  std::size_t nrun = lrnum.size();
-  if (nrun!=Nruns)
-    std::cout << "*!*[WARNING] 'Nruns' value in run list doesn't match with total # runs analyzed!\n\n"; 
+  // // manipulating urnum vector
+  // std::size_t nrun = lrnum.size();
+  // if (nrun!=Nruns)
+  //   std::cout << "*!*[WARNING] 'Nruns' value in run list doesn't match with total # runs analyzed!\n\n"; 
   c5->cd(1); //
   gPad->SetGridy();
   gStyle->SetErrorX(0.0001); 
