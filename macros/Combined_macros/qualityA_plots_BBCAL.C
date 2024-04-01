@@ -197,6 +197,10 @@ void qualityA_plots_BBCAL(TString outFileBase = "qulaityA_plots_BBCAL.root",
   C->SetBranchStatus("e.kine.W2", 1);
   C->SetBranchStatus("sbs.hcal.e", 1);
   C->SetBranchStatus("bb.gem.track.nhits", 1);
+  C->SetBranchStatus("bb.gem.track.ngoodhits", 1);
+  C->SetBranchStatus("bb.gem.track.chi2ndf", 1);
+  C->SetBranchStatus("bb.grinch_tdc.clus.trackindex", 1);
+  C->SetBranchStatus("bb.grinch_tdc.clus.size", 1);
 
   // Defining temporary histograms (don't wanna write them to files)
   TH2F *h2_SHeng_vs_SHblk_raw = new TH2F("h2_SHeng_vs_SHblk_raw","Raw E_clus(SH) per SH block",kNcolsSH,0,kNcolsSH,kNrowsSH,0,kNrowsSH);

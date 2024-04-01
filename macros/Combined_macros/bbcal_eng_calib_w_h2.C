@@ -428,6 +428,8 @@ void bbcal_eng_calib_w_h2(char const *configfilename,
   C->SetBranchStatus("bb.gem.track.nhits", 1);
   C->SetBranchStatus("bb.gem.track.ngoodhits", 1);
   C->SetBranchStatus("bb.gem.track.chi2ndf", 1);
+  C->SetBranchStatus("bb.grinch_tdc.clus.trackindex", 1);
+  C->SetBranchStatus("bb.grinch_tdc.clus.size", 1);
 
   // Clear arrays
   memset(nevents_per_cell, 0, ncell*sizeof(int));
